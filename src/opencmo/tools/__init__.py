@@ -3,7 +3,7 @@ from .search import web_search
 from .seo_audit import audit_page_seo
 from .competitor import analyze_competitor
 from .geo import scan_geo_visibility
-from .community import scan_community
+from .community import scan_community, fetch_discussion_detail
 
 __all__ = [
     "crawl_website",
@@ -12,4 +12,5 @@ __all__ = [
     "analyze_competitor",
     "scan_geo_visibility",
     "scan_community",
+    "fetch_discussion_detail",
 ]

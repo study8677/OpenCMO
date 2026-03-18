@@ -127,7 +127,7 @@ cmo_agent = Agent(
         ),
         handoff(
             community_agent,
-            tool_description_override="Transfer to community monitor to scan Reddit and Hacker News discussions and draft replies.",
+            tool_description_override="Transfer to community monitor to scan Reddit, Hacker News, Dev.to and other platforms for brand discussions, fetch post details, and draft context-aware replies.",
         ),
     ],
     model="gpt-4o",

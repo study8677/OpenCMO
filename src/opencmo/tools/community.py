@@ -1,118 +1,231 @@
+"""Community monitoring tools — scan_community + fetch_discussion_detail."""
+
+from __future__ import annotations
+
 import json
-from urllib.parse import quote_plus
+from dataclasses import asdict
+from datetime import datetime
 
 from agents import function_tool
-from crawl4ai import AsyncWebCrawler
 
-from opencmo.tools.crawl import _extract_markdown
+from opencmo.tools.community_providers import (
+    PROVIDER_REGISTRY,
+    DiscussionDetail,
+    DiscussionHit,
+    DisabledProvider,
+    ProviderError,
+    ScanResult,
+    SuggestedQuery,
+    _truncate,
+)
+
+# ---------------------------------------------------------------------------
+# Stub query templates (brand / category / current_year placeholders)
+# ---------------------------------------------------------------------------
+
+_STUB_QUERIES: dict[str, list[dict]] = {
+    "twitter": [
+        {"query": '"{brand}" site:x.com OR site:twitter.com', "reason": "stub — no free API"},
+    ],
+    "linkedin": [
+        {"query": '"{brand}" site:linkedin.com', "reason": "stub — no public search API"},
+    ],
+    "producthunt": [
+        {"query": '"{brand}" site:producthunt.com', "reason": "stub — requires API token"},
+    ],
+    "blog": [
+        {"query": '"{brand}" review OR alternative OR vs', "reason": "stub — no unified API"},
+        {"query": "best {category} tools {current_year}", "reason": "stub — category discovery"},
+    ],
+}
+
+
+def _render_stub_queries(
+    provider_name: str, brand_name: str, category: str,
+) -> list[SuggestedQuery]:
+    templates = _STUB_QUERIES.get(provider_name, [])
+    year = str(datetime.now().year)
+    out: list[SuggestedQuery] = []
+    for t in templates:
+        q = t["query"].replace("{brand}", brand_name).replace("{category}", category).replace("{current_year}", year)
+        out.append(SuggestedQuery(
+            platform=provider_name,
+            provider=provider_name,
+            query=q,
+            reason=t["reason"],
+        ))
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Output trimming
+# ---------------------------------------------------------------------------
+
+_MAX_JSON_CHARS = 8000
+
+
+def _trim_scan_result(sr: ScanResult) -> ScanResult:
+    """Trim ScanResult to fit within output budget. Mutates and returns sr."""
+    serialized = json.dumps(asdict(sr), ensure_ascii=False)
+    if len(serialized) <= _MAX_JSON_CHARS:
+        return sr
+
+    # Step 1: shorten all previews to 100 chars
+    for h in sr.hits:
+        h.preview = _truncate(h.preview, 100)
+    serialized = json.dumps(asdict(sr), ensure_ascii=False)
+    if len(serialized) <= _MAX_JSON_CHARS:
+        return sr
+
+    # Step 2: remove lowest-engagement hits one at a time
+    sr.hits.sort(key=lambda h: (h.engagement_score, h.raw_score))
+    while len(serialized) > _MAX_JSON_CHARS and sr.hits:
+        sr.hits.pop(0)
+        serialized = json.dumps(asdict(sr), ensure_ascii=False)
+
+    return sr
+
+
+# ---------------------------------------------------------------------------
+# scan_community
+# ---------------------------------------------------------------------------
+
+
+async def _scan_community_impl(brand_name: str, category: str) -> str:
+    """Core scan logic — called by the function_tool wrapper and tests."""
+    result = ScanResult()
+
+    for provider in PROVIDER_REGISTRY:
+        if not provider.is_enabled:
+            # Disabled / stub → generate suggested queries + record
+            result.disabled_providers.append(DisabledProvider(
+                name=provider.name,
+                reason=f"stub — {provider.status}" if provider.status == "stub" else "disabled",
+            ))
+            result.suggested_queries.extend(
+                _render_stub_queries(provider.name, brand_name, category),
+            )
+            continue
+
+        # Enabled provider → call search
+        try:
+            pr = await provider.search(brand_name, category)
+        except Exception as exc:
+            result.provider_errors.append(ProviderError(
+                provider=provider.name,
+                errors=[str(exc)],
+            ))
+            continue
+
+        # Merge hits (per-provider top-10 by engagement_score)
+        sorted_hits = sorted(pr.hits, key=lambda h: h.engagement_score, reverse=True)[:10]
+        result.hits.extend(sorted_hits)
+
+        # Collect errors
+        if pr.errors:
+            result.provider_errors.append(ProviderError(
+                provider=provider.name,
+                errors=pr.errors,
+            ))
+
+        # Collect suggested queries
+        result.suggested_queries.extend(pr.suggested_queries)
+
+    # Deduplicate suggested_queries by (platform, query)
+    seen_sq: set[tuple[str, str]] = set()
+    unique_sq: list[SuggestedQuery] = []
+    for sq in result.suggested_queries:
+        key = (sq.platform, sq.query)
+        if key not in seen_sq:
+            seen_sq.add(key)
+            unique_sq.append(sq)
+    result.suggested_queries = unique_sq
+
+    # Deterministic sort: platform asc, engagement desc, raw_score desc, detail_id asc
+    result.hits.sort(key=lambda h: (h.platform, -h.engagement_score, -h.raw_score, h.detail_id))
+
+    # Trim to fit output budget
+    result = _trim_scan_result(result)
+
+    return json.dumps(asdict(result), ensure_ascii=False)
 
 
 @function_tool
 async def scan_community(brand_name: str, category: str) -> str:
-    """Scan Reddit and Hacker News for brand/category discussions.
+    """Scan Reddit, Hacker News, Dev.to and other platforms for brand/category discussions.
 
-    Uses HN Algolia API (free, no key needed) and crawls Reddit search results.
-    Returns structured list of relevant discussions with titles, links, and scores.
+    Returns a structured JSON envelope with hits, disabled platforms, errors, and
+    suggested web-search queries for platforms without free API access.
 
     Args:
         brand_name: The brand or product name to search for.
         category: The product category for broader search context.
     """
-    results: dict[str, list[dict]] = {"hackernews": [], "reddit": []}
+    return await _scan_community_impl(brand_name, category)
 
-    async with AsyncWebCrawler() as crawler:
-        # --- Hacker News via Algolia API ---
-        hn_url = f"https://hn.algolia.com/api/v1/search?query={quote_plus(brand_name)}&tags=story&hitsPerPage=10"
-        try:
-            hn_result = await crawler.arun(url=hn_url)
-            hn_content = _extract_markdown(hn_result)
-            # Try to parse JSON from the response
-            try:
-                hn_data = json.loads(hn_content.strip())
-                for hit in hn_data.get("hits", [])[:10]:
-                    results["hackernews"].append({
-                        "title": hit.get("title", ""),
-                        "url": f"https://news.ycombinator.com/item?id={hit.get('objectID', '')}",
-                        "points": hit.get("points", 0),
-                        "comments": hit.get("num_comments", 0),
-                        "date": hit.get("created_at", ""),
-                        "author": hit.get("author", ""),
-                    })
-            except (json.JSONDecodeError, TypeError):
-                # Fallback: return raw content for agent analysis
-                results["hackernews"] = [{"raw_content": hn_content[:3000]}]
-        except Exception as e:
-            results["hackernews"] = [{"error": str(e)}]
 
-        # Also search by category for broader context
-        hn_cat_url = f"https://hn.algolia.com/api/v1/search?query={quote_plus(category)}&tags=story&hitsPerPage=5"
-        try:
-            hn_cat_result = await crawler.arun(url=hn_cat_url)
-            hn_cat_content = _extract_markdown(hn_cat_result)
-            try:
-                hn_cat_data = json.loads(hn_cat_content.strip())
-                for hit in hn_cat_data.get("hits", [])[:5]:
-                    results["hackernews"].append({
-                        "title": hit.get("title", ""),
-                        "url": f"https://news.ycombinator.com/item?id={hit.get('objectID', '')}",
-                        "points": hit.get("points", 0),
-                        "comments": hit.get("num_comments", 0),
-                        "date": hit.get("created_at", ""),
-                        "author": hit.get("author", ""),
-                        "source": "category_search",
-                    })
-            except (json.JSONDecodeError, TypeError):
-                pass
-        except Exception:
-            pass
+# ---------------------------------------------------------------------------
+# fetch_discussion_detail
+# ---------------------------------------------------------------------------
 
-        # --- Reddit via crawl ---
-        reddit_url = f"https://www.reddit.com/search/?q={quote_plus(brand_name)}&sort=relevance&t=year"
-        try:
-            reddit_result = await crawler.arun(url=reddit_url)
-            reddit_content = _extract_markdown(reddit_result)
-            # Reddit search results are HTML, the agent will need to analyze the markdown
-            results["reddit"] = [{"raw_content": reddit_content[:5000]}]
-        except Exception as e:
-            results["reddit"] = [{"error": str(e)}]
+# Build provider lookup once
+_PROVIDER_MAP = {p.name: p for p in PROVIDER_REGISTRY}
 
-    # Build report
-    lines = [
-        f"# Community Scan: {brand_name}",
-        f"**Category**: {category}\n",
-        "## Hacker News Discussions\n",
-    ]
 
-    hn_items = results["hackernews"]
-    if hn_items and "error" in hn_items[0]:
-        lines.append(f"Error: {hn_items[0]['error']}\n")
-    elif hn_items and "raw_content" in hn_items[0]:
-        lines.append("Could not parse structured data. Raw content:\n")
-        lines.append(hn_items[0]["raw_content"][:2000])
-    else:
-        for item in hn_items:
-            points = item.get("points", 0)
-            comments = item.get("comments", 0)
-            lines.append(
-                f"- **{item['title']}** — {points} points, {comments} comments"
-            )
-            lines.append(f"  {item['url']}")
-            if item.get("date"):
-                lines.append(f"  Date: {item['date']}")
-            lines.append("")
+@function_tool
+async def fetch_discussion_detail(
+    platform: str,
+    detail_id: str,
+    extra_param_1: str = "",
+    extra_param_2: str = "",
+) -> str:
+    """Fetch full post content and top comments for a discussion.
 
-    lines.append("\n## Reddit Discussions\n")
-    reddit_items = results["reddit"]
-    if reddit_items and "error" in reddit_items[0]:
-        lines.append(f"Error: {reddit_items[0]['error']}\n")
-    else:
-        lines.append("Raw search results (for agent analysis):\n")
-        for item in reddit_items:
-            lines.append(item.get("raw_content", "No content found")[:3000])
+    Use the platform, detail_id, extra_param_1 and extra_param_2 values
+    directly from scan_community results.
 
-    lines.append(
-        "\n---\n*The community agent will analyze these results, identify high-value discussions, "
-        "and draft suggested replies. Replies are never auto-posted.*"
+    Args:
+        platform: The platform name (e.g. "reddit", "hackernews", "devto").
+        detail_id: The post/story/article ID from scan_community results.
+        extra_param_1: Platform-specific parameter (e.g. subreddit name for Reddit). Empty if not needed.
+        extra_param_2: Reserved for future platforms. Currently always empty.
+    """
+    provider = _PROVIDER_MAP.get(platform)
+    if provider is None:
+        return json.dumps({"ok": False, "error": "platform_not_found"})
+
+    if "detail" not in provider.capabilities:
+        return json.dumps({"ok": False, "error": "detail_not_supported"})
+
+    # Build a minimal DiscussionHit for the provider
+    hit = DiscussionHit(
+        platform=platform,
+        title="",
+        url="",
+        engagement_score=0,
+        raw_score=0,
+        comments_count=0,
+        age_days=0,
+        author="",
+        detail_id=detail_id,
+        extra_param_1=extra_param_1,
+        extra_param_2=extra_param_2,
+        preview="",
+        source="",
     )
 
-    return "\n".join(lines)
+    try:
+        detail = await provider.fetch_detail(hit)
+    except Exception:
+        return json.dumps({"ok": False, "error": "fetch_failed"})
+
+    if detail is None:
+        return json.dumps({"ok": False, "error": "not_found"})
+
+    # Enforce limits
+    detail.full_content = _truncate(detail.full_content, 2000)
+    detail.comments = detail.comments[:10]
+    for c in detail.comments:
+        c["text"] = _truncate(c.get("text", ""), 500)
+
+    return json.dumps({"ok": True, "detail": asdict(detail)}, ensure_ascii=False)

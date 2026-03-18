@@ -22,6 +22,7 @@ def test_imports():
         analyze_competitor,
         scan_geo_visibility,
         scan_community,
+        fetch_discussion_detail,
     )
     # Just verify they exist
     assert cmo_agent is not None
@@ -97,7 +98,7 @@ def test_geo_agent_has_tools():
 def test_community_agent_has_tools():
     from opencmo.agents import community_agent
 
-    assert len(community_agent.tools) >= 2, "Community agent needs scan_community + web_search"
+    assert len(community_agent.tools) >= 3, "Community agent needs scan_community + fetch_discussion_detail + web_search"
 
 
 def test_markdown_extraction():

@@ -13,6 +13,7 @@ dependencies = [
     "openai-agents>=0.12.4",
     "crawl4ai",
     "python-dotenv",
+    "httpx>=0.27",
 ]
 
 [project.scripts]
