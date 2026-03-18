@@ -38,6 +38,10 @@ async def run_cli():
         print()
 
         input_items = result.to_input_list()
+        # Truncate history to prevent context explosion with search/SEO/GEO reports
+        MAX_HISTORY = 20
+        if len(input_items) > MAX_HISTORY:
+            input_items = input_items[:1] + input_items[-(MAX_HISTORY - 1):]
 
 
 def main():
