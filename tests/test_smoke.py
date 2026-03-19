@@ -23,10 +23,18 @@ def test_imports():
         scan_geo_visibility,
         scan_community,
         fetch_discussion_detail,
+        check_keyword_ranking,
+        get_serp_trends,
+        research_blog_topic,
+        send_email_report,
+        publish_to_reddit,
+        publish_to_twitter,
     )
     # Just verify they exist
     assert cmo_agent is not None
     assert crawl_website is not None
+    assert check_keyword_ranking is not None
+    assert publish_to_reddit is not None
 
 
 def test_cmo_has_tools_and_handoffs():
@@ -86,7 +94,10 @@ def test_all_experts_have_instructions():
 def test_seo_agent_has_tools():
     from opencmo.agents import seo_agent
 
-    assert len(seo_agent.tools) >= 2, "SEO agent needs audit_page_seo + web_search"
+    assert len(seo_agent.tools) >= 4, "SEO agent needs audit_page_seo + web_search + serp tools"
+    tool_names = [t.name for t in seo_agent.tools if hasattr(t, "name")]
+    assert "check_keyword_ranking" in tool_names
+    assert "get_serp_trends" in tool_names
 
 
 def test_geo_agent_has_tools():
@@ -99,6 +110,30 @@ def test_community_agent_has_tools():
     from opencmo.agents import community_agent
 
     assert len(community_agent.tools) >= 3, "Community agent needs scan_community + fetch_discussion_detail + web_search"
+
+
+def test_blog_expert_has_tools():
+    from opencmo.agents import blog_expert
+
+    assert len(blog_expert.tools) >= 3, "Blog expert needs web_search + crawl_website + research_blog_topic"
+    tool_names = [t.name for t in blog_expert.tools if hasattr(t, "name")]
+    assert "research_blog_topic" in tool_names
+
+
+def test_reddit_expert_has_publish_tool():
+    from opencmo.agents import reddit_expert
+
+    assert len(reddit_expert.tools) >= 1
+    tool_names = [t.name for t in reddit_expert.tools if hasattr(t, "name")]
+    assert "publish_to_reddit" in tool_names
+
+
+def test_twitter_expert_has_publish_tool():
+    from opencmo.agents import twitter_expert
+
+    assert len(twitter_expert.tools) >= 1
+    tool_names = [t.name for t in twitter_expert.tools if hasattr(t, "name")]
+    assert "publish_to_twitter" in tool_names
 
 
 def test_markdown_extraction():

@@ -76,6 +76,36 @@ async def project_geo(request: Request, project_id: int):
     })
 
 
+@app.get("/project/{project_id}/serp", response_class=HTMLResponse)
+async def project_serp(request: Request, project_id: int):
+    project = await storage.get_project(project_id)
+    if not project:
+        return HTMLResponse("Project not found", status_code=404)
+    serp_latest = await storage.get_all_serp_latest(project_id)
+    keywords = await storage.list_tracked_keywords(project_id)
+    # Merge latest SERP data into keyword list
+    serp_map = {s["keyword"]: s for s in serp_latest}
+    kw_data = []
+    for kw in keywords:
+        s = serp_map.get(kw["keyword"], {})
+        kw_data.append({
+            "keyword": kw["keyword"],
+            "position": s.get("position"),
+            "url_found": s.get("url_found"),
+            "provider": s.get("provider"),
+            "error": s.get("error"),
+            "checked_at": s.get("checked_at"),
+        })
+    # Build serp_history length for chart toggle
+    serp_history = serp_latest  # Use as proxy for "has data"
+    return _TEMPLATES.TemplateResponse("serp.html", {
+        "request": request,
+        "project": project,
+        "keywords": kw_data,
+        "serp_history": serp_history,
+    })
+
+
 @app.get("/project/{project_id}/community", response_class=HTMLResponse)
 async def project_community(request: Request, project_id: int):
     project = await storage.get_project(project_id)
@@ -118,6 +148,35 @@ async def api_geo_data(project_id: int):
         "position": [s["position_score"] for s in history],
         "sentiment": [s["sentiment_score"] for s in history],
     })
+
+
+@app.get("/api/project/{project_id}/serp-data")
+async def api_serp_data(project_id: int):
+    keywords = await storage.list_tracked_keywords(project_id)
+    result = {"labels": [], "keywords": [], "positions": {}}
+    if not keywords:
+        return JSONResponse(result)
+
+    # Gather history for each keyword
+    all_dates: set[str] = set()
+    kw_history: dict[str, list[dict]] = {}
+    for kw in keywords:
+        history = await storage.get_serp_history(project_id, kw["keyword"], limit=30)
+        history.reverse()  # oldest first
+        kw_history[kw["keyword"]] = history
+        for h in history:
+            all_dates.add(h["checked_at"][:10])
+
+    labels = sorted(all_dates)
+    result["labels"] = labels
+    result["keywords"] = [kw["keyword"] for kw in keywords]
+
+    for kw in keywords:
+        history = kw_history[kw["keyword"]]
+        date_map = {h["checked_at"][:10]: h["position"] for h in history if not h.get("error")}
+        result["positions"][kw["keyword"]] = [date_map.get(d) for d in labels]
+
+    return JSONResponse(result)
 
 
 @app.get("/api/project/{project_id}/community-data")

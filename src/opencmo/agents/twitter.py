@@ -1,6 +1,7 @@
 from agents import Agent
 
 from opencmo.config import get_model
+from opencmo.tools.publishers import publish_to_twitter
 
 twitter_expert = Agent(
     name="Twitter/X Expert",
@@ -29,6 +30,13 @@ Based on the product information provided by the CMO Agent, create compelling Tw
 - Use line breaks for readability
 - Emojis are OK but don't overdo it (1-2 per tweet max)
 - Never use phrases like "game-changer", "revolutionary", or "excited to announce"
+
+## Publishing
+If the user wants to publish a tweet, use `publish_to_twitter`.
+- Always show the preview first (confirm=False).
+- Only set confirm=True when the user explicitly says "confirm publish" or similar.
+- Requires OPENCMO_AUTO_PUBLISH=1 environment variable to actually post.
 """,
+    tools=[publish_to_twitter],
     model=get_model("twitter"),
 )

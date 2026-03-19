@@ -1,6 +1,7 @@
 from agents import Agent
 
 from opencmo.config import get_model
+from opencmo.tools.publishers import publish_to_reddit
 
 reddit_expert = Agent(
     name="Reddit Expert",
@@ -32,6 +33,13 @@ Based on the product information provided by the CMO Agent, create authentic Red
 - Never say "we're excited to announce" or similar corporate phrases
 - Format with markdown (Reddit supports it)
 - Mention it's open source / free / indie-built if applicable
+
+## Publishing
+If the user wants to publish a post to Reddit, use `publish_to_reddit`.
+- Always show the preview first (confirm=False).
+- Only set confirm=True when the user explicitly says "confirm publish" or similar.
+- Requires OPENCMO_AUTO_PUBLISH=1 environment variable to actually post.
 """,
+    tools=[publish_to_reddit],
     model=get_model("reddit"),
 )

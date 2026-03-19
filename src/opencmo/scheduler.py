@@ -28,13 +28,30 @@ def _require_apscheduler():
         )
 
 
-async def run_scheduled_scan(project_id: int, job_type: str, job_id: int | None = None):
+async def _maybe_send_email_report(project_id: int, job_type: str, triggered_by: str):
+    """Send email report only for (full, cron) runs."""
+    if job_type != "full" or triggered_by != "cron":
+        return
+    try:
+        from opencmo.tools.email_report import _get_smtp_config, send_report_impl
+
+        if _get_smtp_config() is None:
+            return
+        await send_report_impl(project_id)
+    except Exception:
+        logger.exception("Email report failed for project %d", project_id)
+
+
+async def run_scheduled_scan(
+    project_id: int, job_type: str, job_id: int | None = None, triggered_by: str = "cron"
+):
     """Execute a scan directly (no LLM), save results to DB.
 
     Args:
         project_id: The project to scan.
         job_type: One of 'seo', 'geo', 'community', 'full'.
         job_id: Optional scheduled_jobs.id to update last_run_at.
+        triggered_by: "cron" (scheduled) or "manual" (CLI).
     """
     project = await storage.get_project(project_id)
     if not project:
@@ -76,6 +93,15 @@ async def run_scheduled_scan(project_id: int, job_type: str, job_id: int | None 
             logger.info("SEO scan saved for project %d", project_id)
         except Exception:
             logger.exception("SEO scan failed for project %d", project_id)
+
+        # SERP tracking (independent — runs even if SEO audit fails)
+        try:
+            from opencmo.tools.serp_tracker import track_project_keywords
+
+            await track_project_keywords(project_id)
+            logger.info("SERP tracking done for project %d", project_id)
+        except Exception:
+            logger.exception("SERP tracking failed for project %d", project_id)
 
     if job_type in ("geo", "full"):
         try:
@@ -145,6 +171,9 @@ async def run_scheduled_scan(project_id: int, job_type: str, job_id: int | None 
             await storage.update_job_last_run(job_id)
         except Exception:
             pass
+
+    # Email report (only for cron + full)
+    await _maybe_send_email_report(project_id, job_type, triggered_by)
 
 
 def get_scheduler() -> "AsyncIOScheduler":

@@ -38,7 +38,7 @@ hackernews_tool = hackernews_expert.as_tool(
 )
 blog_tool = blog_expert.as_tool(
     tool_name="generate_blog_content",
-    tool_description="Generate blog/SEO article outline, opening paragraph, and SEO recommendations.",
+    tool_description="Generate blog/SEO article outlines, SEO recommendations, or full 2000+ word articles with research.",
 )
 
 cmo_agent = Agent(
@@ -75,7 +75,7 @@ cmo_agent = Agent(
 6. **For follow-up requests**: Maintain context from previous interactions. If the user asks for modifications (e.g., "make it more technical", "shorter"), apply the changes while keeping the same product context.
 
 ## Important Rules
-- ALWAYS crawl the website first before generating any content (unless the URL was already crawled in the conversation).
+- Crawl the website first if a URL is provided (unless already crawled in the conversation). If the user gives enough product context without a URL, proceed directly.
 - After crawling, briefly share your product analysis (one-liner, selling points, target audience) with the user before routing to experts.
 - When using handoff, the product analysis context is passed automatically.
 - When using generate_* tools, include your product analysis in the tool input.

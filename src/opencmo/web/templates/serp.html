@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}SERP — {{ project.brand_name }}{% endblock %}
+{% block content %}
+<h1>SERP Rankings: {{ project.brand_name }}</h1>
+<p><a href="/project/{{ project.id }}">&larr; Back to overview</a></p>
+
+{% if keywords %}
+<h2>Tracked Keywords</h2>
+<table>
+    <tr><th>Keyword</th><th>Latest Position</th><th>URL Found</th><th>Provider</th><th>Last Checked</th></tr>
+    {% for kw in keywords %}
+    <tr>
+        <td>{{ kw.keyword }}</td>
+        <td>
+            {% if kw.error %}
+            <span style="color:#dc2626">error</span>
+            {% elif kw.position is not none %}
+            #{{ kw.position }}
+            {% else %}
+            not ranked
+            {% endif %}
+        </td>
+        <td>{{ (kw.url_found or '—')[:60] }}</td>
+        <td>{{ kw.provider or '—' }}</td>
+        <td>{{ (kw.checked_at or '—')[:16] }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No tracked keywords yet. Add keywords via CLI: <code>/keywords &lt;project_id&gt; add "keyword"</code></p>
+{% endif %}
+
+{% if serp_history|length > 1 %}
+<h2>Ranking Trends</h2>
+<canvas id="serpChart" height="100"></canvas>
+<script>
+fetch('/api/project/{{ project.id }}/serp-data').then(r=>r.json()).then(d=>{
+    const colors = ['#2563eb','#dc2626','#059669','#d97706','#7c3aed','#ec4899'];
+    const datasets = d.keywords.map((kw, i) => ({
+        label: kw,
+        data: d.positions[kw],
+        borderColor: colors[i % colors.length],
+        tension: 0.3,
+        spanGaps: true,
+    }));
+    new Chart(document.getElementById('serpChart'), {
+        type: 'line',
+        data: { labels: d.labels, datasets: datasets },
+        options: {
+            scales: {
+                y: { reverse: true, beginAtZero: false, title: { display: true, text: 'Position' } }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

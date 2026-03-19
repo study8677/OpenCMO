@@ -85,6 +85,25 @@ CREATE TABLE IF NOT EXISTS scheduled_jobs (
     next_run_at TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS tracked_keywords (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    keyword TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(project_id, keyword)
+);
+
+CREATE TABLE IF NOT EXISTS serp_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    keyword TEXT NOT NULL,
+    position INTEGER,
+    url_found TEXT,
+    provider TEXT NOT NULL,
+    error TEXT,
+    checked_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
@@ -452,7 +471,7 @@ async def get_discussion_snapshots(discussion_id: int) -> list[dict]:
 
 
 async def get_latest_scans(project_id: int) -> dict:
-    """Get the latest scan of each type for a project."""
+    """Get the latest scan of each type for a project, including SERP summary."""
     db = await get_db()
     try:
         seo = await db.execute(
@@ -473,10 +492,180 @@ async def get_latest_scans(project_id: int) -> dict:
         )
         comm_row = await comm.fetchone()
 
+        # SERP: latest snapshot per keyword (error IS NULL only)
+        serp_cur = await db.execute(
+            """SELECT keyword, position, checked_at FROM serp_snapshots
+               WHERE project_id = ? AND error IS NULL
+               AND id IN (
+                   SELECT MAX(id) FROM serp_snapshots
+                   WHERE project_id = ? AND error IS NULL
+                   GROUP BY keyword
+               )
+               ORDER BY keyword""",
+            (project_id, project_id),
+        )
+        serp_rows = await serp_cur.fetchall()
+        serp_summary = [
+            {"keyword": r[0], "position": r[1], "checked_at": r[2]}
+            for r in serp_rows
+        ] if serp_rows else []
+
         return {
             "seo": {"scanned_at": seo_row[0], "score": seo_row[1]} if seo_row else None,
             "geo": {"scanned_at": geo_row[0], "score": geo_row[1]} if geo_row else None,
             "community": {"scanned_at": comm_row[0], "total_hits": comm_row[1]} if comm_row else None,
+            "serp": serp_summary,
         }
+    finally:
+        await db.close()
+
+
+async def get_previous_scans(project_id: int) -> dict | None:
+    """Get the second-most-recent scan of each type (for delta calculation)."""
+    db = await get_db()
+    try:
+        seo = await db.execute(
+            "SELECT scanned_at, score_performance FROM seo_scans WHERE project_id = ? ORDER BY scanned_at DESC LIMIT 1 OFFSET 1",
+            (project_id,),
+        )
+        seo_row = await seo.fetchone()
+
+        geo = await db.execute(
+            "SELECT scanned_at, geo_score FROM geo_scans WHERE project_id = ? ORDER BY scanned_at DESC LIMIT 1 OFFSET 1",
+            (project_id,),
+        )
+        geo_row = await geo.fetchone()
+
+        if not seo_row and not geo_row:
+            return None
+
+        result = {}
+        if seo_row:
+            result["seo"] = {"scanned_at": seo_row[0], "score": seo_row[1]}
+        if geo_row:
+            result["geo"] = {"scanned_at": geo_row[0], "score": geo_row[1]}
+        return result
+    finally:
+        await db.close()
+
+
+# --- Tracked keywords & SERP snapshots ---
+
+async def add_tracked_keyword(project_id: int, keyword: str) -> int:
+    """Add a keyword to the tracked list. Returns keyword id."""
+    db = await get_db()
+    try:
+        await db.execute(
+            "INSERT OR IGNORE INTO tracked_keywords (project_id, keyword) VALUES (?, ?)",
+            (project_id, keyword),
+        )
+        await db.commit()
+        cursor = await db.execute(
+            "SELECT id FROM tracked_keywords WHERE project_id = ? AND keyword = ?",
+            (project_id, keyword),
+        )
+        row = await cursor.fetchone()
+        return row[0]
+    finally:
+        await db.close()
+
+
+async def list_tracked_keywords(project_id: int) -> list[dict]:
+    """Return all tracked keywords for a project."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, keyword, created_at FROM tracked_keywords WHERE project_id = ? ORDER BY id",
+            (project_id,),
+        )
+        rows = await cursor.fetchall()
+        return [{"id": r[0], "keyword": r[1], "created_at": r[2]} for r in rows]
+    finally:
+        await db.close()
+
+
+async def remove_tracked_keyword(keyword_id: int) -> bool:
+    """Remove a tracked keyword by id. Returns True if deleted."""
+    db = await get_db()
+    try:
+        cursor = await db.execute("DELETE FROM tracked_keywords WHERE id = ?", (keyword_id,))
+        await db.commit()
+        return cursor.rowcount > 0
+    finally:
+        await db.close()
+
+
+async def save_serp_snapshot(
+    project_id: int,
+    keyword: str,
+    position: int | None,
+    url_found: str | None,
+    provider: str,
+    error: str | None,
+) -> int:
+    """Save a SERP ranking snapshot. Returns snapshot id."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """INSERT INTO serp_snapshots
+               (project_id, keyword, position, url_found, provider, error)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (project_id, keyword, position, url_found, provider, error),
+        )
+        await db.commit()
+        return cursor.lastrowid
+    finally:
+        await db.close()
+
+
+async def get_serp_history(
+    project_id: int, keyword: str, limit: int = 20
+) -> list[dict]:
+    """Return recent SERP snapshots for a project+keyword."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """SELECT id, keyword, position, url_found, provider, error, checked_at
+               FROM serp_snapshots
+               WHERE project_id = ? AND keyword = ?
+               ORDER BY checked_at DESC LIMIT ?""",
+            (project_id, keyword, limit),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "id": r[0], "keyword": r[1], "position": r[2], "url_found": r[3],
+                "provider": r[4], "error": r[5], "checked_at": r[6],
+            }
+            for r in rows
+        ]
+    finally:
+        await db.close()
+
+
+async def get_all_serp_latest(project_id: int) -> list[dict]:
+    """Return latest SERP snapshot per keyword for a project."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """SELECT keyword, position, url_found, provider, error, checked_at
+               FROM serp_snapshots
+               WHERE project_id = ?
+               AND id IN (
+                   SELECT MAX(id) FROM serp_snapshots
+                   WHERE project_id = ?
+                   GROUP BY keyword
+               )
+               ORDER BY keyword""",
+            (project_id, project_id),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "keyword": r[0], "position": r[1], "url_found": r[2],
+                "provider": r[3], "error": r[4], "checked_at": r[5],
+            }
+            for r in rows
+        ]
     finally:
         await db.close()

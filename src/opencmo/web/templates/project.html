@@ -7,6 +7,7 @@
 <div class="nav-tabs">
     <a href="/project/{{ project.id }}/seo">SEO Details</a>
     <a href="/project/{{ project.id }}/geo">GEO Details</a>
+    <a href="/project/{{ project.id }}/serp">SERP Rankings</a>
     <a href="/project/{{ project.id }}/community">Community</a>
 </div>
 
@@ -29,6 +30,18 @@
         <p class="big-number">{{ latest.geo.score }}/100</p>
         {% else %}
         <p>No GEO data yet</p>
+        {% endif %}
+    </div>
+    <div class="panel">
+        <h2>SERP</h2>
+        {% if latest.serp %}
+        <p>{{ latest.serp|length }} keyword(s) tracked</p>
+        {% for s in latest.serp[:3] %}
+        <p>{{ s.keyword }}: {% if s.position %}#{{ s.position }}{% else %}n/r{% endif %}</p>
+        {% endfor %}
+        {% if latest.serp|length > 3 %}<p><a href="/project/{{ project.id }}/serp">see all</a></p>{% endif %}
+        {% else %}
+        <p>No SERP data yet</p>
         {% endif %}
     </div>
     <div class="panel">

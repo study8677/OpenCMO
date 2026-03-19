@@ -17,12 +17,13 @@ async def _handle_monitor(args: list[str]) -> str:
     sub = args[0]
 
     if sub == "add":
-        # /monitor add <brand> <url> <category> [--type full] [--cron "0 9 * * *"]
+        # /monitor add <brand> <url> <category> [--type full] [--cron "0 9 * * *"] [--keywords "kw1,kw2"]
         if len(args) < 4:
-            return "Usage: /monitor add <brand_name> <url> <category> [--type full|seo|geo|community] [--cron '0 9 * * *']"
+            return "Usage: /monitor add <brand_name> <url> <category> [--type full|seo|geo|community] [--cron '0 9 * * *'] [--keywords 'kw1,kw2']"
         brand, url, category = args[1], args[2], args[3]
         job_type = "full"
         cron_expr = "0 9 * * *"
+        keywords_str = ""
         i = 4
         while i < len(args):
             if args[i] == "--type" and i + 1 < len(args):
@@ -31,22 +32,37 @@ async def _handle_monitor(args: list[str]) -> str:
             elif args[i] == "--cron" and i + 1 < len(args):
                 cron_expr = args[i + 1]
                 i += 2
+            elif args[i] == "--keywords" and i + 1 < len(args):
+                keywords_str = args[i + 1]
+                i += 2
             else:
                 i += 1
 
         project_id = await storage.ensure_project(brand, url, category)
         job_id = await storage.add_scheduled_job(project_id, job_type, cron_expr)
-        return f"Monitor #{job_id} created: {brand} ({url}) — {job_type} scan, cron: {cron_expr}"
+
+        # Add tracked keywords if provided
+        kw_msg = ""
+        if keywords_str:
+            kw_list = [k.strip() for k in keywords_str.split(",") if k.strip()]
+            for kw in kw_list:
+                await storage.add_tracked_keyword(project_id, kw)
+            kw_msg = f"\n  Keywords tracked: {', '.join(kw_list)}"
+
+        return (
+            f"Monitor #{job_id} created (project #{project_id}): {brand} ({url}) — "
+            f"{job_type} scan, cron: {cron_expr}{kw_msg}"
+        )
 
     elif sub == "list":
         jobs = await storage.list_scheduled_jobs()
         if not jobs:
             return "No monitors configured. Use /monitor add to create one."
-        lines = ["| ID | Brand | URL | Type | Cron | Enabled | Last Run |",
-                 "|----|-------|-----|------|------|---------|----------|"]
+        lines = ["| ID | PID | Brand | URL | Type | Cron | Enabled | Last Run |",
+                 "|----|-----|-------|-----|------|------|---------|----------|"]
         for j in jobs:
             lines.append(
-                f"| {j['id']} | {j['brand_name']} | {j['url'][:30]} | {j['job_type']} "
+                f"| {j['id']} | {j['project_id']} | {j['brand_name']} | {j['url'][:30]} | {j['job_type']} "
                 f"| {j['cron_expr']} | {'Yes' if j['enabled'] else 'No'} | {j['last_run_at'] or 'never'} |"
             )
         return "\n".join(lines)
@@ -69,7 +85,7 @@ async def _handle_monitor(args: list[str]) -> str:
 
         from opencmo.scheduler import run_scheduled_scan
         print(f"Running {job['job_type']} scan for {job['brand_name']}...")
-        await run_scheduled_scan(job["project_id"], job["job_type"], job_id)
+        await run_scheduled_scan(job["project_id"], job["job_type"], job_id, triggered_by="manual")
         return f"Scan complete for monitor #{job_id}."
 
     elif sub == "history":
@@ -82,7 +98,12 @@ async def _handle_monitor(args: list[str]) -> str:
             latest = await storage.get_latest_scans(job["project_id"])
             lines = [f"Latest scans for {job['brand_name']}:"]
             for scan_type, data in latest.items():
-                if data:
+                if scan_type == "serp":
+                    if data:
+                        lines.append(f"  serp: {len(data)} keyword(s) tracked")
+                    else:
+                        lines.append("  serp: no data")
+                elif data:
                     lines.append(f"  {scan_type}: {data}")
                 else:
                     lines.append(f"  {scan_type}: no data")
@@ -91,6 +112,88 @@ async def _handle_monitor(args: list[str]) -> str:
             return "Usage: /monitor history <id>"
 
     return f"Unknown subcommand: {sub}"
+
+
+async def _resolve_project_id(id_or_brand: str) -> tuple[int | None, str]:
+    """Resolve project_id from int or brand_name. Returns (id, error_msg)."""
+    from opencmo import storage
+
+    # Try as int first
+    try:
+        pid = int(id_or_brand)
+        project = await storage.get_project(pid)
+        if project:
+            return pid, ""
+        return None, f"Project #{pid} not found."
+    except ValueError:
+        pass
+
+    # Try as brand_name
+    projects = await storage.list_projects()
+    matches = [p for p in projects if p["brand_name"].lower() == id_or_brand.lower()]
+    if len(matches) == 1:
+        return matches[0]["id"], ""
+    elif len(matches) > 1:
+        ids = ", ".join(f"#{p['id']}" for p in matches)
+        return None, f"Multiple projects match '{id_or_brand}': {ids}. Use project ID instead."
+    return None, f"No project found for '{id_or_brand}'."
+
+
+async def _handle_keywords(args: list[str]) -> str:
+    """Handle /keywords <id_or_brand> [list|add|rm] subcommands."""
+    from opencmo import storage
+
+    if not args:
+        return "Usage: /keywords <project_id_or_brand> [list|add \"keyword\"|rm <keyword_id>]"
+
+    pid, err = await _resolve_project_id(args[0])
+    if err:
+        return err
+
+    sub = args[1] if len(args) > 1 else "list"
+
+    if sub == "list":
+        keywords = await storage.list_tracked_keywords(pid)
+        if not keywords:
+            return f"No tracked keywords for project #{pid}. Use: /keywords {pid} add \"keyword\""
+        lines = [f"Tracked keywords for project #{pid}:"]
+        for kw in keywords:
+            lines.append(f"  [{kw['id']}] {kw['keyword']} (since {kw['created_at'][:10]})")
+        return "\n".join(lines)
+
+    elif sub == "add":
+        if len(args) < 3:
+            return "Usage: /keywords <id> add \"keyword\""
+        keyword = " ".join(args[2:])
+        kw_id = await storage.add_tracked_keyword(pid, keyword)
+        return f"Keyword '{keyword}' added (id: {kw_id}) to project #{pid}."
+
+    elif sub == "rm":
+        if len(args) < 3:
+            return "Usage: /keywords <id> rm <keyword_id>"
+        kw_id = int(args[2])
+        ok = await storage.remove_tracked_keyword(kw_id)
+        return f"Keyword #{kw_id} removed." if ok else f"Keyword #{kw_id} not found."
+
+    return f"Unknown subcommand: {sub}. Use list, add, or rm."
+
+
+async def _handle_report(args: list[str]) -> str:
+    """Handle /report <project_id> — send email report."""
+    if not args:
+        return "Usage: /report <project_id>"
+
+    pid, err = await _resolve_project_id(args[0])
+    if err:
+        return err
+
+    from opencmo.tools.email_report import send_report_impl
+    print(f"Generating report for project #{pid}...")
+    result = await send_report_impl(pid)
+    if result["ok"]:
+        return f"Report sent to {result['recipient']}"
+    else:
+        return f"Failed: {result['error']}"
 
 
 async def _handle_status() -> str:
@@ -104,10 +207,11 @@ async def _handle_status() -> str:
     lines = ["# Project Status\n"]
     for p in projects:
         latest = await storage.get_latest_scans(p["id"])
-        lines.append(f"## {p['brand_name']} ({p['url']})")
+        lines.append(f"## [#{p['id']}] {p['brand_name']} ({p['url']})")
         seo = latest.get("seo")
         geo = latest.get("geo")
         comm = latest.get("community")
+        serp = latest.get("serp", [])
         if seo and seo.get("score") is not None:
             seo_str = f"score {seo['score']:.0%}, last {seo['scanned_at'][:10]}"
         elif seo:
@@ -119,6 +223,12 @@ async def _handle_status() -> str:
         lines.append(f"  SEO: {seo_str}")
         lines.append(f"  GEO: {geo_str}")
         lines.append(f"  Community: {comm_str}")
+        if serp:
+            serp_parts = []
+            for s in serp:
+                pos = f"#{s['position']}" if s['position'] else "n/r"
+                serp_parts.append(f"{s['keyword']}={pos}")
+            lines.append(f"  SERP: {', '.join(serp_parts)}")
         lines.append("")
 
     return "\n".join(lines)
@@ -145,7 +255,7 @@ async def run_cli():
     print("=" * 60)
     print("  OpenCMO - Your AI Chief Marketing Officer")
     print("  Type a product URL and what you need, or 'quit' to exit.")
-    print("  Commands: /monitor, /status, /web")
+    print("  Commands: /monitor, /status, /keywords, /report, /web")
     print("=" * 60)
     print()
 
@@ -189,12 +299,28 @@ async def run_cli():
                     print(f"\nError: {e}\n")
                 continue
 
+            elif cmd == "/keywords":
+                try:
+                    result = await _handle_keywords(parts[1:])
+                    print(f"\n{result}\n")
+                except Exception as e:
+                    print(f"\nError: {e}\n")
+                continue
+
+            elif cmd == "/report":
+                try:
+                    result = await _handle_report(parts[1:])
+                    print(f"\n{result}\n")
+                except Exception as e:
+                    print(f"\nError: {e}\n")
+                continue
+
             elif cmd == "/web":
                 _handle_web(parts[1:])
                 continue
 
             else:
-                print(f"\nUnknown command: {cmd}. Available: /monitor, /status, /web\n")
+                print(f"\nUnknown command: {cmd}. Available: /monitor, /status, /keywords, /report, /web\n")
                 continue
 
         input_items.append({"role": "user", "content": user_input})
