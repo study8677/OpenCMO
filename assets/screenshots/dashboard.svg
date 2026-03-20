@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" fill="none">
+  <rect width="800" height="450" rx="12" fill="#f8fafc"/>
+  <rect x="0" y="0" width="200" height="450" rx="12" fill="url(#sidebar)"/>
+  <text x="24" y="36" font-family="system-ui" font-size="16" font-weight="bold" fill="white">OpenCMO</text>
+  <rect x="16" y="56" width="168" height="36" rx="10" fill="rgba(99,102,241,0.2)"/>
+  <text x="40" y="79" font-family="system-ui" font-size="13" fill="white">Dashboard</text>
+  <text x="40" y="115" font-family="system-ui" font-size="13" fill="#94a3b8">Monitors</text>
+  <text x="40" y="147" font-family="system-ui" font-size="13" fill="#94a3b8">AI Chat</text>
+  <!-- Main content -->
+  <text x="224" y="48" font-family="system-ui" font-size="20" font-weight="bold" fill="#0f172a">Dashboard</text>
+  <!-- Cards -->
+  <rect x="224" y="70" width="170" height="120" rx="16" fill="white" stroke="#e2e8f0"/>
+  <text x="244" y="100" font-family="system-ui" font-size="14" font-weight="600" fill="#0f172a">MyProduct</text>
+  <text x="244" y="118" font-family="system-ui" font-size="10" fill="#94a3b8">myproduct.com</text>
+  <rect x="238" y="132" width="68" height="40" rx="8" fill="#ecfdf5"/>
+  <text x="252" y="149" font-family="system-ui" font-size="9" fill="#059669">SEO</text>
+  <text x="252" y="164" font-family="system-ui" font-size="12" font-weight="bold" fill="#059669">92%</text>
+  <rect x="314" y="132" width="68" height="40" rx="8" fill="#ecfdf5"/>
+  <text x="328" y="149" font-family="system-ui" font-size="9" fill="#059669">GEO</text>
+  <text x="328" y="164" font-family="system-ui" font-size="12" font-weight="bold" fill="#059669">78/100</text>
+  <rect x="414" y="70" width="170" height="120" rx="16" fill="white" stroke="#e2e8f0"/>
+  <text x="434" y="100" font-family="system-ui" font-size="14" font-weight="600" fill="#0f172a">OpenCMO</text>
+  <text x="434" y="118" font-family="system-ui" font-size="10" fill="#94a3b8">github.com/...</text>
+  <rect x="428" y="132" width="68" height="40" rx="8" fill="#f8fafc"/>
+  <text x="442" y="149" font-family="system-ui" font-size="9" fill="#64748b">SEO</text>
+  <text x="442" y="164" font-family="system-ui" font-size="12" font-weight="bold" fill="#64748b">—</text>
+  <rect x="504" y="132" width="68" height="40" rx="8" fill="#f0f9ff"/>
+  <text x="518" y="149" font-family="system-ui" font-size="9" fill="#0284c7">Community</text>
+  <text x="518" y="164" font-family="system-ui" font-size="12" font-weight="bold" fill="#0284c7">12 hits</text>
+  <defs><linearGradient id="sidebar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f172a"/><stop offset="1" stop-color="#1e293b"/></linearGradient></defs>
+</svg>

@@ -34,6 +34,12 @@ def _get_custom_client():
     return _custom_client
 
 
+def reset_client():
+    """Reset the cached client so next call uses current env vars."""
+    global _custom_client
+    _custom_client = None
+
+
 def is_custom_provider() -> bool:
     """True if a non-default OPENAI_BASE_URL is configured."""
     return bool(os.environ.get("OPENAI_BASE_URL"))
@@ -60,3 +66,16 @@ def get_model(agent_name: str):
         )
 
     return model_name
+
+
+async def apply_runtime_settings():
+    """Load API settings from DB and apply to os.environ + reset client cache."""
+    from opencmo import storage
+
+    for key in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENCMO_MODEL_DEFAULT"):
+        val = await storage.get_setting(key)
+        if val:
+            os.environ[key] = val
+        # If DB value was cleared but env had it from .env, keep it
+
+    reset_client()

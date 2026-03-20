@@ -9,3 +9,5 @@ build/
 venv/
 *.egg
 .crawl4ai/
+frontend/node_modules/
+frontend/dist/

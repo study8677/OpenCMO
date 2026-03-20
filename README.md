@@ -1,13 +1,13 @@
 <div align="center">
-  <img src="assets/logo.png" alt="OpenCMO Logo" width="200" />
+  <img src="assets/logo.png" alt="OpenCMO Logo" width="120" />
 </div>
 
 <h1 align="center">OpenCMO</h1>
 
-<div align="center">
-  <strong>The open-source AI CMO that does what $99/month tools do — for free.</strong>
-</div>
-<br/>
+<p align="center">
+  <strong>Open-source AI CMO — your full marketing team in one tool.</strong><br/>
+  <sub>Multi-agent system with 10 expert agents, real-time monitoring, and a modern web dashboard.</sub>
+</p>
 
 <div align="center">
   <a href="README.md">🇺🇸 English</a> | <a href="README_zh.md">🇨🇳 中文</a> | <a href="README_ja.md">🇯🇵 日本語</a> | <a href="README_ko.md">🇰🇷 한국어</a> | <a href="README_es.md">🇪🇸 Español</a>
@@ -21,74 +21,47 @@
 
 ---
 
-> **Okara charges $99/month. We charge $0.** And we cover more platforms.
+## Screenshots
+
+<div align="center">
+  <img src="assets/screenshots/dashboard.svg" alt="Dashboard" width="700" />
+  <br/><sub>Project dashboard with SEO, GEO, Community & SERP scores</sub>
+</div>
+<br/>
+<div align="center">
+  <img src="assets/screenshots/chat-agents.svg" alt="AI Chat with Agent Selection" width="700" />
+  <br/><sub>Chat with 10 AI experts — pick one or let CMO auto-route</sub>
+</div>
+<br/>
+<div align="center">
+  <img src="assets/screenshots/monitor-analysis.svg" alt="Multi-Agent Analysis" width="700" />
+  <br/><sub>Multi-agent strategy discussion: 3 roles × 3 rounds → keywords & monitoring plan</sub>
+</div>
+
+---
 
 ## What is OpenCMO?
 
-OpenCMO is a multi-agent AI system that acts as your full marketing team. Give it a URL — it crawls your site, extracts selling points, and generates ready-to-post content for **9 channels** through a simple CLI.
+OpenCMO is a **multi-agent AI marketing system** for indie developers and small teams. Enter a URL — the system crawls your site, runs a multi-agent strategy discussion, and automatically sets up monitoring for SEO, AI visibility, and community discussions.
 
-Built for **indie developers and small teams** who'd rather ship than write marketing copy.
+### Key Capabilities
 
-## Why OpenCMO over paid alternatives?
-
-| Capability | Okara ($99/mo) | OpenCMO (Free) |
-|---|:---:|:---:|
-| Twitter/X content | Yes | Yes |
-| Reddit posts | Generate only | Generate + Monitor |
-| LinkedIn posts | Planned | Yes |
-| Product Hunt launch copy | No | Yes |
-| Hacker News posts | Monitor only | Generate + Monitor |
-| Blog/SEO articles | No | Yes |
-| Web search (trends/competitors) | Yes | Yes |
-| SEO audit (CWV + Schema.org + robots/sitemap) | Basic | Yes |
-| GEO score (5 AI platforms) | Yes | Yes |
-| Community monitoring + pattern analysis | Yes | Yes |
-| Competitor analysis | Yes | Yes |
-| Continuous monitoring (scheduler) | Yes | Yes |
-| Web dashboard with trend charts | Yes | Yes |
-| Configurable models per agent | No | Yes |
-| Multi-channel in one command | No | Yes |
-| Open source | No | Yes |
-| **Platforms covered** | **3** | **9** |
-
-## Features
-
-### 9 Platform Experts
-- **Twitter/X** — Tweet variants & threads with scroll-stopping hooks
-- **Reddit** — Authentic, story-driven posts for r/SideProject and niche subs
-- **LinkedIn** — Professional, data-driven posts without corporate jargon
-- **Product Hunt** — Taglines, descriptions, and Maker's first comment
-- **Hacker News** — Understated, technically-focused Show HN posts
-- **Blog/SEO** — SEO-friendly article outlines for Medium and Dev.to
-
-### Marketing Intelligence
-- **SEO Audit** — Core Web Vitals (LCP/CLS/TBT via Google PageSpeed), Schema.org/JSON-LD detection, robots.txt/sitemap.xml checks, on-page analysis — each issue with copy-pasteable fix
-- **GEO Score** — AI search visibility across 5 platforms: Perplexity, You.com (crawl-based), ChatGPT, Claude, Gemini (API-based, opt-in)
-- **Competitor Analysis** — Structured intelligence: features, pricing, positioning, differentiation
-- **Community Monitor** — Scan Reddit + HN + Dev.to, track discussions over time, analyze engagement patterns, draft authentic replies
-- **Web Search** — Real-time competitive research, market trends, keyword discovery
-
-### Continuous Monitoring
-- **Scheduler** — Cron-based automated scans (SEO/GEO/Community) via `/monitor` CLI commands
-- **Trend Analysis** — Historical SEO & GEO score trends from persistent SQLite storage
-- **Community Patterns** — Engagement velocity, platform distribution, discussion tracking
-
-### Web Dashboard
-- **FastAPI + Chart.js** — Project overview, SEO/GEO/Community trend charts
-- **No frontend build** — Server-rendered HTML, Chart.js from CDN
-- **Start with one command** — `opencmo-web` or `/web` in CLI
-
-### Smart Orchestration
-- **Single platform** → handoff to expert for deep, interactive content creation
-- **Multi-channel** → CMO calls all experts as tools, synthesizes a unified marketing plan
-- **Configurable models** — Set `OPENCMO_MODEL_DEFAULT=gpt-4o-mini` or per-agent overrides
-- **Context-aware** — Maintains conversation history with automatic truncation
+- **10 AI Expert Agents** — Twitter/X, Reddit, LinkedIn, Product Hunt, Hacker News, Blog/SEO, SEO Audit, GEO (AI Visibility), Community Monitor, and the CMO orchestrator
+- **Smart URL Analysis** — Paste any URL; 3 AI roles (Product Analyst, SEO Specialist, Community Strategist) debate 3 rounds to extract brand name, category, and monitoring keywords
+- **Real-time Web Dashboard** — React SPA with dark sidebar, project cards, trend charts, i18n (EN/中文)
+- **Chat with Experts** — ChatGPT-style interface with conversation history; pick a specific agent or let CMO auto-route
+- **Continuous Monitoring** — Cron-based scheduled scans for SEO, GEO, and community metrics
+- **Any LLM Provider** — OpenAI, NVIDIA NIM, DeepSeek, Ollama, or any OpenAI-compatible API
 
 ## Architecture
 
 ```mermaid
 graph TD
-    User([You]) --> CMO[CMO Agent]
+    User([You]) --> Web[Web Dashboard<br/>React SPA]
+    User --> CLI[CLI]
+
+    Web --> CMO[CMO Agent]
+    CLI --> CMO
 
     CMO --> Tools[Shared Tools]
     Tools --> Crawl[Website Crawler]
@@ -105,19 +78,8 @@ graph TD
     CMO -- handoff --> GEO[GEO / AI Visibility Expert]
     CMO -- handoff --> Community[Community Monitor]
 
-    SEO --> AuditTool[SEO Audit Tool<br/>CWV + Schema + robots]
-    SEO --> TrendSEO[SEO Trends]
-    GEO --> GEOTool[GEO Scan Tool<br/>5 providers]
-    GEO --> TrendGEO[GEO Trends]
-    Community --> CommTool[Community Scan]
-    Community --> Patterns[Pattern Analysis]
-
-    Scheduler[Scheduler] --> AuditTool
-    Scheduler --> GEOTool
-    Scheduler --> CommTool
-    Scheduler --> DB[(SQLite)]
-
-    WebDash[Web Dashboard] --> DB
+    Scheduler[Scheduler] --> DB[(SQLite)]
+    Web --> DB
 ```
 
 ## Quick Start
@@ -125,104 +87,134 @@ graph TD
 ### 1. Install
 
 ```bash
-pip install -e .
+git clone https://github.com/study8677/OpenCMO.git
+cd OpenCMO
+pip install -e ".[all]"
 crawl4ai-setup
-
-# Optional: install extras
-pip install -e ".[all]"   # scheduler + web dashboard + GEO premium
 ```
 
 ### 2. Configure
 
 ```bash
 cp .env.example .env
-# Add your OpenAI API key (required)
-# Optional: ANTHROPIC_API_KEY, GOOGLE_AI_API_KEY, PAGESPEED_API_KEY
+# Edit .env — set your API key:
+#   OPENAI_API_KEY=sk-...          (OpenAI)
+#   or NVIDIA NIM / DeepSeek / Ollama — see .env.example for examples
 ```
 
 ### 3. Run
 
 ```bash
-opencmo                   # Interactive CLI
-opencmo-web               # Web dashboard (localhost:8080)
+# Web dashboard (recommended)
+opencmo-web                # → http://localhost:8080/app
+
+# CLI mode
+opencmo                    # Interactive terminal
 ```
 
-### CLI Commands
+### 4. Use
+
+1. Go to **Monitors** → paste a URL → click **Start Monitoring**
+2. Watch the AI multi-agent discussion analyze your product in real-time
+3. System auto-extracts brand name, category, and keywords
+4. Full scan runs automatically (SEO + GEO + Community)
+5. View results in **Dashboard** → click your project
+
+## Features
+
+### 🤖 10 AI Expert Agents
+
+| Agent | What it does |
+|-------|-------------|
+| **CMO Agent** | Orchestrates everything, auto-routes to the right expert |
+| **Twitter/X** | Tweets, threads & engagement hooks |
+| **Reddit** | Authentic story-driven posts for niche subreddits |
+| **LinkedIn** | Professional thought-leadership posts |
+| **Product Hunt** | Launch taglines, descriptions & maker comments |
+| **Hacker News** | Technical Show HN posts |
+| **Blog/SEO** | SEO-optimized articles (2000+ words) |
+| **SEO Audit** | Core Web Vitals, Schema.org, robots/sitemap analysis |
+| **GEO (AI Visibility)** | Brand mentions across Perplexity, You.com, ChatGPT, Claude, Gemini |
+| **Community Monitor** | Scans Reddit, HN, Dev.to for discussions |
+
+### 📊 Monitoring & Analytics
+
+- **SEO** — Performance score, LCP/CLS/TBT, Schema.org detection, robots.txt & sitemap checks
+- **GEO** — AI search visibility score (0-100) across 5 platforms
+- **SERP** — Keyword ranking tracking on Google
+- **Community** — Discussion counts, engagement scores, platform distribution
+
+### 🎯 Smart URL Analysis (Multi-Agent Discussion)
+
+When you add a URL, 3 AI roles hold a 3-round discussion:
+
+| Round | What happens |
+|-------|-------------|
+| **Round 1** | Each role gives initial analysis (product positioning, SEO keywords, community topics) |
+| **Round 2** | Roles build on each other's insights, refine keyword suggestions |
+| **Round 3** | Strategy Director synthesizes final brand name + category + 5-8 monitoring keywords |
+
+### 🌐 Web Dashboard
+
+- Dark sidebar, modern card layout
+- i18n support (English / 中文)
+- Chat with conversation history (SQLite-persisted)
+- Agent selection grid — click to chat with any expert
+- Settings dialog for API key configuration
+- Real-time analysis progress dialog
+
+### 🔧 Flexible Configuration
+
+```bash
+# OpenAI (default)
+OPENAI_API_KEY=sk-...
+
+# NVIDIA NIM
+OPENAI_API_KEY=nvapi-...
+OPENAI_BASE_URL=https://integrate.api.nvidia.com/v1
+OPENCMO_MODEL_DEFAULT=moonshotai/kimi-k2.5
+
+# DeepSeek
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=https://api.deepseek.com/v1
+OPENCMO_MODEL_DEFAULT=deepseek-chat
+
+# Local Ollama
+OPENAI_API_KEY=ollama
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENCMO_MODEL_DEFAULT=llama3
+```
+
+## CLI Commands
 
 ```
-/monitor add <brand> <url> <category>   # Add continuous monitoring
-/monitor list                            # List all monitors
-/monitor run <id>                        # Run a scan immediately
-/status                                  # Show all project scan statuses
-/web                                     # Start web dashboard
-```
+opencmo                                    # Interactive chat
+opencmo-web                                # Web dashboard
 
-## Example Sessions
-
-```text
-You: Help me create a full marketing plan for https://crawl4ai.com/
-
-[CMO Agent]
-Here's your complete multi-platform marketing plan for Crawl4AI:
-## Twitter/X  ## Reddit  ## LinkedIn  ## Product Hunt  ## Hacker News  ## Blog
-...
-```
-
-```text
-You: Audit the SEO of https://myproduct.com
-
-[SEO Audit Expert]
-# SEO Audit Report
-[OK] Performance Score: 87/100
-[WARNING] LCP: 2800ms (Good <2500ms)
-[OK] Schema.org: Found types: Organization, WebSite
-[CRITICAL] sitemap.xml: Not found
-...
-```
-
-```text
-You: What's our GEO score for "web scraping"?
-
-[AI Visibility Expert]
-# GEO Score: 62/100
-## Platform Results (2 enabled, 3 disabled)
-### Perplexity [enabled]: FOUND — 3 mentions
-### You.com [enabled]: FOUND — 1 mention
-## Disabled Platforms
-- ChatGPT: set OPENCMO_GEO_CHATGPT=1 to enable
-...
-```
-
-```text
-You: /monitor add Crawl4AI https://crawl4ai.com "web scraping"
-
-Monitor #1 created: Crawl4AI (https://crawl4ai.com) — full scan, cron: 0 9 * * *
+/monitor add <brand> <url> <category>      # Add monitoring
+/monitor list                              # List monitors
+/monitor run <id>                          # Run scan now
+/status                                    # All project statuses
+/web                                       # Start web server
 ```
 
 ## Roadmap
 
-- [x] 9 platform experts with multi-channel orchestration
-- [x] SEO audit with CWV, Schema.org, robots/sitemap
-- [x] GEO score across 5 AI platforms
-- [x] Community monitoring with pattern analysis
-- [x] Competitor analysis
-- [x] Persistent SQLite storage
-- [x] Configurable models per agent
-- [x] Scheduler for continuous monitoring
-- [x] Web dashboard with trend charts
-- [ ] Auto-publish via platform APIs
-- [ ] Full-site SEO crawl (sitemap-based)
+- [x] 10 expert agents with multi-channel orchestration
+- [x] Multi-agent URL analysis (3 roles × 3 rounds)
+- [x] React SPA dashboard with dark theme
+- [x] Chat with agent selection & conversation history
+- [x] SEO audit, GEO score, SERP tracking, community monitoring
+- [x] i18n (English / 中文)
+- [x] Settings UI for API key management
+- [x] Multi-provider support (OpenAI, NVIDIA, DeepSeek, Ollama)
+- [ ] Auto-publish to platforms
+- [ ] Full-site SEO crawl
 - [ ] Custom brand voice training
 
 ## Contributing
 
 Contributions welcome! Fork, branch, PR.
-
-**Ideas:**
-- New platform experts (YouTube, Instagram, TikTok)
-- Better prompts for existing agents
-- Web dashboard enhancements
-- Auto-publish integrations
 
 ## License
 
@@ -231,5 +223,5 @@ Apache License 2.0 — see [LICENSE](LICENSE).
 ---
 
 <div align="center">
-  If OpenCMO saves you time, a <strong>Star</strong> would mean a lot!
+  <sub>If OpenCMO helps you, a ⭐ would mean a lot!</sub>
 </div>

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" fill="none">
+  <rect width="800" height="450" rx="12" fill="#f8fafc"/>
+  <rect x="0" y="0" width="200" height="450" rx="12" fill="url(#sb)"/>
+  <text x="24" y="36" font-family="system-ui" font-size="16" font-weight="bold" fill="white">OpenCMO</text>
+  <rect x="16" y="130" width="168" height="36" rx="10" fill="rgba(99,102,241,0.2)"/>
+  <text x="40" y="153" font-family="system-ui" font-size="13" fill="white">AI Chat</text>
+  <!-- Chat sidebar -->
+  <rect x="216" y="12" width="180" height="426" rx="16" fill="white" stroke="#e2e8f0"/>
+  <rect x="228" y="24" width="156" height="36" rx="10" fill="#4f46e5"/>
+  <text x="270" y="47" font-family="system-ui" font-size="12" font-weight="600" fill="white">+ New Chat</text>
+  <text x="232" y="82" font-family="system-ui" font-size="9" fill="#94a3b8" letter-spacing="1.5" font-weight="600">TODAY</text>
+  <rect x="228" y="92" width="156" height="28" rx="8" fill="#eef2ff"/>
+  <text x="238" y="110" font-family="system-ui" font-size="11" fill="#4338ca">SEO strategy for...</text>
+  <text x="238" y="138" font-family="system-ui" font-size="11" fill="#64748b">Reddit marketing</text>
+  <!-- Agent grid -->
+  <rect x="412" y="12" width="376" height="426" rx="16" fill="white" stroke="#e2e8f0"/>
+  <text x="500" y="52" font-family="system-ui" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Choose an AI expert</text>
+  <!-- Agent cards -->
+  <rect x="428" y="76" width="110" height="80" rx="12" fill="white" stroke="#f1f5f9"/>
+  <rect x="440" y="88" width="28" height="28" rx="8" fill="url(#g1)"/>
+  <text x="440" y="138" font-family="system-ui" font-size="10" font-weight="600" fill="#0f172a">Twitter/X</text>
+  <text x="440" y="150" font-family="system-ui" font-size="8" fill="#94a3b8">Tweets &amp; threads</text>
+  <rect x="548" y="76" width="110" height="80" rx="12" fill="white" stroke="#f1f5f9"/>
+  <rect x="560" y="88" width="28" height="28" rx="8" fill="url(#g2)"/>
+  <text x="560" y="138" font-family="system-ui" font-size="10" font-weight="600" fill="#0f172a">Reddit</text>
+  <text x="560" y="150" font-family="system-ui" font-size="8" fill="#94a3b8">Community posts</text>
+  <rect x="668" y="76" width="110" height="80" rx="12" fill="white" stroke="#f1f5f9"/>
+  <rect x="680" y="88" width="28" height="28" rx="8" fill="url(#g3)"/>
+  <text x="680" y="138" font-family="system-ui" font-size="10" font-weight="600" fill="#0f172a">LinkedIn</text>
+  <text x="680" y="150" font-family="system-ui" font-size="8" fill="#94a3b8">Professional posts</text>
+  <rect x="428" y="166" width="110" height="80" rx="12" fill="white" stroke="#f1f5f9"/>
+  <rect x="440" y="178" width="28" height="28" rx="8" fill="url(#g4)"/>
+  <text x="440" y="228" font-family="system-ui" font-size="10" font-weight="600" fill="#0f172a">Product Hunt</text>
+  <text x="440" y="240" font-family="system-ui" font-size="8" fill="#94a3b8">Launch copy</text>
+  <rect x="548" y="166" width="110" height="80" rx="12" fill="white" stroke="#f1f5f9"/>
+  <rect x="560" y="178" width="28" height="28" rx="8" fill="url(#g5)"/>
+  <text x="560" y="228" font-family="system-ui" font-size="10" font-weight="600" fill="#0f172a">Hacker News</text>
+  <text x="560" y="240" font-family="system-ui" font-size="8" fill="#94a3b8">Show HN posts</text>
+  <rect x="668" y="166" width="110" height="80" rx="12" fill="white" stroke="#f1f5f9"/>
+  <rect x="680" y="178" width="28" height="28" rx="8" fill="url(#g6)"/>
+  <text x="680" y="228" font-family="system-ui" font-size="10" font-weight="600" fill="#0f172a">SEO Audit</text>
+  <text x="680" y="240" font-family="system-ui" font-size="8" fill="#94a3b8">Technical analysis</text>
+  <defs>
+    <linearGradient id="sb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f172a"/><stop offset="1" stop-color="#1e293b"/></linearGradient>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fb923c"/><stop offset="1" stop-color="#ef4444"/></linearGradient>
+    <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient>
+    <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f97316"/><stop offset="1" stop-color="#d97706"/></linearGradient>
+    <linearGradient id="g5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ea580c"/><stop offset="1" stop-color="#dc2626"/></linearGradient>
+    <linearGradient id="g6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+  </defs>
+</svg>

@@ -104,6 +104,19 @@ CREATE TABLE IF NOT EXISTS serp_snapshots (
     error TEXT,
     checked_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL DEFAULT '',
+    input_items TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 """
 
 
@@ -132,6 +145,30 @@ async def ensure_project(brand_name: str, url: str, category: str) -> int:
         )
         row = await cursor.fetchone()
         return row[0]
+    finally:
+        await db.close()
+
+
+async def update_project(project_id: int, brand_name: str | None = None, category: str | None = None) -> None:
+    """Update project metadata (brand_name and/or category)."""
+    db = await get_db()
+    try:
+        if brand_name and category:
+            await db.execute(
+                "UPDATE projects SET brand_name = ?, category = ? WHERE id = ?",
+                (brand_name, category, project_id),
+            )
+        elif brand_name:
+            await db.execute(
+                "UPDATE projects SET brand_name = ? WHERE id = ?",
+                (brand_name, project_id),
+            )
+        elif category:
+            await db.execute(
+                "UPDATE projects SET category = ? WHERE id = ?",
+                (category, project_id),
+            )
+        await db.commit()
     finally:
         await db.close()
 
@@ -667,5 +704,127 @@ async def get_all_serp_latest(project_id: int) -> list[dict]:
             }
             for r in rows
         ]
+    finally:
+        await db.close()
+
+
+# --- Chat sessions ---
+
+
+async def create_chat_session(session_id: str, title: str = "") -> None:
+    db = await get_db()
+    try:
+        await db.execute(
+            "INSERT INTO chat_sessions (id, title) VALUES (?, ?)",
+            (session_id, title),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def list_chat_sessions() -> list[dict]:
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, title, created_at, updated_at FROM chat_sessions ORDER BY updated_at DESC"
+        )
+        rows = await cursor.fetchall()
+        return [
+            {"id": r[0], "title": r[1], "created_at": r[2], "updated_at": r[3]}
+            for r in rows
+        ]
+    finally:
+        await db.close()
+
+
+async def get_chat_session(session_id: str) -> dict | None:
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, title, input_items, created_at, updated_at FROM chat_sessions WHERE id = ?",
+            (session_id,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return {
+            "id": row[0], "title": row[1], "input_items": row[2],
+            "created_at": row[3], "updated_at": row[4],
+        }
+    finally:
+        await db.close()
+
+
+async def update_chat_session(
+    session_id: str, input_items_json: str, title: str | None = None
+) -> None:
+    db = await get_db()
+    try:
+        if title is not None:
+            await db.execute(
+                "UPDATE chat_sessions SET input_items = ?, title = ?, updated_at = datetime('now') WHERE id = ?",
+                (input_items_json, title, session_id),
+            )
+        else:
+            await db.execute(
+                "UPDATE chat_sessions SET input_items = ?, updated_at = datetime('now') WHERE id = ?",
+                (input_items_json, session_id),
+            )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def delete_chat_session(session_id: str) -> bool:
+    db = await get_db()
+    try:
+        cursor = await db.execute("DELETE FROM chat_sessions WHERE id = ?", (session_id,))
+        await db.commit()
+        return cursor.rowcount > 0
+    finally:
+        await db.close()
+
+
+async def clear_chat_sessions() -> None:
+    db = await get_db()
+    try:
+        await db.execute("DELETE FROM chat_sessions")
+        await db.commit()
+    finally:
+        await db.close()
+
+
+# --- Settings ---
+
+
+async def get_setting(key: str) -> str | None:
+    db = await get_db()
+    try:
+        cursor = await db.execute("SELECT value FROM settings WHERE key = ?", (key,))
+        row = await cursor.fetchone()
+        return row[0] if row else None
+    finally:
+        await db.close()
+
+
+async def set_setting(key: str, value: str) -> None:
+    db = await get_db()
+    try:
+        await db.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+            (key, value),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def delete_setting(key: str) -> bool:
+    db = await get_db()
+    try:
+        cursor = await db.execute("DELETE FROM settings WHERE key = ?", (key,))
+        await db.commit()
+        return cursor.rowcount > 0
     finally:
         await db.close()

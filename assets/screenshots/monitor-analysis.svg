@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" fill="none">
+  <rect width="800" height="500" rx="12" fill="#0f172a" fill-opacity="0.6"/>
+  <!-- Dialog -->
+  <rect x="120" y="30" width="560" height="440" rx="16" fill="white"/>
+  <text x="148" y="66" font-family="system-ui" font-size="16" font-weight="600" fill="#0f172a">AI Strategy Analysis</text>
+  <text x="148" y="86" font-family="system-ui" font-size="10" fill="#94a3b8">https://github.com/study8677/OpenCMO</text>
+  <line x1="136" y1="100" x2="664" y2="100" stroke="#f1f5f9"/>
+  <!-- Round 1 label -->
+  <line x1="148" y1="120" x2="250" y2="120" stroke="#e2e8f0"/>
+  <text x="300" y="124" font-family="system-ui" font-size="9" fill="#94a3b8" letter-spacing="1" font-weight="600">ROUND 1 — INITIAL ANALYSIS</text>
+  <line x1="530" y1="120" x2="664" y2="120" stroke="#e2e8f0"/>
+  <!-- Product Analyst -->
+  <rect x="148" y="136" width="504" height="72" rx="12" fill="#eef2ff" stroke="#c7d2fe"/>
+  <text x="168" y="158" font-family="system-ui" font-size="11" font-weight="600" fill="#4338ca">🔍 Product Analyst</text>
+  <text x="168" y="176" font-family="system-ui" font-size="10" fill="#4338ca">OpenCMO is an open-source AI-powered marketing automation</text>
+  <text x="168" y="192" font-family="system-ui" font-size="10" fill="#4338ca">tool for indie developers. Core features: multi-agent content...</text>
+  <!-- SEO Specialist -->
+  <rect x="148" y="218" width="504" height="72" rx="12" fill="#ecfdf5" stroke="#a7f3d0"/>
+  <text x="168" y="240" font-family="system-ui" font-size="11" font-weight="600" fill="#047857">📊 SEO Specialist</text>
+  <text x="168" y="258" font-family="system-ui" font-size="10" fill="#047857">High-intent keywords: "AI marketing tool", "open source CMO",</text>
+  <text x="168" y="274" font-family="system-ui" font-size="10" fill="#047857">"automated marketing content", "multi-platform marketing"...</text>
+  <!-- Community Strategist -->
+  <rect x="148" y="300" width="504" height="72" rx="12" fill="#fffbeb" stroke="#fde68a"/>
+  <text x="168" y="322" font-family="system-ui" font-size="11" font-weight="600" fill="#92400e">💬 Community Strategist</text>
+  <text x="168" y="340" font-family="system-ui" font-size="10" fill="#92400e">Monitor subreddits: r/SideProject, r/marketing, r/startups.</text>
+  <text x="168" y="356" font-family="system-ui" font-size="10" fill="#92400e">HN topics: "Show HN", "marketing automation", AI tools...</text>
+  <!-- Progress bar -->
+  <line x1="136" y1="420" x2="664" y2="420" stroke="#f1f5f9"/>
+  <circle cx="164" cy="445" r="8" fill="none" stroke="#6366f1" stroke-width="2" stroke-dasharray="12 38" stroke-linecap="round">
+    <animateTransform attributeName="transform" type="rotate" from="0 164 445" to="360 164 445" dur="1s" repeatCount="indefinite"/>
+  </circle>
+  <text x="184" y="449" font-family="system-ui" font-size="11" fill="#64748b">3 / 7 steps</text>
+  <rect x="568" y="432" width="88" height="32" rx="10" fill="#f1f5f9"/>
+  <text x="580" y="452" font-family="system-ui" font-size="11" fill="#475569">Background</text>
+</svg>
