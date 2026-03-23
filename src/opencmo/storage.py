@@ -9,6 +9,7 @@ from pathlib import Path
 import aiosqlite
 
 _DB_PATH = Path(os.environ.get("OPENCMO_DB_PATH", Path.home() / ".opencmo" / "data.db"))
+_SCHEMA_READY_FOR: Path | None = None
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS projects (
@@ -118,6 +119,28 @@ CREATE TABLE IF NOT EXISTS settings (
     value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS approvals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    channel TEXT NOT NULL,
+    approval_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    title TEXT NOT NULL DEFAULT '',
+    target_label TEXT NOT NULL DEFAULT '',
+    target_url TEXT NOT NULL DEFAULT '',
+    agent_name TEXT NOT NULL DEFAULT '',
+    content TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    preview_json TEXT NOT NULL DEFAULT '{}',
+    publish_result_json TEXT,
+    decision_note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    decided_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_approvals_status_created_at
+ON approvals(status, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS competitors (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL REFERENCES projects(id),
@@ -185,16 +208,70 @@ CREATE TABLE IF NOT EXISTS scan_recommendations (
     evidence_json TEXT NOT NULL DEFAULT '[]',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS graph_expansions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id) UNIQUE,
+    desired_state TEXT NOT NULL DEFAULT 'idle',
+    runtime_state TEXT NOT NULL DEFAULT 'idle',
+    current_wave INTEGER NOT NULL DEFAULT 0,
+    nodes_discovered INTEGER NOT NULL DEFAULT 0,
+    nodes_explored INTEGER NOT NULL DEFAULT 0,
+    heartbeat_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS graph_expansion_nodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    node_type TEXT NOT NULL,
+    db_row_id INTEGER NOT NULL,
+    wave_discovered INTEGER NOT NULL DEFAULT 0,
+    explored INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(project_id, node_type, db_row_id)
+);
+
+CREATE TABLE IF NOT EXISTS graph_expansion_edges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    source_type TEXT NOT NULL,
+    source_db_id INTEGER NOT NULL,
+    target_type TEXT NOT NULL,
+    target_db_id INTEGER NOT NULL,
+    relation TEXT NOT NULL,
+    wave INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(project_id, target_type, target_db_id)
+);
 """
 
 
-async def get_db() -> aiosqlite.Connection:
-    """Open (or create) the database, ensure schema, enable WAL mode."""
+async def ensure_db() -> None:
+    """Create the database and schema once per process and DB path."""
+    global _SCHEMA_READY_FOR
     _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if _SCHEMA_READY_FOR == _DB_PATH and _DB_PATH.exists():
+        return
+
+    db = await aiosqlite.connect(str(_DB_PATH))
+    try:
+        await db.execute("PRAGMA journal_mode=WAL")
+        await db.execute("PRAGMA foreign_keys=ON")
+        await db.executescript(_SCHEMA)
+        await db.commit()
+        _SCHEMA_READY_FOR = _DB_PATH
+    finally:
+        await db.close()
+
+
+async def get_db() -> aiosqlite.Connection:
+    """Open the database with WAL mode and foreign keys enabled."""
+    await ensure_db()
     db = await aiosqlite.connect(str(_DB_PATH))
     await db.execute("PRAGMA journal_mode=WAL")
-    await db.executescript(_SCHEMA)
-    await db.commit()
+    await db.execute("PRAGMA foreign_keys=ON")
     return db
 
 
@@ -272,6 +349,11 @@ async def delete_project(project_id: int) -> bool:
     """Delete a project and all its related data. Returns True if deleted."""
     db = await get_db()
     try:
+        await db.execute("DELETE FROM approvals WHERE project_id = ?", (project_id,))
+        # Delete graph expansion data
+        await db.execute("DELETE FROM graph_expansion_edges WHERE project_id = ?", (project_id,))
+        await db.execute("DELETE FROM graph_expansion_nodes WHERE project_id = ?", (project_id,))
+        await db.execute("DELETE FROM graph_expansions WHERE project_id = ?", (project_id,))
         # Delete discussion snapshots (via tracked_discussions)
         await db.execute(
             """DELETE FROM discussion_snapshots WHERE discussion_id IN
@@ -483,6 +565,29 @@ async def list_scheduled_jobs() -> list[dict]:
             }
             for r in rows
         ]
+    finally:
+        await db.close()
+
+
+async def get_scheduled_job(job_id: int) -> dict | None:
+    """Return a single scheduled job with project info."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """SELECT j.id, j.project_id, p.brand_name, p.url, p.category,
+                      j.job_type, j.cron_expr, j.enabled, j.last_run_at, j.next_run_at
+               FROM scheduled_jobs j JOIN projects p ON j.project_id = p.id
+               WHERE j.id = ?""",
+            (job_id,),
+        )
+        row = await cursor.fetchone()
+        if not row:
+            return None
+        return {
+            "id": row[0], "project_id": row[1], "brand_name": row[2], "url": row[3],
+            "category": row[4], "job_type": row[5], "cron_expr": row[6],
+            "enabled": bool(row[7]), "last_run_at": row[8], "next_run_at": row[9],
+        }
     finally:
         await db.close()
 
@@ -1212,6 +1317,147 @@ async def delete_setting(key: str) -> bool:
         await db.close()
 
 
+# --- Approvals ---
+
+
+def _approval_row_to_dict(row) -> dict:
+    return {
+        "id": row[0],
+        "project_id": row[1],
+        "channel": row[2],
+        "approval_type": row[3],
+        "status": row[4],
+        "title": row[5],
+        "target_label": row[6],
+        "target_url": row[7],
+        "agent_name": row[8],
+        "content": row[9],
+        "payload": json.loads(row[10] or "{}"),
+        "preview": json.loads(row[11] or "{}"),
+        "publish_result": json.loads(row[12]) if row[12] else None,
+        "decision_note": row[13],
+        "created_at": row[14],
+        "decided_at": row[15],
+    }
+
+
+async def create_approval(
+    project_id: int,
+    channel: str,
+    approval_type: str,
+    content: str,
+    payload: dict,
+    preview: dict,
+    *,
+    title: str = "",
+    target_label: str = "",
+    target_url: str = "",
+    agent_name: str = "",
+) -> dict:
+    """Insert a pending approval and return the stored record."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """INSERT INTO approvals (
+                   project_id, channel, approval_type, title, target_label, target_url,
+                   agent_name, content, payload_json, preview_json
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                project_id,
+                channel,
+                approval_type,
+                title,
+                target_label,
+                target_url,
+                agent_name,
+                content,
+                json.dumps(payload, ensure_ascii=False),
+                json.dumps(preview, ensure_ascii=False),
+            ),
+        )
+        await db.commit()
+        approval_id = cursor.lastrowid
+    finally:
+        await db.close()
+
+    return await get_approval(approval_id)
+
+
+async def get_approval(approval_id: int) -> dict | None:
+    """Return one approval item."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """SELECT id, project_id, channel, approval_type, status, title, target_label,
+                      target_url, agent_name, content, payload_json, preview_json,
+                      publish_result_json, decision_note, created_at, decided_at
+               FROM approvals WHERE id = ?""",
+            (approval_id,),
+        )
+        row = await cursor.fetchone()
+        return _approval_row_to_dict(row) if row else None
+    finally:
+        await db.close()
+
+
+async def list_approvals(status: str | None = None, limit: int = 50) -> list[dict]:
+    """List approvals, newest first."""
+    db = await get_db()
+    try:
+        if status:
+            cursor = await db.execute(
+                """SELECT id, project_id, channel, approval_type, status, title, target_label,
+                          target_url, agent_name, content, payload_json, preview_json,
+                          publish_result_json, decision_note, created_at, decided_at
+                   FROM approvals
+                   WHERE status = ?
+                   ORDER BY created_at DESC, id DESC
+                   LIMIT ?""",
+                (status, limit),
+            )
+        else:
+            cursor = await db.execute(
+                """SELECT id, project_id, channel, approval_type, status, title, target_label,
+                          target_url, agent_name, content, payload_json, preview_json,
+                          publish_result_json, decision_note, created_at, decided_at
+                   FROM approvals
+                   ORDER BY created_at DESC, id DESC
+                   LIMIT ?""",
+                (limit,),
+            )
+        rows = await cursor.fetchall()
+        return [_approval_row_to_dict(row) for row in rows]
+    finally:
+        await db.close()
+
+
+async def update_approval_status(
+    approval_id: int,
+    status: str,
+    *,
+    decision_note: str = "",
+    publish_result: dict | None = None,
+) -> bool:
+    """Update approval decision state and optional publish result."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """UPDATE approvals
+               SET status = ?, decision_note = ?, publish_result_json = ?, decided_at = datetime('now')
+               WHERE id = ?""",
+            (
+                status,
+                decision_note,
+                json.dumps(publish_result, ensure_ascii=False) if publish_result is not None else None,
+                approval_id,
+            ),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+    finally:
+        await db.close()
+
+
 # --- Competitors ---
 
 
@@ -1298,6 +1544,292 @@ async def list_competitor_keywords(competitor_id: int) -> list[dict]:
         await db.close()
 
 
+# --- Graph expansion ---
+
+
+async def get_or_create_expansion(project_id: int) -> dict:
+    """Return the expansion row for a project, creating it if absent."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, project_id, desired_state, runtime_state, current_wave, "
+            "nodes_discovered, nodes_explored, heartbeat_at, created_at, updated_at "
+            "FROM graph_expansions WHERE project_id = ?",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        if row:
+            return _expansion_row_to_dict(row)
+        await db.execute(
+            "INSERT INTO graph_expansions (project_id) VALUES (?)", (project_id,),
+        )
+        await db.commit()
+        cursor = await db.execute(
+            "SELECT id, project_id, desired_state, runtime_state, current_wave, "
+            "nodes_discovered, nodes_explored, heartbeat_at, created_at, updated_at "
+            "FROM graph_expansions WHERE project_id = ?",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        return _expansion_row_to_dict(row)
+    finally:
+        await db.close()
+
+
+def _expansion_row_to_dict(row) -> dict:
+    return {
+        "id": row[0], "project_id": row[1],
+        "desired_state": row[2], "runtime_state": row[3],
+        "current_wave": row[4], "nodes_discovered": row[5],
+        "nodes_explored": row[6], "heartbeat_at": row[7],
+        "created_at": row[8], "updated_at": row[9],
+    }
+
+
+async def get_expansion(project_id: int) -> dict | None:
+    """Read current expansion state. Returns None if no expansion exists."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, project_id, desired_state, runtime_state, current_wave, "
+            "nodes_discovered, nodes_explored, heartbeat_at, created_at, updated_at "
+            "FROM graph_expansions WHERE project_id = ?",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        return _expansion_row_to_dict(row) if row else None
+    finally:
+        await db.close()
+
+
+async def update_expansion(project_id: int, **kwargs) -> None:
+    """Update expansion fields. Accepts: desired_state, runtime_state, current_wave,
+    nodes_discovered, nodes_explored, heartbeat_at."""
+    allowed = {"desired_state", "runtime_state", "current_wave",
+               "nodes_discovered", "nodes_explored", "heartbeat_at"}
+    sets = {k: v for k, v in kwargs.items() if k in allowed}
+    if not sets:
+        return
+    sets["updated_at"] = "datetime('now')"
+    clauses = []
+    values = []
+    for k, v in sets.items():
+        if v == "datetime('now')":
+            clauses.append(f"{k} = datetime('now')")
+        else:
+            clauses.append(f"{k} = ?")
+            values.append(v)
+    values.append(project_id)
+    db = await get_db()
+    try:
+        await db.execute(
+            f"UPDATE graph_expansions SET {', '.join(clauses)} WHERE project_id = ?",
+            tuple(values),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def seed_expansion_nodes(project_id: int) -> int:
+    """Insert existing keywords and competitors as wave-0 unexplored nodes. Idempotent."""
+    db = await get_db()
+    try:
+        count = 0
+        # Keywords
+        cursor = await db.execute(
+            "SELECT id FROM tracked_keywords WHERE project_id = ?", (project_id,),
+        )
+        for row in await cursor.fetchall():
+            r = await db.execute(
+                "INSERT OR IGNORE INTO graph_expansion_nodes "
+                "(project_id, node_type, db_row_id, wave_discovered, explored) "
+                "VALUES (?, 'keyword', ?, 0, 0)",
+                (project_id, row[0]),
+            )
+            count += r.rowcount
+        # Competitors
+        cursor = await db.execute(
+            "SELECT id FROM competitors WHERE project_id = ?", (project_id,),
+        )
+        for row in await cursor.fetchall():
+            r = await db.execute(
+                "INSERT OR IGNORE INTO graph_expansion_nodes "
+                "(project_id, node_type, db_row_id, wave_discovered, explored) "
+                "VALUES (?, 'competitor', ?, 0, 0)",
+                (project_id, row[0]),
+            )
+            count += r.rowcount
+        # Competitor keywords
+        cursor = await db.execute(
+            "SELECT ck.id FROM competitor_keywords ck "
+            "JOIN competitors c ON c.id = ck.competitor_id "
+            "WHERE c.project_id = ?",
+            (project_id,),
+        )
+        for row in await cursor.fetchall():
+            r = await db.execute(
+                "INSERT OR IGNORE INTO graph_expansion_nodes "
+                "(project_id, node_type, db_row_id, wave_discovered, explored) "
+                "VALUES (?, 'competitor_keyword', ?, 0, 0)",
+                (project_id, row[0]),
+            )
+            count += r.rowcount
+        await db.commit()
+        return count
+    finally:
+        await db.close()
+
+
+async def get_min_unexplored_wave(project_id: int) -> int | None:
+    """Return the lowest wave number that has unexplored nodes, or None."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT MIN(wave_discovered) FROM graph_expansion_nodes "
+            "WHERE project_id = ? AND explored = 0",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        return row[0] if row and row[0] is not None else None
+    finally:
+        await db.close()
+
+
+async def get_frontier_nodes(project_id: int, wave: int) -> list[dict]:
+    """Return unexplored nodes for exactly the given wave."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, node_type, db_row_id, wave_discovered "
+            "FROM graph_expansion_nodes "
+            "WHERE project_id = ? AND explored = 0 AND wave_discovered = ? "
+            "ORDER BY id",
+            (project_id, wave),
+        )
+        rows = await cursor.fetchall()
+        return [{"id": r[0], "node_type": r[1], "db_row_id": r[2],
+                 "wave_discovered": r[3]} for r in rows]
+    finally:
+        await db.close()
+
+
+async def mark_node_explored(project_id: int, node_type: str, db_row_id: int) -> None:
+    db = await get_db()
+    try:
+        await db.execute(
+            "UPDATE graph_expansion_nodes SET explored = 1 "
+            "WHERE project_id = ? AND node_type = ? AND db_row_id = ?",
+            (project_id, node_type, db_row_id),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def add_expansion_node(
+    project_id: int, node_type: str, db_row_id: int, wave: int,
+) -> bool:
+    """Insert an expansion node. Returns True if newly inserted."""
+    db = await get_db()
+    try:
+        r = await db.execute(
+            "INSERT OR IGNORE INTO graph_expansion_nodes "
+            "(project_id, node_type, db_row_id, wave_discovered, explored) "
+            "VALUES (?, ?, ?, ?, 0)",
+            (project_id, node_type, db_row_id, wave),
+        )
+        await db.commit()
+        return r.rowcount > 0
+    finally:
+        await db.close()
+
+
+async def add_expansion_edge(
+    project_id: int,
+    source_type: str, source_db_id: int,
+    target_type: str, target_db_id: int,
+    relation: str, wave: int,
+) -> None:
+    """Record a discovery edge. INSERT OR IGNORE (unique on target)."""
+    db = await get_db()
+    try:
+        await db.execute(
+            "INSERT OR IGNORE INTO graph_expansion_edges "
+            "(project_id, source_type, source_db_id, target_type, target_db_id, relation, wave) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (project_id, source_type, source_db_id, target_type, target_db_id, relation, wave),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def reset_expansion(project_id: int) -> None:
+    """Clear all expansion tracking for a project."""
+    db = await get_db()
+    try:
+        await db.execute("DELETE FROM graph_expansion_edges WHERE project_id = ?", (project_id,))
+        await db.execute("DELETE FROM graph_expansion_nodes WHERE project_id = ?", (project_id,))
+        await db.execute(
+            "UPDATE graph_expansions SET desired_state='idle', runtime_state='idle', "
+            "current_wave=0, nodes_discovered=0, nodes_explored=0, "
+            "heartbeat_at=NULL, updated_at=datetime('now') WHERE project_id = ?",
+            (project_id,),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def fix_stale_expansions(timeout_seconds: int = 60) -> int:
+    """Mark expansions with stale heartbeats as interrupted. Called on startup."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "UPDATE graph_expansions "
+            "SET runtime_state = 'interrupted', desired_state = 'paused', "
+            "updated_at = datetime('now') "
+            "WHERE runtime_state = 'running' "
+            "AND (heartbeat_at IS NULL OR heartbeat_at < datetime('now', ? || ' seconds'))",
+            (f"-{timeout_seconds}",),
+        )
+        await db.commit()
+        return cursor.rowcount
+    finally:
+        await db.close()
+
+
+async def _get_expansion_edge_lookup(project_id: int) -> dict[tuple[str, int], tuple[str, int]]:
+    """Return {(target_type, target_db_id): (source_type, source_db_id)} for expansion edges."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT source_type, source_db_id, target_type, target_db_id "
+            "FROM graph_expansion_edges WHERE project_id = ?",
+            (project_id,),
+        )
+        rows = await cursor.fetchall()
+        return {(r[2], r[3]): (r[0], r[1]) for r in rows}
+    finally:
+        await db.close()
+
+
+async def _get_expansion_depth_lookup(project_id: int) -> dict[tuple[str, int], tuple[int, bool]]:
+    """Return {(node_type, db_row_id): (wave_discovered, explored)} for expansion nodes."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT node_type, db_row_id, wave_discovered, explored "
+            "FROM graph_expansion_nodes WHERE project_id = ?",
+            (project_id,),
+        )
+        rows = await cursor.fetchall()
+        return {(r[0], r[1]): (r[2], bool(r[3])) for r in rows}
+    finally:
+        await db.close()
+
+
 # --- Knowledge graph data ---
 
 
@@ -1305,7 +1837,11 @@ async def get_graph_data(project_id: int) -> dict:
     """Build a force-graph-compatible JSON structure with nodes and links.
 
     Node types: brand, keyword, discussion, serp, competitor, competitor_keyword
-    Link types: has_keyword, has_discussion, serp_rank, competitor_of, comp_keyword, keyword_overlap
+    Link types: has_keyword, has_discussion, serp_rank, competitor_of, comp_keyword,
+                keyword_overlap, expanded_from
+
+    Expansion-aware: if expansion edges exist, discovered nodes link to their
+    parent (the node that discovered them) instead of to the brand.
     """
     nodes: list[dict] = []
     links: list[dict] = []
@@ -1322,7 +1858,37 @@ async def get_graph_data(project_id: int) -> dict:
         "type": "brand",
         "url": project["url"],
         "category": project["category"],
+        "depth": 0,
+        "explored": True,
     })
+
+    # Load expansion lookups
+    edge_lookup = await _get_expansion_edge_lookup(project_id)
+    depth_lookup = await _get_expansion_depth_lookup(project_id)
+
+    # Helper: resolve graph node ID from (type, db_row_id)
+    _type_prefix = {"keyword": "kw", "competitor": "comp", "competitor_keyword": "ckw"}
+
+    def _graph_id(node_type: str, db_id: int) -> str:
+        prefix = _type_prefix.get(node_type, node_type)
+        return f"{prefix}_{db_id}"
+
+    def _annotate(node: dict, node_type: str, db_id: int) -> dict:
+        info = depth_lookup.get((node_type, db_id))
+        if info:
+            node["depth"] = info[0]
+            node["explored"] = info[1]
+        else:
+            node["depth"] = 0
+            node["explored"] = True
+        return node
+
+    def _link_source(node_type: str, db_id: int, default_source: str) -> tuple[str, str]:
+        """Return (source_graph_id, link_type) using expansion edge if present."""
+        parent = edge_lookup.get((node_type, db_id))
+        if parent:
+            return _graph_id(parent[0], parent[1]), "expanded_from"
+        return default_source, None  # None means use default link type
 
     # 2. Keyword nodes
     keywords = await list_tracked_keywords(project_id)
@@ -1330,8 +1896,12 @@ async def get_graph_data(project_id: int) -> dict:
     for kw in keywords:
         kid = f"kw_{kw['id']}"
         kw_name_to_id[kw["keyword"].lower()] = kid
-        nodes.append({"id": kid, "label": kw["keyword"], "type": "keyword"})
-        links.append({"source": brand_id, "target": kid, "type": "has_keyword"})
+        nodes.append(_annotate(
+            {"id": kid, "label": kw["keyword"], "type": "keyword"},
+            "keyword", kw["id"],
+        ))
+        src, ltype = _link_source("keyword", kw["id"], brand_id)
+        links.append({"source": src, "target": kid, "type": ltype or "has_keyword"})
 
     # 3. SERP ranking nodes (attach to keywords)
     serp_latest = await get_all_serp_latest(project_id)
@@ -1347,12 +1917,13 @@ async def get_graph_data(project_id: int) -> dict:
             "type": "serp",
             "position": position,
             "provider": provider,
+            "depth": 0,
+            "explored": True,
         })
-        # Link to keyword if exists, else to brand
         kw_node = kw_name_to_id.get(s["keyword"].lower())
         links.append({"source": kw_node or brand_id, "target": sid, "type": "serp_rank"})
 
-    # 4. Discussion nodes
+    # 4. Discussion nodes (no expansion — v1 skip)
     discussions = await get_tracked_discussions(project_id)
     for d in discussions:
         did = f"disc_{d['id']}"
@@ -1364,6 +1935,8 @@ async def get_graph_data(project_id: int) -> dict:
             "url": d["url"],
             "engagement": d.get("engagement_score", 0) or 0,
             "comments": d.get("comments_count", 0) or 0,
+            "depth": 0,
+            "explored": True,
         })
         links.append({"source": brand_id, "target": did, "type": "has_discussion"})
 
@@ -1371,24 +1944,38 @@ async def get_graph_data(project_id: int) -> dict:
     competitors = await list_competitors(project_id)
     for comp in competitors:
         cid = f"comp_{comp['id']}"
-        nodes.append({
-            "id": cid,
-            "label": comp["name"],
-            "type": "competitor",
-            "url": comp.get("url"),
-        })
-        links.append({"source": brand_id, "target": cid, "type": "competitor_of"})
+        nodes.append(_annotate(
+            {"id": cid, "label": comp["name"], "type": "competitor", "url": comp.get("url")},
+            "competitor", comp["id"],
+        ))
+        src, ltype = _link_source("competitor", comp["id"], brand_id)
+        links.append({"source": src, "target": cid, "type": ltype or "competitor_of"})
 
-        # Competitor keywords
         comp_kws = await list_competitor_keywords(comp["id"])
         for ckw in comp_kws:
             ckid = f"ckw_{ckw['id']}"
-            nodes.append({"id": ckid, "label": ckw["keyword"], "type": "competitor_keyword"})
-            links.append({"source": cid, "target": ckid, "type": "comp_keyword"})
+            nodes.append(_annotate(
+                {"id": ckid, "label": ckw["keyword"], "type": "competitor_keyword"},
+                "competitor_keyword", ckw["id"],
+            ))
+            ckw_src, ckw_ltype = _link_source("competitor_keyword", ckw["id"], cid)
+            links.append({"source": ckw_src, "target": ckid, "type": ckw_ltype or "comp_keyword"})
 
-            # Check overlap with brand keywords
             brand_kw_node = kw_name_to_id.get(ckw["keyword"].lower())
             if brand_kw_node:
                 links.append({"source": brand_kw_node, "target": ckid, "type": "keyword_overlap"})
 
-    return {"nodes": nodes, "links": links}
+    # Expansion metadata
+    expansion = await get_expansion(project_id)
+
+    return {
+        "nodes": nodes,
+        "links": links,
+        "expansion": {
+            "desired_state": expansion["desired_state"],
+            "runtime_state": expansion["runtime_state"],
+            "current_wave": expansion["current_wave"],
+            "nodes_discovered": expansion["nodes_discovered"],
+            "nodes_explored": expansion["nodes_explored"],
+        } if expansion else None,
+    }

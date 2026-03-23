@@ -110,3 +110,30 @@ def test_get_status_summary():
     summary = run(service.get_status_summary())
     assert len(summary) == 2
     assert "latest" in summary[0]
+
+
+def test_create_monitor_syncs_runtime_job():
+    with patch("opencmo.scheduler.sync_job_record") as mock_sync:
+        result = run(service.create_monitor("Sync", "https://sync.com", "saas"))
+        assert result["monitor_id"] >= 1
+        mock_sync.assert_called_once()
+        assert mock_sync.call_args[0][0]["id"] == result["monitor_id"]
+
+
+def test_update_monitor_syncs_runtime_job():
+    result = run(service.create_monitor("Upd", "https://upd.com", "saas"))
+
+    with patch("opencmo.scheduler.sync_job_record") as mock_sync:
+        ok = run(service.update_monitor(result["monitor_id"], cron_expr="15 8 * * *", enabled=False))
+        assert ok is True
+        mock_sync.assert_called_once()
+        assert mock_sync.call_args[0][0]["enabled"] is False
+
+
+def test_remove_monitor_unschedules_runtime_job():
+    result = run(service.create_monitor("Rm", "https://rm.com", "saas"))
+
+    with patch("opencmo.scheduler.unschedule_job") as mock_unschedule:
+        ok = run(service.remove_monitor(result["monitor_id"]))
+        assert ok is True
+        mock_unschedule.assert_called_once_with(result["monitor_id"])

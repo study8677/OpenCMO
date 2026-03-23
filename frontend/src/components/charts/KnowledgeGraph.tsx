@@ -27,9 +27,10 @@ const LINK_COLORS: Record<string, string> = {
   has_keyword: "rgba(99, 102, 241, 0.25)",
   has_discussion: "rgba(245, 158, 11, 0.25)",
   serp_rank: "rgba(16, 185, 129, 0.25)",
-  competitor_of: "rgba(244, 63, 94, 0.35)", // Slightly more opaque for emphasis
+  competitor_of: "rgba(244, 63, 94, 0.35)",
   comp_keyword: "rgba(249, 115, 22, 0.25)",
-  keyword_overlap: "rgba(225, 29, 72, 0.6)", // Rose-600 overlap
+  keyword_overlap: "rgba(225, 29, 72, 0.6)",
+  expanded_from: "rgba(168, 85, 247, 0.35)", // Purple for expansion edges
 };
 
 const TYPE_LABELS_EN: Record<string, string> = {
@@ -199,7 +200,31 @@ export function KnowledgeGraph({ data }: { data: GraphData }) {
       clearcoatRoughness: 0.1,
     });
     const sphere = new THREE.Mesh(geo, mat);
+
+    // Depth-based styling for expansion-discovered nodes
+    const depth = (node as any).depth ?? 0;
+    if (depth > 0) {
+      const depthScale = Math.max(0.6, 1.0 - depth * 0.1);
+      sphere.scale.setScalar(depthScale);
+      mat.opacity = Math.max(0.4, 1.0 - depth * 0.12);
+      mat.transparent = true;
+    }
+
     group.add(sphere);
+
+    // Frontier indicator: wireframe ring for unexplored expansion nodes
+    if (!(node as any).explored && depth > 0) {
+      const ringGeo = new THREE.TorusGeometry(size * 0.8 + 2, 0.3, 8, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xa855f7,
+        transparent: true,
+        opacity: 0.5,
+        wireframe: true,
+      });
+      const frontierRing = new THREE.Mesh(ringGeo, ringMat);
+      frontierRing.rotation.x = Math.PI / 2;
+      group.add(frontierRing);
+    }
 
     // If Brand node, add an elegant double ring
     if (n.type === "brand") {

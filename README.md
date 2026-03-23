@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>The Open-Source AI Chief Marketing Officer — Your Full Marketing Team in One Tool.</strong><br/>
-  <sub>A powerful multi-agent system featuring 25+ specialized AI experts, real-time monitoring across SEO/GEO/SERP/Community, and a modern web dashboard with interactive 3D knowledge graph.</sub>
+  <sub>A powerful multi-agent system featuring 25+ specialized AI experts, always-on SEO/GEO/SERP/Community monitoring, an exact-payload approval queue, and a modern web dashboard with an interactive 3D knowledge graph.</sub>
 </p>
 
 <div align="center">
@@ -29,7 +29,16 @@ OpenCMO is a **multi-agent AI marketing ecosystem** tailored for indie hackers, 
 1. **Analyze your website** deeply to understand your product and audience.
 2. **Orchestrate a multi-agent strategy debate** to identify the best keywords, positioning, and target communities.
 3. **Automate continuous monitoring** across SEO, AI search visibility (GEO), SERP keyword rankings, and developer communities (Reddit, Hacker News, Dev.to).
-4. **Generate platform-specific content** for 20+ platforms and auto-publish to Reddit and Twitter.
+4. **Generate platform-specific content** for 20+ platforms, review exact publish payloads in an approval queue, and auto-publish to Reddit and Twitter when you explicitly allow it.
+
+---
+
+## Why OpenCMO Hits Different
+
+- **It closes the loop between generation and measurement** — content agents, SEO/GEO/SERP/community monitors, and the 3D graph all feed the same operating surface instead of living in separate tools.
+- **Scheduled monitoring now runs inside the web app lifecycle** — when `opencmo-web` is up, saved cron monitors stay active without extra CLI babysitting.
+- **Approvals are durable, not disposable previews** — the approval queue stores the exact publish payload before execution, so the reviewed artifact is the one that gets shipped.
+- **It stays BYOK and hackable** — storage, APIs, scheduler behavior, and the React SPA remain easy to inspect and extend for your own workflow.
 
 ---
 
@@ -63,10 +72,13 @@ The **Knowledge Graph** is the heart of your market intelligence — an interact
 </div>
 
 **Key capabilities:**
+- **Active graph expansion** — Click "Start Exploring" and the graph autonomously discovers new competitors, keywords, and connections wave by wave. Pause and resume at any time.
+- **BFS depth topology** — Discovered nodes link to their parent (not flattened to brand), preserving the exploration tree. Deeper nodes appear smaller and more transparent.
+- **Frontier visualization** — Unexplored nodes are highlighted with a purple wireframe ring, showing where the graph can expand next.
 - **Interactive exploration** — Zoom, drag, and pan across your brand's digital universe.
 - **6 node dimensions** — Brand (purple), Keywords (cyan), Community Discussions (amber), SERP Rankings (green), Competitors (red), Overlapping Keywords (orange).
 - **Competitor intelligence** — Add competitor URLs to visualize shared battlegrounds with red dashed connection lines.
-- **Real-time sync** — Graph re-balances every 30 seconds as new insights are discovered.
+- **Real-time sync** — Graph re-balances every 30 seconds (5 seconds during active expansion).
 - **AI-powered competitor discovery** — Automatically identify competitors and track overlapping keywords.
 
 ---
@@ -108,6 +120,10 @@ Automatically scan for brand mentions and relevant discussions across Reddit, Ha
   <img src="assets/screenshots/community-page.png" alt="Community Monitoring" width="850" />
   <p><i>Cross-platform scan history and tracked discussions.</i></p>
 </div>
+
+### Approval Queue & Scheduled Operations
+
+Review exact publish payloads in the SPA, approve or reject them with a durable audit trail, and let the web process keep scheduled monitors alive. Safe publishing still honors `OPENCMO_AUTO_PUBLISH=1`, so approval never bypasses the final safety gate.
 
 ---
 
@@ -291,11 +307,12 @@ npm run build   # Production build
 - [x] **Multi-agent URL analysis** via collaborative debate
 - [x] **React SPA** with multi-language support (EN/ZH)
 - [x] **API agnostic** — OpenAI, Anthropic, DeepSeek, NVIDIA, Ollama
-- [x] **Interactive 3D Knowledge Graph** with competitor intelligence
+- [x] **Interactive 3D Knowledge Graph** with active BFS expansion and competitor intelligence
 - [x] **Community monitoring** — Reddit, Hacker News, Dev.to
 - [x] **GEO detection** — Perplexity, You.com, ChatGPT, Claude, Gemini
 - [x] **SEO audit** — Core Web Vitals, Schema.org, robots.txt
 - [x] **SERP tracking** — Keyword ranking monitoring
+- [x] **Approval queue + scheduled monitor runtime** — exact payload review and web-lifecycle cron execution
 - [x] **Auto-publishing** — Reddit (post + reply) and Twitter
 - [x] **Email reports** via SMTP
 - [x] **AI-powered competitor discovery** and keyword overlap analysis

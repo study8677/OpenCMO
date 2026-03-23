@@ -226,6 +226,22 @@ export const en = {
   "graph.competitorUrl": "URL (optional)",
   "graph.competitorKw": "Keywords, comma separated (optional)",
   "graph.noCompetitors": "No competitors yet. Add competitors to see them in the graph.",
+
+  // Graph Expansion
+  "graph.expansion": "Graph Expansion",
+  "graph.startExploring": "Start Exploring",
+  "graph.pause": "Pause",
+  "graph.resume": "Resume",
+  "graph.reset": "Reset",
+  "graph.wave": "Wave {{n}}",
+  "graph.discovered": "{{count}} discovered",
+  "graph.explored": "{{count}} explored",
+  "graph.expanding": "Expanding...",
+  "graph.paused": "Paused",
+  "graph.interrupted": "Interrupted",
+  "graph.pausingHint": "Finishing current operation...",
+  "graph.resetConfirm": "Reset clears depth tracking. All discovered data stays in the graph but depth info will be lost.",
+  "graph.noFrontier": "No more nodes to explore.",
 } as const;
 
 export type TranslationKey = keyof typeof en;

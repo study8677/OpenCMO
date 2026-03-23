@@ -26,7 +26,8 @@ def client(tmp_path):
         # Clear in-memory state
         asyncio.run(chat_sessions.clear_all())
         task_registry.clear_all()
-        yield TestClient(app)
+        with TestClient(app) as test_client:
+            yield test_client
 
 
 @pytest.fixture
@@ -37,7 +38,8 @@ def auth_client(tmp_path):
          patch.dict(os.environ, {"OPENCMO_WEB_TOKEN": "secret123"}):
         asyncio.run(chat_sessions.clear_all())
         task_registry.clear_all()
-        yield TestClient(app)
+        with TestClient(app) as test_client:
+            yield test_client
 
 
 def _seed_project(brand="Test", url="https://test.com"):
@@ -133,6 +135,13 @@ def test_api_v1_auth_login(auth_client):
     assert "opencmo_token" in resp.cookies
 
 
+def test_api_v1_health_public(auth_client):
+    resp = auth_client.get("/api/v1/health")
+    assert resp.status_code == 200
+    assert resp.json()["ok"] is True
+    assert "scheduler" in resp.json()
+
+
 def test_api_v1_auth_cookie(auth_client):
     """After login, cookie should grant access."""
     auth_client.post("/api/v1/auth/login", json={"token": "secret123"})
@@ -220,6 +229,22 @@ def test_api_v1_monitors_create_url_only(client):
     assert data["monitor_id"] > 0
 
 
+def test_web_lifecycle_starts_and_stops_scheduler(tmp_path):
+    db_path = tmp_path / "test.db"
+    with patch.object(storage, "_DB_PATH", db_path), \
+         patch("opencmo.scheduler.is_scheduler_available", return_value=True), \
+         patch("opencmo.scheduler.load_jobs_from_db", new_callable=AsyncMock, return_value=0) as mock_load, \
+         patch("opencmo.scheduler.start_scheduler") as mock_start, \
+         patch("opencmo.scheduler.stop_scheduler") as mock_stop:
+        with TestClient(app) as test_client:
+            resp = test_client.get("/api/v1/health")
+            assert resp.status_code == 200
+
+        mock_load.assert_awaited_once()
+        mock_start.assert_called_once()
+        mock_stop.assert_called_once()
+
+
 def test_api_v1_monitor_run_conflict(client):
     """Same monitor cannot run twice concurrently."""
     resp = client.post("/api/v1/monitors", json={
@@ -232,6 +257,39 @@ def test_api_v1_monitor_run_conflict(client):
 
     resp = client.post(f"/api/v1/monitors/{mid}/run")
     assert resp.status_code == 409
+
+
+def test_api_v1_create_monitor_syncs_scheduler(client):
+    with patch("opencmo.scheduler.sync_job_record") as mock_sync:
+        resp = client.post("/api/v1/monitors", json={
+            "brand": "SyncMon", "url": "https://syncmon.com", "category": "dev",
+        })
+        assert resp.status_code == 201
+        mock_sync.assert_called_once()
+
+
+def test_api_v1_update_monitor_syncs_scheduler(client):
+    resp = client.post("/api/v1/monitors", json={
+        "brand": "PatchMon", "url": "https://patchmon.com", "category": "dev",
+    })
+    mid = resp.json()["monitor_id"]
+
+    with patch("opencmo.scheduler.sync_job_record") as mock_sync:
+        resp = client.patch(f"/api/v1/monitors/{mid}", json={"enabled": False})
+        assert resp.status_code == 200
+        mock_sync.assert_called_once()
+
+
+def test_api_v1_delete_monitor_unschedules_job(client):
+    resp = client.post("/api/v1/monitors", json={
+        "brand": "DeleteMon", "url": "https://deletemon.com", "category": "dev",
+    })
+    mid = resp.json()["monitor_id"]
+
+    with patch("opencmo.scheduler.unschedule_job") as mock_unschedule:
+        resp = client.delete(f"/api/v1/monitors/{mid}")
+        assert resp.status_code == 200
+        mock_unschedule.assert_called_once_with(mid)
 
 
 def test_api_v1_task_artifacts_endpoints(client):
@@ -318,6 +376,60 @@ def test_api_v1_keyword_validation(client):
     pid = resp.json()["project_id"]
     resp = client.post(f"/api/v1/projects/{pid}/keywords", json={"keyword": ""})
     assert resp.status_code == 400
+
+
+def test_api_v1_approvals_queue_and_reject(client):
+    pid = _seed_project("Approval", "https://approval.com")
+
+    resp = client.post("/api/v1/approvals", json={
+        "project_id": pid,
+        "approval_type": "twitter_post",
+        "title": "Launch thread",
+        "content": "OpenCMO turns monitoring into measurable growth loops.",
+        "payload": {"text": "OpenCMO turns monitoring into measurable growth loops."},
+        "agent_name": "Growth Agent",
+        "target_url": "https://twitter.com/opencmo",
+    })
+    assert resp.status_code == 201
+    approval_id = resp.json()["id"]
+    assert resp.json()["status"] == "pending"
+
+    resp = client.get("/api/v1/approvals?status=pending")
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1
+
+    resp = client.post(f"/api/v1/approvals/{approval_id}/reject", json={"decision_note": "off-brand"})
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "rejected"
+    assert resp.json()["decision_note"] == "off-brand"
+
+
+def test_api_v1_approve_approval_uses_stored_payload(client):
+    pid = _seed_project("Publish", "https://publish.com")
+
+    create = client.post("/api/v1/approvals", json={
+        "project_id": pid,
+        "approval_type": "twitter_post",
+        "title": "Exact payload",
+        "payload": {"text": "Exact publish payload"},
+        "content": "Exact publish payload",
+    })
+    approval_id = create.json()["id"]
+
+    with patch.dict(os.environ, {"OPENCMO_AUTO_PUBLISH": "1"}), \
+         patch("opencmo.tools.publishers.publish_tweet_impl", new_callable=AsyncMock) as mock_publish:
+        mock_publish.return_value = {
+            "ok": True,
+            "dry_run": False,
+            "tweet_id": "12345",
+            "url": "https://twitter.com/i/status/12345",
+        }
+
+        resp = client.post(f"/api/v1/approvals/{approval_id}/approve")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "approved"
+        assert resp.json()["publish_result"]["tweet_id"] == "12345"
+        mock_publish.assert_awaited_once_with("Exact publish payload", dry_run=False)
 
 
 # ---------------------------------------------------------------------------

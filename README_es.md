@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>El CMO de IA de Codigo Abierto — Tu Equipo de Marketing Completo en Una Sola Herramienta.</strong><br/>
-  <sub>Un potente sistema multiagente con mas de 25 expertos de IA especializados, monitoreo en tiempo real de SEO/GEO/SERP/Comunidad, y un grafo de conocimiento 3D interactivo.</sub>
+  <sub>Un potente sistema multiagente con mas de 25 expertos de IA, monitoreo continuo de SEO/GEO/SERP/Comunidad, una cola de aprobaciones con payload exacto y un grafo de conocimiento 3D interactivo.</sub>
 </p>
 
 <div align="center">
@@ -29,7 +29,16 @@ OpenCMO es un **ecosistema de marketing de IA multiagente** disenado para indie 
 1. **Analiza tu sitio web en profundidad** — Comprende tu producto y audiencia objetivo.
 2. **Orquesta un debate estrategico multiagente** — Identifica las mejores palabras clave, posicionamiento y comunidades objetivo.
 3. **Automatiza el monitoreo continuo** — Cubre SEO, visibilidad en busqueda IA (GEO), rankings SERP y comunidades de desarrolladores (Reddit, Hacker News, Dev.to).
-4. **Genera contenido para mas de 20 plataformas** — Con publicacion automatica en Reddit y Twitter.
+4. **Genera contenido para mas de 20 plataformas** — Con revision del payload exacto en una cola de aprobaciones y publicacion automatica en Reddit y Twitter cuando tu lo autorizas.
+
+---
+
+## Por que OpenCMO destaca
+
+- **Une generacion y medicion en un solo bucle** — agentes de contenido, monitoreo SEO/GEO/SERP/comunidad y el grafo 3D trabajan sobre la misma superficie operativa.
+- **El scheduler ya vive en el ciclo de vida del dashboard web** — si `opencmo-web` esta activo, los monitores con cron tambien siguen activos.
+- **La cola de aprobaciones guarda el payload exacto** — lo que revisas es exactamente lo que se publica.
+- **Sigue siendo BYOK y extensible** — almacenamiento, APIs, scheduler y frontend siguen siendo faciles de inspeccionar y ampliar.
 
 ---
 
@@ -63,10 +72,13 @@ El **Grafo de Conocimiento** es el corazon de tu inteligencia de mercado — una
 </div>
 
 **Capacidades clave:**
+- **Expansion activa del grafo** — Haz clic en "Start Exploring" y el grafo descubre competidores, palabras clave y conexiones ola por ola. Puedes pausar y reanudar cuando quieras.
+- **Topologia BFS por profundidad** — Los nodos descubiertos se conectan con su nodo padre en lugar de aplanarse contra la marca. Los nodos mas profundos se ven mas pequenos y mas tenues.
+- **Visualizacion de frontera** — Los nodos aun no explorados se resaltan con un anillo violeta para mostrar hacia donde puede crecer el grafo.
 - **Exploracion interactiva** — Zoom, arrastre y desplazamiento por el universo digital de tu marca.
 - **6 dimensiones de nodos** — Marca (purpura), Palabras clave (cian), Discusiones comunitarias (ambar), Rankings SERP (verde), Competidores (rojo), Palabras clave superpuestas (naranja).
 - **Inteligencia competitiva** — Agrega URLs de competidores para visualizar campos de batalla compartidos con lineas punteadas rojas.
-- **Sincronizacion en tiempo real** — El grafo se reequilibra cada 30 segundos conforme se descubren nuevos insights.
+- **Sincronizacion en tiempo real** — El grafo se reequilibra cada 30 segundos (cada 5 segundos durante la expansion activa).
 - **Descubrimiento de competidores con IA** — Identifica automaticamente competidores y rastrea palabras clave superpuestas.
 
 ---
@@ -108,6 +120,10 @@ Escanea automaticamente menciones de marca y discusiones relevantes en Reddit, H
   <img src="assets/screenshots/community-page.png" alt="Community Monitoring" width="850" />
   <p><i>Historial de escaneos multiplataforma y discusiones en seguimiento.</i></p>
 </div>
+
+### Cola de aprobaciones y operaciones programadas
+
+Revisa el payload exacto de publicacion dentro de la SPA, apruebalo o rechaza con traza persistente, y deja que el proceso web mantenga vivos los monitores programados. La publicacion real sigue respetando `OPENCMO_AUTO_PUBLISH=1`, asi que la aprobacion no salta la ultima barrera de seguridad.
 
 ---
 
@@ -291,11 +307,12 @@ npm run build   # Build de produccion
 - [x] **Analisis de URL multiagente** — Via debate colaborativo
 - [x] **React SPA** — Soporte multiidioma (EN/ZH)
 - [x] **API agnostico** — OpenAI, Anthropic, DeepSeek, NVIDIA, Ollama
-- [x] **Grafo de conocimiento 3D interactivo** — Con inteligencia competitiva
+- [x] **Grafo de conocimiento 3D interactivo** — Con expansion BFS activa e inteligencia competitiva
 - [x] **Monitoreo comunitario** — Reddit, Hacker News, Dev.to
 - [x] **Deteccion GEO** — Perplexity, You.com, ChatGPT, Claude, Gemini
 - [x] **Auditoria SEO** — Core Web Vitals, Schema.org, robots.txt
 - [x] **Seguimiento SERP** — Monitoreo de rankings de palabras clave
+- [x] **Cola de aprobaciones + runtime de monitores programados** — Revision exacta del payload y ejecucion cron en el ciclo web
 - [x] **Publicacion automatica** — Reddit (publicar + responder) y Twitter
 - [x] **Reportes por email** — Via SMTP
 - [x] **Descubrimiento de competidores con IA** — Analisis de superposicion de palabras clave

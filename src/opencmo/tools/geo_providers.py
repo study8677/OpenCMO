@@ -21,6 +21,7 @@ try:
 
     _HAS_ANTHROPIC = True
 except ImportError:
+    anthropic = None
     _HAS_ANTHROPIC = False
 
 try:
@@ -31,6 +32,7 @@ try:
 
     _HAS_GENAI = True
 except ImportError:
+    genai = None
     _HAS_GENAI = False
 
 

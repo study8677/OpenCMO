@@ -51,6 +51,27 @@ export interface TaskRecord {
   recommendations_count?: number;
 }
 
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "failed";
+
+export interface ApprovalRecord {
+  id: number;
+  project_id: number;
+  channel: string;
+  approval_type: string;
+  status: ApprovalStatus;
+  title: string;
+  target_label: string;
+  target_url: string;
+  agent_name: string;
+  content: string;
+  payload: Record<string, unknown>;
+  preview: Record<string, unknown>;
+  publish_result: Record<string, unknown> | null;
+  decision_note: string;
+  created_at: string;
+  decided_at: string | null;
+}
+
 export interface AnalysisProgress {
   role?: string;
   content?: string;

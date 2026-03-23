@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -21,13 +23,54 @@ _SPA_DIR = _HERE.parent.parent.parent / "frontend" / "dist"  # <repo>/frontend/d
 
 app = FastAPI(title="OpenCMO Dashboard")
 app.mount("/static", StaticFiles(directory=str(_HERE / "static")), name="static")
+logger = logging.getLogger(__name__)
+
+
+# In-memory expansion tracking (lightweight, no third task model)
+_expansion_progress: dict[int, list[dict]] = {}   # project_id -> progress events
+_expansion_tasks: dict[int, asyncio.Task] = {}     # project_id -> running asyncio.Task
+
+
+@app.on_event("startup")
+async def _startup_fix_stale_expansions():
+    """Mark any stale 'running' expansions as interrupted (from previous process)."""
+    await storage.ensure_db()
+    try:
+        fixed = await storage.fix_stale_expansions(timeout_seconds=60)
+        if fixed:
+            logger.info("Fixed %d stale expansion(s) on startup", fixed)
+    except Exception:
+        pass  # table may not exist yet on first run
+
+
+@app.on_event("startup")
+async def _startup_runtime_services():
+    """Start optional runtime services after DB bootstrap."""
+    from opencmo import scheduler
+
+    if not scheduler.is_scheduler_available():
+        logger.info("APScheduler not installed; scheduled monitors will remain inactive.")
+        return
+
+    loaded_jobs = await scheduler.load_jobs_from_db()
+    scheduler.start_scheduler()
+    logger.info("Scheduler started with %d enabled monitor job(s)", loaded_jobs)
+
+
+@app.on_event("shutdown")
+async def _shutdown_runtime_services():
+    """Stop optional runtime services cleanly."""
+    from opencmo import scheduler
+
+    scheduler.stop_scheduler()
+    logger.info("Scheduler stopped")
 
 
 # ---------------------------------------------------------------------------
 # Auth middleware
 # ---------------------------------------------------------------------------
 
-_PUBLIC_PREFIXES = ("/static/", "/favicon", "/api/v1/auth/")
+_PUBLIC_PREFIXES = ("/static/", "/favicon", "/api/v1/auth/", "/api/v1/health")
 
 _LOGIN_HTML = """<!DOCTYPE html>
 <html><head><title>OpenCMO Login</title>
@@ -81,6 +124,16 @@ async def auth_login(request: Request):
     resp = JSONResponse({"ok": True})
     resp.set_cookie("opencmo_token", expected, httponly=True, samesite="lax")
     return resp
+
+
+@app.get("/api/v1/health")
+async def api_v1_health():
+    from opencmo import scheduler
+
+    return JSONResponse({
+        "ok": True,
+        "scheduler": scheduler.scheduler_status(),
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -276,6 +329,12 @@ async def api_v1_project(project_id: int):
 
 @app.delete("/api/v1/projects/{project_id}")
 async def api_v1_delete_project(project_id: int):
+    # Cancel running expansion if any
+    await storage.update_expansion(project_id, desired_state="idle")
+    old_task = _expansion_tasks.pop(project_id, None)
+    if old_task and not old_task.done():
+        old_task.cancel()
+    _expansion_progress.pop(project_id, None)
     ok = await storage.delete_project(project_id)
     if not ok:
         return JSONResponse({"error": "Not found"}, status_code=404)
@@ -469,6 +528,115 @@ async def api_v1_add_competitor_keyword(competitor_id: int, request: Request):
 
 
 # ---------------------------------------------------------------------------
+# REST API v1 — Graph Expansion
+# ---------------------------------------------------------------------------
+
+@app.get("/api/v1/projects/{project_id}/expansion")
+async def api_v1_expansion_status(project_id: int):
+    """Get current expansion state."""
+    expansion = await storage.get_expansion(project_id)
+    if not expansion:
+        return JSONResponse({
+            "desired_state": "idle", "runtime_state": "idle",
+            "current_wave": 0, "nodes_discovered": 0, "nodes_explored": 0,
+        })
+    return JSONResponse({
+        "desired_state": expansion["desired_state"],
+        "runtime_state": expansion["runtime_state"],
+        "current_wave": expansion["current_wave"],
+        "nodes_discovered": expansion["nodes_discovered"],
+        "nodes_explored": expansion["nodes_explored"],
+    })
+
+
+@app.post("/api/v1/projects/{project_id}/expansion/start")
+async def api_v1_expansion_start(project_id: int):
+    """Start or resume graph expansion."""
+    project = await storage.get_project(project_id)
+    if not project:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+
+    expansion = await storage.get_or_create_expansion(project_id)
+
+    # If running with fresh heartbeat, reject
+    if expansion["runtime_state"] == "running" and expansion.get("heartbeat_at"):
+        from datetime import datetime, timezone
+        try:
+            hb = datetime.fromisoformat(expansion["heartbeat_at"])
+            if (datetime.now(timezone.utc) - hb.replace(tzinfo=timezone.utc)).total_seconds() < 60:
+                return JSONResponse({"error": "Expansion already running"}, status_code=409)
+        except (ValueError, TypeError):
+            pass
+        # Stale heartbeat — mark interrupted, allow restart
+        await storage.update_expansion(project_id, runtime_state="interrupted")
+
+    from opencmo.graph_expansion import run_expansion
+
+    # Seed frontier on first start
+    if expansion["current_wave"] == 0:
+        await storage.seed_expansion_nodes(project_id)
+
+    # Set desired state
+    await storage.update_expansion(project_id, desired_state="running")
+
+    # Clear progress, launch task
+    _expansion_progress[project_id] = []
+
+    def on_progress(event: dict):
+        events = _expansion_progress.setdefault(project_id, [])
+        events.append(event)
+        # Keep last 100 events
+        if len(events) > 100:
+            _expansion_progress[project_id] = events[-50:]
+
+    async def _run():
+        try:
+            await run_expansion(project_id, on_progress=on_progress)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("Expansion failed for project %d", project_id)
+            await storage.update_expansion(project_id, runtime_state="interrupted")
+        finally:
+            _expansion_tasks.pop(project_id, None)
+
+    # Cancel any lingering task
+    old_task = _expansion_tasks.pop(project_id, None)
+    if old_task and not old_task.done():
+        old_task.cancel()
+
+    _expansion_tasks[project_id] = asyncio.get_event_loop().create_task(_run())
+    return JSONResponse({"status": "running"}, status_code=202)
+
+
+@app.post("/api/v1/projects/{project_id}/expansion/pause")
+async def api_v1_expansion_pause(project_id: int):
+    """Pause the running expansion. Loop will stop after current op."""
+    expansion = await storage.get_expansion(project_id)
+    if not expansion or expansion["desired_state"] != "running":
+        return JSONResponse({"error": "Not running"}, status_code=400)
+    await storage.update_expansion(project_id, desired_state="paused")
+    return JSONResponse({"ok": True, "status": "pausing"})
+
+
+@app.post("/api/v1/projects/{project_id}/expansion/reset")
+async def api_v1_expansion_reset(project_id: int):
+    """Reset expansion state. Must not be running."""
+    expansion = await storage.get_expansion(project_id)
+    if expansion and expansion["runtime_state"] == "running":
+        return JSONResponse({"error": "Cannot reset while running"}, status_code=400)
+    await storage.reset_expansion(project_id)
+    _expansion_progress.pop(project_id, None)
+    return JSONResponse({"ok": True})
+
+
+@app.get("/api/v1/projects/{project_id}/expansion/progress")
+async def api_v1_expansion_progress(project_id: int):
+    """Get live expansion progress events."""
+    events = _expansion_progress.get(project_id, [])
+    return JSONResponse({"progress": events})
+
+
+# ---------------------------------------------------------------------------
 # REST API v1 — Keywords
 # ---------------------------------------------------------------------------
 
@@ -556,14 +724,14 @@ async def api_v1_delete_monitor(monitor_id: int):
 
 @app.patch("/api/v1/monitors/{monitor_id}")
 async def api_v1_update_monitor(monitor_id: int, request: Request):
+    from opencmo import service
+
     body = await request.json()
     cron_expr = body.get("cron_expr")
     enabled = body.get("enabled")
     if cron_expr is None and enabled is None:
         return JSONResponse({"error": "Nothing to update"}, status_code=400)
-    ok = await storage.update_scheduled_job(
-        monitor_id, cron_expr=cron_expr, enabled=enabled,
-    )
+    ok = await service.update_monitor(monitor_id, cron_expr=cron_expr, enabled=enabled)
     if not ok:
         return JSONResponse({"error": "Not found"}, status_code=404)
     return JSONResponse({"ok": True})
@@ -587,6 +755,104 @@ async def api_v1_run_monitor(monitor_id: int):
     if record is None:
         return JSONResponse({"error": "Monitor is already running"}, status_code=409)
     return JSONResponse(record.to_dict(), status_code=202)
+
+
+# ---------------------------------------------------------------------------
+# REST API v1 — Approvals
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/v1/approvals")
+async def api_v1_approvals(status: str | None = None, limit: int = 50):
+    from opencmo import service
+
+    return JSONResponse(await service.list_approvals(status=status, limit=limit))
+
+
+@app.get("/api/v1/approvals/{approval_id}")
+async def api_v1_approval(approval_id: int):
+    from opencmo import service
+
+    approval = await service.get_approval(approval_id)
+    if not approval:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    return JSONResponse(approval)
+
+
+@app.post("/api/v1/approvals")
+async def api_v1_create_approval(request: Request):
+    from opencmo import service
+
+    body = await request.json()
+    project_id = body.get("project_id")
+    if not isinstance(project_id, int):
+        return JSONResponse({"error": "project_id is required"}, status_code=400)
+
+    project = await storage.get_project(project_id)
+    if not project:
+        return JSONResponse({"error": "Project not found"}, status_code=404)
+
+    payload = body.get("payload")
+    if not isinstance(payload, dict):
+        return JSONResponse({"error": "payload must be an object"}, status_code=400)
+
+    approval_type = str(body.get("approval_type", "")).strip()
+    if not approval_type:
+        return JSONResponse({"error": "approval_type is required"}, status_code=400)
+
+    try:
+        approval = await service.create_approval(
+            project_id,
+            approval_type,
+            payload,
+            content=str(body.get("content", "")),
+            title=str(body.get("title", "")),
+            target_label=str(body.get("target_label", "")),
+            target_url=str(body.get("target_url", "")),
+            agent_name=str(body.get("agent_name", "")),
+        )
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    return JSONResponse(approval, status_code=201)
+
+
+@app.post("/api/v1/approvals/{approval_id}/approve")
+async def api_v1_approve_approval(approval_id: int, request: Request):
+    from opencmo import service
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    result = await service.approve_approval(
+        approval_id,
+        decision_note=str(body.get("decision_note", "")),
+    )
+    if not result["ok"]:
+        status_code = 404 if "not found" in result["error"].lower() else 400
+        return JSONResponse({"error": result["error"], "approval": result.get("approval")}, status_code=status_code)
+    return JSONResponse(result["approval"])
+
+
+@app.post("/api/v1/approvals/{approval_id}/reject")
+async def api_v1_reject_approval(approval_id: int, request: Request):
+    from opencmo import service
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    result = await service.reject_approval(
+        approval_id,
+        decision_note=str(body.get("decision_note", "")),
+    )
+    if not result["ok"]:
+        status_code = 404 if "not found" in result["error"].lower() else 400
+        return JSONResponse({"error": result["error"]}, status_code=status_code)
+    return JSONResponse(result["approval"])
 
 
 # ---------------------------------------------------------------------------

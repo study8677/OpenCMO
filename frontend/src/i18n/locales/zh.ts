@@ -228,4 +228,20 @@ export const zh: Record<TranslationKey, string> = {
   "graph.competitorUrl": "网址（可选）",
   "graph.competitorKw": "关键词，逗号分隔（可选）",
   "graph.noCompetitors": "暂无竞品。添加竞品后图谱将显示竞品节点。",
+
+  // Graph Expansion
+  "graph.expansion": "图谱扩展",
+  "graph.startExploring": "开始探索",
+  "graph.pause": "暂停",
+  "graph.resume": "继续",
+  "graph.reset": "重置",
+  "graph.wave": "第 {{n}} 波",
+  "graph.discovered": "已发现 {{count}} 个",
+  "graph.explored": "已探索 {{count}} 个",
+  "graph.expanding": "扩展中...",
+  "graph.paused": "已暂停",
+  "graph.interrupted": "已中断",
+  "graph.pausingHint": "正在完成当前操作...",
+  "graph.resetConfirm": "重置将清除深度追踪信息。已发现的数据将保留在图谱中，但深度信息将丢失。",
+  "graph.noFrontier": "没有更多节点可探索。",
 };

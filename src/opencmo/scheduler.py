@@ -28,6 +28,15 @@ def _require_apscheduler():
         )
 
 
+def is_scheduler_available() -> bool:
+    """Return whether APScheduler is installed in this environment."""
+    return _HAS_APSCHEDULER
+
+
+def _job_key(job_id: int) -> str:
+    return f"opencmo_job_{job_id}"
+
+
 async def _maybe_send_email_report(project_id: int, job_type: str, triggered_by: str):
     """Send email report only for (full, cron) runs."""
     if job_type != "full" or triggered_by != "cron":
@@ -185,23 +194,70 @@ def get_scheduler() -> "AsyncIOScheduler":
     return _scheduler
 
 
+def scheduler_status() -> dict:
+    """Return scheduler runtime state for health checks."""
+    if not _HAS_APSCHEDULER:
+        return {"installed": False, "running": False, "job_count": 0}
+
+    if _scheduler is None:
+        return {"installed": True, "running": False, "job_count": 0}
+
+    return {
+        "installed": True,
+        "running": _scheduler.running,
+        "job_count": len(_scheduler.get_jobs()),
+    }
+
+
+def sync_job_record(job: dict) -> bool:
+    """Reconcile one scheduled job into APScheduler memory state."""
+    if not _HAS_APSCHEDULER:
+        return False
+
+    scheduler = get_scheduler()
+    job_key = _job_key(job["id"])
+    if not job["enabled"]:
+        if scheduler.get_job(job_key) is not None:
+            scheduler.remove_job(job_key)
+        return True
+
+    trigger = CronTrigger.from_crontab(job["cron_expr"])
+    scheduler.add_job(
+        run_scheduled_scan,
+        trigger=trigger,
+        args=[job["project_id"], job["job_type"], job["id"]],
+        id=job_key,
+        replace_existing=True,
+    )
+    return True
+
+
+def unschedule_job(job_id: int) -> bool:
+    """Remove one scheduled job from APScheduler memory state."""
+    if not _HAS_APSCHEDULER or _scheduler is None:
+        return False
+
+    job_key = _job_key(job_id)
+    if _scheduler.get_job(job_key) is None:
+        return False
+
+    _scheduler.remove_job(job_key)
+    return True
+
+
 async def load_jobs_from_db():
     """Load all enabled scheduled jobs from DB and add them to the scheduler."""
     _require_apscheduler()
     scheduler = get_scheduler()
+    scheduler.remove_all_jobs()
     jobs = await storage.list_scheduled_jobs()
+    enabled_jobs = 0
     for job in jobs:
         if not job["enabled"]:
             continue
-        trigger = CronTrigger.from_crontab(job["cron_expr"])
-        scheduler.add_job(
-            run_scheduled_scan,
-            trigger=trigger,
-            args=[job["project_id"], job["job_type"], job["id"]],
-            id=f"opencmo_job_{job['id']}",
-            replace_existing=True,
-        )
-    return len(jobs)
+        sync_job_record(job)
+        enabled_jobs += 1
+    return enabled_jobs
 
 
 def start_scheduler():
@@ -217,4 +273,4 @@ def stop_scheduler():
     global _scheduler
     if _scheduler and _scheduler.running:
         _scheduler.shutdown(wait=False)
-        _scheduler = None
+    _scheduler = None

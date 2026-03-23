@@ -1,98 +1,180 @@
-import { useState } from "react";
-import { Check, X, Sparkles, MessageSquare } from "lucide-react";
+import { Check, Clock3, ExternalLink, MessageSquare, Send, X } from "lucide-react";
+import type { ApprovalRecord } from "../../types";
+import { EmptyState } from "../common/EmptyState";
 
-export function ApprovalCard() {
-  const [direction, setDirection] = useState<"left" | "right" | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+function getPrimaryCopy(approval: ApprovalRecord): string {
+  const preview = approval.preview;
 
-  // Mock data for the sprint
-  const items = [
-    {
-      id: 1,
-      platform: "Reddit",
-      targetUrl: "reddit.com/r/marketing/comments/123/tools",
-      content: "I've been using OpenCMO for my agency and the ROI tracking is incredible. It automatically closed the loop on our Reddit campaigns.",
-      agent: "Reddit Agent",
-    },
-    {
-      id: 2,
-      platform: "X (Twitter)",
-      targetUrl: "twitter.com/marketing_bro/status/456",
-      content: "Stop wasting time on manual outreach. OpenCMO's AI agents just booked 3 demos for us while we were sleeping. 🚀 #SaaS #Marketing",
-      agent: "Growth Agent",
-    },
-  ];
+  if (typeof preview.text === "string" && preview.text.trim()) {
+    return preview.text;
+  }
+  if (typeof preview.body === "string" && preview.body.trim()) {
+    return preview.body;
+  }
+  return approval.content;
+}
 
-  const currentItem = items[currentIndex];
+function getMetaLabel(approval: ApprovalRecord): string {
+  const preview = approval.preview;
 
-  const handleAction = (type: "approve" | "reject") => {
-    setDirection(type === "approve" ? "right" : "left");
-    setTimeout(() => {
-      setDirection(null);
-      setCurrentIndex((p) => p + 1);
-    }, 400); // Wait for animation
-  };
+  if (typeof preview.subreddit === "string") {
+    return `r/${preview.subreddit}`;
+  }
+  if (typeof preview.parent_id === "string") {
+    return `Reply to ${preview.parent_id}`;
+  }
+  if (typeof preview.length === "number") {
+    return `${preview.length} chars`;
+  }
+  return approval.channel;
+}
 
-  if (!currentItem) {
+function getTitle(approval: ApprovalRecord): string {
+  const preview = approval.preview;
+
+  if (typeof preview.title === "string" && preview.title.trim()) {
+    return preview.title;
+  }
+  if (approval.title.trim()) {
+    return approval.title;
+  }
+  return approval.approval_type.replace(/_/g, " ");
+}
+
+export function ApprovalCard({
+  approval,
+  pendingCount,
+  busy,
+  onApprove,
+  onReject,
+}: {
+  approval: ApprovalRecord | null;
+  pendingCount: number;
+  busy: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  if (!approval) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center h-[500px]">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200 shadow-lg mb-4">
-          <Sparkles size={28} />
-        </div>
-        <h3 className="text-xl font-bold text-zinc-900 mb-2">You're all caught up!</h3>
-        <p className="text-zinc-500">The agents are generating more content. Check back later.</p>
-      </div>
+      <EmptyState
+        title="Approval queue is clear"
+        description="Queued previews will appear here before anything gets published."
+      />
     );
   }
 
   return (
-    <div className="relative mx-auto max-w-lg w-full h-[550px] flex items-center justify-center perspective-1000">
-      <div
-        className={`absolute w-full rounded-[2rem] border border-zinc-200/60 bg-white ring-1 ring-zinc-950/5 shadow-2xl p-8 transition-all duration-300 ease-spring
-          ${direction === "right" ? "translate-x-full rotate-12 opacity-0" : ""}
-          ${direction === "left" ? "-translate-x-full -rotate-12 opacity-0" : ""}
-          ${direction === null ? "scale-100 opacity-100" : "scale-95"}
-        `}
-      >
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-200 text-xs shadow-sm">
-              <MessageSquare size={16} />
+    <div className="relative mx-auto flex w-full max-w-2xl flex-col items-center justify-center">
+      <div className="absolute inset-x-10 top-6 h-full rounded-[2rem] bg-gradient-to-br from-slate-100 to-slate-200/70 opacity-60 blur-sm" />
+      <div className="absolute inset-x-6 top-3 h-full rounded-[2rem] border border-slate-200/80 bg-white/60 shadow-lg" />
+
+      <article className="relative w-full overflow-hidden rounded-[2rem] border border-slate-200/70 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.12),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-8 shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-950/5">
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200 shadow-sm">
+              <MessageSquare className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{currentItem.agent}</p>
-              <p className="text-sm font-bold text-zinc-900">{currentItem.platform}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                {approval.agent_name || "OpenCMO Agent"}
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-slate-950">
+                {getTitle(approval)}
+              </h2>
             </div>
           </div>
-          <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600 ring-1 ring-indigo-200">
-            Pending
-          </span>
+
+          <div className="flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+            <Clock3 className="h-4 w-4" />
+            {pendingCount} pending
+          </div>
         </div>
 
-        <div className="mb-8 rounded-2xl bg-zinc-50/50 ring-1 ring-inset ring-zinc-200/50 p-6 shadow-inner">
-          <p className="mb-3 text-xs font-medium text-zinc-400">TARGET URL</p>
-          <a href={`https://${currentItem.targetUrl}`} target="_blank" rel="noreferrer" className="text-sm text-indigo-600 hover:underline break-all block mb-4">
-            {currentItem.targetUrl}
-          </a>
-          <p className="text-xs font-medium text-zinc-400 mb-2">GENERATED REPLY</p>
-          <p className="text-lg text-zinc-800 leading-relaxed font-medium">"{currentItem.content}"</p>
+        <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+          <section className="rounded-[1.5rem] border border-slate-200/70 bg-white/80 p-6 shadow-inner">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Generated Preview
+              </p>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                {getMetaLabel(approval)}
+              </span>
+            </div>
+
+            <p className="whitespace-pre-wrap text-lg leading-8 text-slate-800">
+              {getPrimaryCopy(approval)}
+            </p>
+          </section>
+
+          <aside className="space-y-4 rounded-[1.5rem] border border-slate-200/70 bg-slate-950/[0.03] p-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Channel
+              </p>
+              <p className="mt-2 text-sm font-semibold capitalize text-slate-900">
+                {approval.channel.replace(/_/g, " ")}
+              </p>
+            </div>
+
+            {approval.target_label && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                  Target
+                </p>
+                <p className="mt-2 text-sm font-medium text-slate-800">
+                  {approval.target_label}
+                </p>
+              </div>
+            )}
+
+            {approval.target_url && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                  Target URL
+                </p>
+                <a
+                  href={approval.target_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 flex items-center gap-1 break-all text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  <span>{approval.target_url}</span>
+                  <ExternalLink className="h-4 w-4 shrink-0" />
+                </a>
+              </div>
+            )}
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Created
+              </p>
+              <p className="mt-2 text-sm text-slate-700">
+                {new Date(approval.created_at).toLocaleString()}
+              </p>
+            </div>
+          </aside>
         </div>
 
-        <div className="flex items-center justify-center gap-6">
+        <div className="mt-8 flex items-center justify-center gap-4">
           <button
-            onClick={() => handleAction("reject")}
-            className="group flex h-16 w-16 items-center justify-center rounded-full bg-white ring-1 ring-zinc-200 shadow-lg transition-all hover:scale-110 hover:bg-rose-50 hover:ring-rose-200 active:scale-95"
+            onClick={onReject}
+            disabled={busy}
+            className="group inline-flex h-14 items-center justify-center gap-2 rounded-full border border-rose-200 bg-white px-6 text-sm font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <X size={28} className="text-zinc-400 transition-colors group-hover:text-rose-500" />
+            <X className="h-4 w-4" />
+            Reject
           </button>
           <button
-            onClick={() => handleAction("approve")}
-            className="group flex h-16 w-16 items-center justify-center rounded-full bg-white ring-1 ring-zinc-200 shadow-lg transition-all hover:scale-110 hover:bg-emerald-50 hover:ring-emerald-200 active:scale-95"
+            onClick={onApprove}
+            disabled={busy}
+            className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(16,185,129,0.32)] transition hover:-translate-y-0.5 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Check size={28} className="text-zinc-400 transition-colors group-hover:text-emerald-500" />
+            <Check className="h-4 w-4" />
+            Approve & publish
+            <Send className="h-4 w-4" />
           </button>
         </div>
-      </div>
+      </article>
     </div>
   );
 }

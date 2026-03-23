@@ -1,12 +1,59 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchGraph, fetchCompetitors, addCompetitor, deleteCompetitor, discoverCompetitors } from "../api/graph";
-import type { GraphData, Competitor } from "../api/graph";
+import {
+  fetchGraph, fetchCompetitors, addCompetitor, deleteCompetitor, discoverCompetitors,
+  fetchExpansionStatus, startExpansion, pauseExpansion, resetExpansion,
+} from "../api/graph";
+import type { GraphData, Competitor, ExpansionState } from "../api/graph";
 
-export function useGraphData(projectId: number) {
+export function useGraphData(projectId: number, expansionRunning = false) {
   return useQuery<GraphData>({
     queryKey: ["graph", projectId],
     queryFn: () => fetchGraph(projectId),
-    refetchInterval: 30_000, // realtime: refetch every 30s
+    refetchInterval: expansionRunning ? 5_000 : 30_000,
+  });
+}
+
+export function useExpansionStatus(projectId: number) {
+  return useQuery<ExpansionState>({
+    queryKey: ["expansion", projectId],
+    queryFn: () => fetchExpansionStatus(projectId),
+    refetchInterval: (query) => {
+      const state = query.state.data?.runtime_state;
+      if (state === "running") return 2_000;
+      return 10_000;
+    },
+  });
+}
+
+export function useStartExpansion(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => startExpansion(projectId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["expansion", projectId] });
+      qc.invalidateQueries({ queryKey: ["graph", projectId] });
+    },
+  });
+}
+
+export function usePauseExpansion(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => pauseExpansion(projectId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["expansion", projectId] });
+    },
+  });
+}
+
+export function useResetExpansion(projectId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => resetExpansion(projectId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["expansion", projectId] });
+      qc.invalidateQueries({ queryKey: ["graph", projectId] });
+    },
   });
 }
 
