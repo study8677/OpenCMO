@@ -25,40 +25,84 @@ async def _research_topic_impl(topic: str, keywords: str) -> str:
     competing_articles = []
     data_points = []
 
-    # Step 1: Search for competing content
+    # Step 1: Search for competing content — try Tavily first, fall back to httpx
     search_urls = []
+    tavily_snippets: dict[str, str] = {}  # url -> snippet from Tavily
     try:
-        search_url = f"https://www.google.com/search?q={quote_plus(query)}&num=10"
-        async with httpx.AsyncClient(
-            headers={
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            },
-            follow_redirects=True,
-            timeout=15,
-        ) as client:
-            resp = await client.get(search_url)
-            resp.raise_for_status()
+        from opencmo.tools.tavily_helper import tavily_search
 
-        import re
-
-        for m in re.finditer(r'href="/url\?q=(https?://[^&"]+)', resp.text):
-            url = m.group(1)
-            if "google.com" not in url:
-                search_urls.append(url)
-        for m in re.finditer(r'<a href="(https?://[^"]+)"[^>]*data-', resp.text):
-            url = m.group(1)
-            if "google.com" not in url and url not in search_urls:
-                search_urls.append(url)
+        tavily_results = await tavily_search(query, max_results=10)
+        if tavily_results:
+            for tr in tavily_results:
+                if tr.url and "google.com" not in tr.url:
+                    search_urls.append(tr.url)
+                    if tr.snippet:
+                        tavily_snippets[tr.url] = tr.snippet
     except Exception as exc:
-        logger.warning("Search failed: %s", exc)
+        logger.debug("Tavily import/search failed, falling back to httpx: %s", exc)
 
-    # Step 2: Crawl top 2 articles for content
+    if not search_urls:
+        try:
+            search_url = f"https://www.google.com/search?q={quote_plus(query)}&num=10"
+            async with httpx.AsyncClient(
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                },
+                follow_redirects=True,
+                timeout=15,
+            ) as client:
+                resp = await client.get(search_url)
+                resp.raise_for_status()
+
+            import re
+
+            for m in re.finditer(r'href="/url\?q=(https?://[^&"]+)', resp.text):
+                url = m.group(1)
+                if "google.com" not in url:
+                    search_urls.append(url)
+            for m in re.finditer(r'<a href="(https?://[^"]+)"[^>]*data-', resp.text):
+                url = m.group(1)
+                if "google.com" not in url and url not in search_urls:
+                    search_urls.append(url)
+        except Exception as exc:
+            logger.warning("Search failed: %s", exc)
+
+    # Step 2: Crawl top 2 articles for content (use Tavily snippets if available)
     crawl_urls = search_urls[:5]  # try up to 5, take first 2 that succeed
     crawled = 0
     for url in crawl_urls:
         if crawled >= 2:
             break
+
+        # Use Tavily snippet directly if available, skip crawl
+        if url in tavily_snippets and tavily_snippets[url]:
+            text = tavily_snippets[url][:3000]
+            title = ""
+            for line in text.split("\n"):
+                line = line.strip()
+                if line.startswith("# "):
+                    title = line[2:].strip()
+                    break
+                if line and len(line) > 10 and not line.startswith("["):
+                    title = line[:100]
+                    break
+            key_points = []
+            for line in text.split("\n"):
+                line = line.strip()
+                if line.startswith("## ") and len(line) > 5:
+                    key_points.append(line[3:].strip())
+                if len(key_points) >= 5:
+                    break
+            competing_articles.append({
+                "title": title or url,
+                "url": url,
+                "key_points": key_points,
+                "excerpt": text[:500],
+            })
+            crawled += 1
+            continue
+
         try:
             from crawl4ai import AsyncWebCrawler
 

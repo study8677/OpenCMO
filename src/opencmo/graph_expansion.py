@@ -36,7 +36,22 @@ def _emit(callback: ProgressCallback, stage: str, summary: str) -> None:
 
 
 async def _web_search_direct(query: str) -> str:
-    """Search via crawl4ai Google scrape. No agent framework dependency."""
+    """Search via Tavily (preferred) or crawl4ai Google scrape fallback."""
+    # Try Tavily first for more reliable structured results
+    try:
+        from opencmo.tools.tavily_helper import tavily_search
+
+        tavily_results = await tavily_search(query, max_results=5)
+        if tavily_results:
+            parts = []
+            for tr in tavily_results:
+                parts.append(f"## {tr.title}\n{tr.url}\n{tr.snippet}")
+            content = "\n\n".join(parts)
+            return content[:4000] if content else ""
+    except Exception as exc:
+        logger.debug("Tavily search failed, falling back to crawl4ai: %s", exc)
+
+    # Fallback: crawl4ai Google scrape
     try:
         from crawl4ai import AsyncWebCrawler
         from opencmo.tools.crawl import _extract_markdown
