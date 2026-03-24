@@ -266,6 +266,9 @@ export interface AISettings {
   // SEO
   pagespeed_key_set: boolean;
   pagespeed_key_masked: string;
+  // Search (Tavily)
+  tavily_key_set: boolean;
+  tavily_key_masked: string;
   // SERP
   dataforseo_configured: boolean;
   dataforseo_login: string;

@@ -26,6 +26,7 @@ from opencmo.agents.devto import devto_expert
 from opencmo.tools.crawl import crawl_website
 from opencmo.tools.search import web_search
 from opencmo.tools.competitor import analyze_competitor
+from opencmo.tools.research_brief import generate_research_brief
 
 # as_tool wrappers — CMO calls these in multi-channel mode to retain control
 twitter_tool = twitter_expert.as_tool(
@@ -137,8 +138,9 @@ cmo_agent = Agent(
 
 3. **Routing rules**:
    - **Single platform request** → use handoff to transfer to that expert for deep interaction
-   - **Multi-channel / full-platform / comprehensive plan** → use the generate_* tools to call each expert yourself, then synthesize a unified marketing plan
+   - **Multi-channel / full-platform / comprehensive plan** → ALWAYS use `generate_research_brief` FIRST to create a shared context document, then pass that brief to each channel expert via the generate_* tools. This ensures all channel content is consistent.
    - This is critical: for multi-channel, do NOT handoff — use the tool versions so you can collect all outputs and present a cohesive summary
+   - The research brief creates a Campaign Run that tracks all generated content as artifacts
 
 4. **Web Search**: Use `web_search` for competitive research, market trends, keyword research, or any real-time information needs.
 
@@ -165,6 +167,7 @@ When the user asks for "全平台" or "comprehensive" distribution, prioritize i
         crawl_website,
         web_search,
         analyze_competitor,
+        generate_research_brief,
         # as_tool wrappers for multi-channel orchestration
         twitter_tool,
         reddit_tool,

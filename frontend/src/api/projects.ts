@@ -16,3 +16,15 @@ export function getProjectSummary(id: number): Promise<ProjectSummary> {
 export function deleteProject(id: number): Promise<{ ok: boolean }> {
   return apiJson(`/projects/${id}`, { method: "DELETE" });
 }
+
+export interface NextAction {
+  domain: string;
+  priority: "high" | "medium" | "low";
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export function getNextActions(id: number): Promise<{ actions: NextAction[] }> {
+  return apiJson<{ actions: NextAction[] }>(`/projects/${id}/next-actions`);
+}

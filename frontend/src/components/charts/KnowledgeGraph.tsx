@@ -63,12 +63,14 @@ function getNodeSize(node: GraphNode): number {
 
 interface NewNodeData extends GraphNode {
   __isNew?: number; // timestamp when added
+  x?: number; y?: number; z?: number; // injected by force-graph at runtime
 }
 
 export function KnowledgeGraph({ data }: { data: GraphData }) {
   const fgRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [selectedNode, setSelectedNode] = useState<NewNodeData | null>(null);
   const { locale } = useI18n();
   const isZh = locale === "zh";
   const typeLabels = isZh ? TYPE_LABELS_ZH : TYPE_LABELS_EN;
@@ -174,12 +176,26 @@ export function KnowledgeGraph({ data }: { data: GraphData }) {
   }, []);
 
   const handleNodeClick = useCallback((node: any) => {
+    const n = node as NewNodeData;
+    setSelectedNode((prev) => (prev?.id === n.id ? null : n));
+
     const fg = fgRef.current;
-    if (fg) {
-      const controls = fg.controls();
-      if (controls) controls.autoRotate = false;
-    }
-    if (node.url) window.open(node.url, "_blank");
+    if (!fg) return;
+    const controls = fg.controls();
+    if (controls) controls.autoRotate = false;
+
+    // Smooth camera focus on the clicked node
+    const distance = 100;
+    const distRatio = 1 + distance / Math.hypot(n.x || 1, n.y || 1, n.z || 1);
+    fg.cameraPosition(
+      { x: (n.x || 0) * distRatio, y: (n.y || 0) * distRatio + 20, z: (n.z || 0) * distRatio },
+      n,
+      800,
+    );
+  }, []);
+
+  const handleBackgroundClick = useCallback(() => {
+    setSelectedNode(null);
   }, []);
 
   /* ─── 3D Object Creation for Light elegant theme ─── */
@@ -352,12 +368,25 @@ export function KnowledgeGraph({ data }: { data: GraphData }) {
   const getLinkParticles = useCallback((link: any) => {
     if (link.type === "keyword_overlap") return 4;
     if (link.type === "competitor_of") return 3;
+    if (link.type === "expanded_from") return 2;
+    if (link.type === "has_keyword") return 1;
+    if (link.type === "serp_rank") return 1;
     return 0;
   }, []);
-  
+
+  const getLinkParticleSpeed = useCallback((link: any) => {
+    if (link.type === "keyword_overlap") return 0.006;
+    if (link.type === "competitor_of") return 0.004;
+    if (link.type === "expanded_from") return 0.008; // Faster for discovery
+    return 0.003;
+  }, []);
+
   const getLinkParticleColor = useCallback((link: any) => {
     if (link.type === "keyword_overlap") return "#e11d48"; // Rose 600
     if (link.type === "competitor_of") return "#f43f5e"; // Rose 500
+    if (link.type === "expanded_from") return "#a855f7"; // Purple 500
+    if (link.type === "has_keyword") return "#0ea5e9"; // Sky 500
+    if (link.type === "serp_rank") return "#10b981"; // Emerald 500
     return "#94a3b8";
   }, []);
 
@@ -437,13 +466,15 @@ export function KnowledgeGraph({ data }: { data: GraphData }) {
           nodeThreeObject={nodeThreeObject}
           nodeLabel={getNodeLabelHtml}
           onNodeClick={handleNodeClick}
+          onNodeRightClick={(node: any) => node.url && window.open(node.url, "_blank")}
+          onBackgroundClick={handleBackgroundClick}
           linkColor={getLinkColor}
           linkWidth={getLinkWidth}
           linkOpacity={0.8}
           linkDirectionalParticles={getLinkParticles}
           linkDirectionalParticleColor={getLinkParticleColor}
           linkDirectionalParticleWidth={2}
-          linkDirectionalParticleSpeed={0.008}
+          linkDirectionalParticleSpeed={getLinkParticleSpeed}
           linkCurvature={0.15}
           d3AlphaDecay={0.02}
           d3VelocityDecay={0.4}
@@ -453,6 +484,62 @@ export function KnowledgeGraph({ data }: { data: GraphData }) {
           showNavInfo={false}
         />
       </div>
+
+      {/* Selected Node Info Panel */}
+      {selectedNode && (
+        <div className="absolute bottom-4 left-4 z-20 w-80 animate-in slide-in-from-bottom-2 duration-300">
+          <div className="rounded-2xl border border-white/20 bg-white/90 p-5 shadow-xl backdrop-blur-xl">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className="h-3 w-3 rounded-full"
+                  style={{ backgroundColor: NODE_COLORS_CSS[selectedNode.type] ?? "#94a3b8" }}
+                />
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  {typeLabels[selectedNode.type] ?? selectedNode.type}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedNode(null)}
+                className="rounded-lg p-1 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <h3 className="text-lg font-bold text-zinc-800 leading-tight">{selectedNode.label}</h3>
+            <div className="mt-3 space-y-1.5 text-sm">
+              {selectedNode.platform && (
+                <div className="flex justify-between"><span className="text-zinc-400">{isZh ? "平台" : "Platform"}</span><span className="font-medium text-zinc-700">{selectedNode.platform}</span></div>
+              )}
+              {selectedNode.engagement != null && (
+                <div className="flex justify-between"><span className="text-zinc-400">{isZh ? "互动分" : "Engagement"}</span><span className="font-medium text-zinc-700">{selectedNode.engagement}</span></div>
+              )}
+              {selectedNode.comments != null && (
+                <div className="flex justify-between"><span className="text-zinc-400">{isZh ? "评论" : "Comments"}</span><span className="font-medium text-zinc-700">{selectedNode.comments}</span></div>
+              )}
+              {selectedNode.position != null && (
+                <div className="flex justify-between"><span className="text-zinc-400">{isZh ? "排名" : "Rank"}</span><span className="font-medium text-emerald-600 font-bold">#{selectedNode.position}</span></div>
+              )}
+              {selectedNode.depth != null && selectedNode.depth > 0 && (
+                <div className="flex justify-between"><span className="text-zinc-400">{isZh ? "发现深度" : "Discovery depth"}</span><span className="font-medium text-zinc-700">{selectedNode.depth}</span></div>
+              )}
+            </div>
+            {selectedNode.url && (
+              <a
+                href={selectedNode.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 flex items-center justify-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-800"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {isZh ? "访问链接" : "Open Link"} →
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

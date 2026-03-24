@@ -6,6 +6,8 @@ import { ProjectHeader } from "../components/project/ProjectHeader";
 import { ProjectTabs } from "../components/project/ProjectTabs";
 import { ScorePanel } from "../components/project/ScorePanel";
 import { ScanHistoryTable } from "../components/project/ScanHistoryTable";
+import { NextActions } from "../components/project/NextActions";
+import { CampaignTimeline } from "../components/project/CampaignTimeline";
 import { useI18n } from "../i18n";
 
 export function ProjectPage() {
@@ -25,6 +27,8 @@ export function ProjectPage() {
       <ProjectHeader project={project} />
       <ProjectTabs projectId={projectId} />
       <ScorePanel latest={latest} previous={previous} latestMonitoring={latest_monitoring} />
+      <NextActions projectId={projectId} />
+      <CampaignTimeline projectId={projectId} />
       <ScanHistoryTable latest={latest} />
     </div>
   );

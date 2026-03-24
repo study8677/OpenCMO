@@ -163,7 +163,10 @@ async def _expand_competitor(
             continue
         c_url = str(c.get("url", "")).strip() or None
         new_comp_id = await storage.add_competitor(project_id, c_name, url=c_url)
-        is_new = await storage.add_expansion_node(project_id, "competitor", new_comp_id, wave)
+        is_new = await storage.add_expansion_node(
+            project_id, "competitor", new_comp_id, wave,
+            priority=75, reason=f"discovered_from_{name}",
+        )
         if is_new:
             await storage.add_expansion_edge(
                 project_id, "competitor", comp_db_id,
@@ -179,6 +182,7 @@ async def _expand_competitor(
         ckw_id = await storage.add_competitor_keyword(comp_db_id, kw)
         is_new = await storage.add_expansion_node(
             project_id, "competitor_keyword", ckw_id, wave,
+            priority=55, reason=f"kw_from_{name}",
         )
         if is_new:
             await storage.add_expansion_edge(
@@ -258,7 +262,10 @@ async def _expand_keyword(
         if not rk or rk.lower() == keyword_text.lower():
             continue
         new_kw_id = await storage.add_tracked_keyword(project_id, rk)
-        is_new = await storage.add_expansion_node(project_id, "keyword", new_kw_id, wave)
+        is_new = await storage.add_expansion_node(
+            project_id, "keyword", new_kw_id, wave,
+            priority=65, reason=f"related_to_{keyword_text}",
+        )
         if is_new:
             await storage.add_expansion_edge(
                 project_id, "keyword", kw_db_id,

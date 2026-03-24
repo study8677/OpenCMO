@@ -4,6 +4,27 @@ import type { Project } from "../../types";
 import { StatusBadge } from "./StatusBadge";
 import { useI18n } from "../../i18n";
 
+function ScoreBar({ label, value, max, suffix = "", color, trackColor }: {
+  label: string; value: number | null; max: number; suffix?: string;
+  color: string; trackColor: string;
+}) {
+  const pct = value != null ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-10 text-[11px] font-medium text-slate-500">{label}</span>
+      <div className={`h-2 flex-1 rounded-full ${trackColor}`}>
+        <div
+          className={`h-2 rounded-full transition-all duration-700 ease-out ${color}`}
+          style={{ width: value != null ? `${pct}%` : "0%" }}
+        />
+      </div>
+      <span className="w-10 text-right text-xs font-semibold text-slate-700">
+        {value != null ? `${value}${suffix}` : "—"}
+      </span>
+    </div>
+  );
+}
+
 export function ProjectCard({ project, onDelete }: { project: Project; onDelete?: (id: number) => void }) {
   const { latest } = project;
   const { t } = useI18n();
@@ -49,17 +70,27 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-        <StatusBadge
+      {/* Score bars */}
+      <div className="space-y-3">
+        <ScoreBar
           label={t("project.seo")}
-          value={latest?.seo?.score != null ? `${Math.round(latest.seo.score * 100)}%` : "—"}
-          color={latest?.seo?.score != null && latest.seo.score >= 0.8 ? "green" : "gray"}
+          value={latest?.seo?.score != null ? Math.round(latest.seo.score * 100) : null}
+          max={100}
+          suffix="%"
+          color="bg-sky-500"
+          trackColor="bg-sky-100"
         />
-        <StatusBadge
+        <ScoreBar
           label={t("project.geo")}
-          value={latest?.geo?.score != null ? `${latest.geo.score}/100` : "—"}
-          color={latest?.geo?.score != null && latest.geo.score >= 60 ? "green" : "gray"}
+          value={latest?.geo?.score ?? null}
+          max={100}
+          color="bg-emerald-500"
+          trackColor="bg-emerald-100"
         />
+      </div>
+
+      {/* Bottom metrics */}
+      <div className="mt-4 flex items-center gap-4 border-t border-slate-100 pt-4">
         <StatusBadge
           label={t("project.community")}
           value={latest?.community?.total_hits != null ? t("projectCard.hits", { count: latest.community.total_hits }) : "—"}

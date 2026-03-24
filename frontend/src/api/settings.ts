@@ -26,6 +26,8 @@ export function saveSettings(data: {
   OPENCMO_GEO_CHATGPT?: string;
   // SEO
   PAGESPEED_API_KEY?: string;
+  // Search (Tavily)
+  TAVILY_API_KEY?: string;
   // SERP
   DATAFORSEO_LOGIN?: string;
   DATAFORSEO_PASSWORD?: string;

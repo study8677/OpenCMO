@@ -140,6 +140,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   // SEO
   const [pagespeedKey, setPagespeedKey] = useState("");
 
+  // Search (Tavily)
+  const [tavilyKey, setTavilyKey] = useState("");
+
   // SERP
   const [dataforseoLogin, setDataforseoLogin] = useState("");
   const [dataforseoPassword, setDataforseoPassword] = useState("");
@@ -191,6 +194,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         OPENCMO_GEO_CHATGPT: geoChatgpt ? "1" : "0",
         // SEO
         PAGESPEED_API_KEY: pagespeedKey || undefined,
+        // Search (Tavily)
+        TAVILY_API_KEY: tavilyKey || undefined,
         // SERP
         DATAFORSEO_LOGIN: dataforseoLogin || undefined,
         DATAFORSEO_PASSWORD: dataforseoPassword || undefined,
@@ -215,6 +220,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       setAnthropicKey("");
       setGoogleAiKey("");
       setPagespeedKey("");
+      setTavilyKey("");
       setDataforseoLogin("");
       setDataforseoPassword("");
       setSmtpPass("");
@@ -338,6 +344,25 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               />
             )}
             <Field label={t("settings.pagespeedKey")} type="password" placeholder="AIza..." hint={t("settings.pagespeedHint")} value={pagespeedKey} onChange={setPagespeedKey} />
+          </Section>
+
+          {/* ── Search (Tavily) ── */}
+          <Section title={t("settings.tavilySection")}>
+            {status && (
+              <StatusBadge
+                ok={status.tavily_key_set}
+                okText={`Tavily ${t("settings.configured")} (${status.tavily_key_masked})`}
+                noText={t("settings.tavilyNotConfigured")}
+              />
+            )}
+            <Field
+              label={t("settings.tavilyKey")}
+              type="password"
+              placeholder="tvly-..."
+              hint={t("settings.tavilyHint")}
+              value={tavilyKey}
+              onChange={setTavilyKey}
+            />
           </Section>
 
           {/* ── SERP ── */}

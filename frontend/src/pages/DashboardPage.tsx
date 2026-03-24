@@ -4,6 +4,7 @@ import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { EmptyState } from "../components/common/EmptyState";
 import { ErrorAlert } from "../components/common/ErrorAlert";
 import { ProjectCard } from "../components/dashboard/ProjectCard";
+import { GlobalOverview } from "../components/dashboard/GlobalOverview";
 import { useI18n } from "../i18n";
 import { Plus } from "lucide-react";
 
@@ -30,6 +31,7 @@ export function DashboardPage() {
           {t("dashboard.newMonitor")}
         </Link>
       </div>
+      <GlobalOverview />
       {!projects?.length ? (
         <EmptyState
           title={t("dashboard.noProjects")}

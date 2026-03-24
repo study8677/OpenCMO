@@ -229,6 +229,8 @@ CREATE TABLE IF NOT EXISTS graph_expansion_nodes (
     db_row_id INTEGER NOT NULL,
     wave_discovered INTEGER NOT NULL DEFAULT 0,
     explored INTEGER NOT NULL DEFAULT 0,
+    priority INTEGER NOT NULL DEFAULT 50,
+    reason TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(project_id, node_type, db_row_id)
 );
@@ -245,6 +247,26 @@ CREATE TABLE IF NOT EXISTS graph_expansion_edges (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(project_id, target_type, target_db_id)
 );
+
+CREATE TABLE IF NOT EXISTS campaign_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    goal TEXT NOT NULL,
+    channels TEXT NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL DEFAULT 'drafting',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    completed_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS campaign_artifacts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL REFERENCES campaign_runs(id),
+    artifact_type TEXT NOT NULL,
+    channel TEXT,
+    title TEXT NOT NULL DEFAULT '',
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
@@ -260,6 +282,15 @@ async def ensure_db() -> None:
         await db.execute("PRAGMA journal_mode=WAL")
         await db.execute("PRAGMA foreign_keys=ON")
         await db.executescript(_SCHEMA)
+        # Migrations for existing databases
+        for col, default in [("priority", "50"), ("reason", "''")]:
+            try:
+                await db.execute(
+                    f"ALTER TABLE graph_expansion_nodes ADD COLUMN {col} "
+                    f"{'INTEGER' if col == 'priority' else 'TEXT'} NOT NULL DEFAULT {default}"
+                )
+            except Exception:
+                pass  # column already exists
         await db.commit()
         _SCHEMA_READY_FOR = _DB_PATH
     finally:
@@ -1632,35 +1663,63 @@ async def update_expansion(project_id: int, **kwargs) -> None:
 
 
 async def seed_expansion_nodes(project_id: int) -> int:
-    """Insert existing keywords and competitors as wave-0 unexplored nodes. Idempotent."""
+    """Insert existing keywords and competitors as wave-0 unexplored nodes. Idempotent.
+
+    Assigns priority scores so the expansion engine explores the most valuable
+    nodes first:
+      - competitors: 90 (high value — discovering competitor landscape)
+      - keywords without SERP data: 80 (need ranking info)
+      - keywords with low SERP position: 70 (opportunity gaps)
+      - keywords with good SERP position: 40 (already performing)
+      - competitor_keywords: 60 (moderate — cross-reference value)
+    """
     db = await get_db()
     try:
         count = 0
-        # Keywords
+        # Keywords — prioritize those without SERP data or with low rankings
         cursor = await db.execute(
-            "SELECT id FROM tracked_keywords WHERE project_id = ?", (project_id,),
+            """SELECT k.id, ss.position FROM tracked_keywords k
+               LEFT JOIN (
+                   SELECT keyword, position, ROW_NUMBER() OVER (
+                       PARTITION BY keyword ORDER BY checked_at DESC
+                   ) AS rn FROM serp_snapshots WHERE project_id = ?
+               ) ss ON ss.keyword = k.keyword AND ss.rn = 1
+               WHERE k.project_id = ?""",
+            (project_id, project_id),
         )
         for row in await cursor.fetchall():
+            kw_id, position = row[0], row[1]
+            if position is None:
+                priority = 80  # No SERP data — needs exploration
+                reason = "no_serp_data"
+            elif position > 10:
+                priority = 70  # Low ranking — opportunity gap
+                reason = f"low_rank_{position}"
+            else:
+                priority = 40  # Already ranking well
+                reason = f"ranking_{position}"
             r = await db.execute(
                 "INSERT OR IGNORE INTO graph_expansion_nodes "
-                "(project_id, node_type, db_row_id, wave_discovered, explored) "
-                "VALUES (?, 'keyword', ?, 0, 0)",
-                (project_id, row[0]),
+                "(project_id, node_type, db_row_id, wave_discovered, explored, priority, reason) "
+                "VALUES (?, 'keyword', ?, 0, 0, ?, ?)",
+                (project_id, kw_id, priority, reason),
             )
             count += r.rowcount
-        # Competitors
+
+        # Competitors — always high priority
         cursor = await db.execute(
             "SELECT id FROM competitors WHERE project_id = ?", (project_id,),
         )
         for row in await cursor.fetchall():
             r = await db.execute(
                 "INSERT OR IGNORE INTO graph_expansion_nodes "
-                "(project_id, node_type, db_row_id, wave_discovered, explored) "
-                "VALUES (?, 'competitor', ?, 0, 0)",
+                "(project_id, node_type, db_row_id, wave_discovered, explored, priority, reason) "
+                "VALUES (?, 'competitor', ?, 0, 0, 90, 'competitor_discovery')",
                 (project_id, row[0]),
             )
             count += r.rowcount
-        # Competitor keywords
+
+        # Competitor keywords — moderate priority
         cursor = await db.execute(
             "SELECT ck.id FROM competitor_keywords ck "
             "JOIN competitors c ON c.id = ck.competitor_id "
@@ -1670,8 +1729,8 @@ async def seed_expansion_nodes(project_id: int) -> int:
         for row in await cursor.fetchall():
             r = await db.execute(
                 "INSERT OR IGNORE INTO graph_expansion_nodes "
-                "(project_id, node_type, db_row_id, wave_discovered, explored) "
-                "VALUES (?, 'competitor_keyword', ?, 0, 0)",
+                "(project_id, node_type, db_row_id, wave_discovered, explored, priority, reason) "
+                "VALUES (?, 'competitor_keyword', ?, 0, 0, 60, 'comp_kw_cross_ref')",
                 (project_id, row[0]),
             )
             count += r.rowcount
@@ -1697,19 +1756,19 @@ async def get_min_unexplored_wave(project_id: int) -> int | None:
 
 
 async def get_frontier_nodes(project_id: int, wave: int) -> list[dict]:
-    """Return unexplored nodes for exactly the given wave."""
+    """Return unexplored nodes for exactly the given wave, ordered by priority (highest first)."""
     db = await get_db()
     try:
         cursor = await db.execute(
-            "SELECT id, node_type, db_row_id, wave_discovered "
+            "SELECT id, node_type, db_row_id, wave_discovered, priority, reason "
             "FROM graph_expansion_nodes "
             "WHERE project_id = ? AND explored = 0 AND wave_discovered = ? "
-            "ORDER BY id",
+            "ORDER BY priority DESC, id",
             (project_id, wave),
         )
         rows = await cursor.fetchall()
         return [{"id": r[0], "node_type": r[1], "db_row_id": r[2],
-                 "wave_discovered": r[3]} for r in rows]
+                 "wave_discovered": r[3], "priority": r[4], "reason": r[5]} for r in rows]
     finally:
         await db.close()
 
@@ -1729,15 +1788,16 @@ async def mark_node_explored(project_id: int, node_type: str, db_row_id: int) ->
 
 async def add_expansion_node(
     project_id: int, node_type: str, db_row_id: int, wave: int,
+    priority: int = 50, reason: str = "",
 ) -> bool:
     """Insert an expansion node. Returns True if newly inserted."""
     db = await get_db()
     try:
         r = await db.execute(
             "INSERT OR IGNORE INTO graph_expansion_nodes "
-            "(project_id, node_type, db_row_id, wave_discovered, explored) "
-            "VALUES (?, ?, ?, ?, 0)",
-            (project_id, node_type, db_row_id, wave),
+            "(project_id, node_type, db_row_id, wave_discovered, explored, priority, reason) "
+            "VALUES (?, ?, ?, ?, 0, ?, ?)",
+            (project_id, node_type, db_row_id, wave, priority, reason),
         )
         await db.commit()
         return r.rowcount > 0
@@ -1979,3 +2039,111 @@ async def get_graph_data(project_id: int) -> dict:
             "nodes_explored": expansion["nodes_explored"],
         } if expansion else None,
     }
+
+
+# ---------------------------------------------------------------------------
+# Campaign Runs & Artifacts
+# ---------------------------------------------------------------------------
+
+
+async def create_campaign_run(
+    project_id: int, goal: str, channels: list[str],
+) -> dict:
+    """Create a new campaign run."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "INSERT INTO campaign_runs (project_id, goal, channels) VALUES (?, ?, ?)",
+            (project_id, goal, json.dumps(channels)),
+        )
+        await db.commit()
+        run_id = cursor.lastrowid
+        return {"id": run_id, "project_id": project_id, "goal": goal,
+                "channels": channels, "status": "drafting"}
+    finally:
+        await db.close()
+
+
+async def add_campaign_artifact(
+    run_id: int, artifact_type: str, content: str,
+    channel: str | None = None, title: str = "",
+) -> int:
+    """Add an artifact (research_brief, angle_matrix, channel_draft, review) to a campaign."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "INSERT INTO campaign_artifacts (run_id, artifact_type, channel, title, content) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (run_id, artifact_type, channel, title, content),
+        )
+        await db.commit()
+        return cursor.lastrowid
+    finally:
+        await db.close()
+
+
+async def update_campaign_status(run_id: int, status: str) -> None:
+    """Update campaign run status."""
+    db = await get_db()
+    try:
+        completed = "datetime('now')" if status in ("completed", "cancelled") else "NULL"
+        await db.execute(
+            f"UPDATE campaign_runs SET status = ?, completed_at = {completed} WHERE id = ?",
+            (status, run_id),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def get_campaign_run(run_id: int) -> dict | None:
+    """Get a campaign run with its artifacts."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, project_id, goal, channels, status, created_at, completed_at "
+            "FROM campaign_runs WHERE id = ?", (run_id,),
+        )
+        row = await cursor.fetchone()
+        if not row:
+            return None
+        run = {
+            "id": row[0], "project_id": row[1], "goal": row[2],
+            "channels": json.loads(row[3]), "status": row[4],
+            "created_at": row[5], "completed_at": row[6],
+        }
+        cursor = await db.execute(
+            "SELECT id, artifact_type, channel, title, content, created_at "
+            "FROM campaign_artifacts WHERE run_id = ? ORDER BY id",
+            (run_id,),
+        )
+        rows = await cursor.fetchall()
+        run["artifacts"] = [
+            {"id": r[0], "artifact_type": r[1], "channel": r[2],
+             "title": r[3], "content": r[4], "created_at": r[5]}
+            for r in rows
+        ]
+        return run
+    finally:
+        await db.close()
+
+
+async def list_campaign_runs(project_id: int, limit: int = 20) -> list[dict]:
+    """List recent campaign runs for a project."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT cr.id, cr.goal, cr.channels, cr.status, cr.created_at, cr.completed_at, "
+            "(SELECT COUNT(*) FROM campaign_artifacts ca WHERE ca.run_id = cr.id) as artifact_count "
+            "FROM campaign_runs cr WHERE cr.project_id = ? ORDER BY cr.id DESC LIMIT ?",
+            (project_id, limit),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {"id": r[0], "goal": r[1], "channels": json.loads(r[2]),
+             "status": r[3], "created_at": r[4], "completed_at": r[5],
+             "artifact_count": r[6]}
+            for r in rows
+        ]
+    finally:
+        await db.close()

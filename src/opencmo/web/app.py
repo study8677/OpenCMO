@@ -341,6 +341,52 @@ async def api_v1_delete_project(project_id: int):
     return JSONResponse({"ok": True})
 
 
+@app.get("/api/v1/overview")
+async def api_v1_overview():
+    """Global health overview — aggregated metrics across all projects."""
+    projects = await storage.list_projects()
+    seo_scores: list[float] = []
+    geo_scores: list[int] = []
+    community_hits = 0
+    total_keywords = 0
+    total_competitors = 0
+    recent_campaigns: list[dict] = []
+
+    for p in projects:
+        latest = await storage.get_latest_scans(p["id"])
+        seo = latest.get("seo")
+        if seo and seo.get("score") is not None:
+            seo_scores.append(seo["score"])
+        geo = latest.get("geo")
+        if geo and geo.get("score") is not None:
+            geo_scores.append(geo["score"])
+        comm = latest.get("community")
+        if comm:
+            community_hits += comm.get("total_hits", 0)
+        kws = await storage.list_tracked_keywords(p["id"])
+        total_keywords += len(kws)
+        comps = await storage.list_competitors(p["id"])
+        total_competitors += len(comps)
+        # Collect recent campaigns
+        campaigns = await storage.list_campaign_runs(p["id"], limit=3)
+        for c in campaigns:
+            c["brand_name"] = p["brand_name"]
+            recent_campaigns.append(c)
+
+    # Sort campaigns by created_at descending
+    recent_campaigns.sort(key=lambda c: c.get("created_at", ""), reverse=True)
+
+    return JSONResponse({
+        "project_count": len(projects),
+        "avg_seo_score": round(sum(seo_scores) / len(seo_scores) * 100) if seo_scores else None,
+        "avg_geo_score": round(sum(geo_scores) / len(geo_scores)) if geo_scores else None,
+        "total_community_hits": community_hits,
+        "total_keywords": total_keywords,
+        "total_competitors": total_competitors,
+        "recent_campaigns": recent_campaigns[:5],
+    })
+
+
 @app.get("/api/v1/projects/{project_id}/summary")
 async def api_v1_project_summary(project_id: int):
     project = await storage.get_project(project_id)
@@ -355,6 +401,101 @@ async def api_v1_project_summary(project_id: int):
         "previous": previous,
         "latest_monitoring": monitoring,
     })
+
+
+@app.get("/api/v1/projects/{project_id}/next-actions")
+async def api_v1_next_actions(project_id: int):
+    """Synthesize cross-signal next best actions from latest scan data."""
+    project = await storage.get_project(project_id)
+    if not project:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+
+    latest = await storage.get_latest_scans(project_id)
+    actions: list[dict] = []
+
+    # SEO signals
+    seo = latest.get("seo")
+    if not seo:
+        actions.append({
+            "domain": "seo", "priority": "high", "icon": "search",
+            "title": "Run your first SEO audit",
+            "description": "No SEO data yet. Run a scan to get performance scores, Core Web Vitals, and technical recommendations.",
+        })
+    elif seo.get("score") is not None and seo["score"] < 0.7:
+        actions.append({
+            "domain": "seo", "priority": "high", "icon": "search",
+            "title": f"Improve SEO performance (score: {int(seo['score'] * 100)}%)",
+            "description": "Your performance score is below 70%. Focus on Core Web Vitals (LCP, CLS, TBT) to improve search rankings.",
+        })
+
+    # GEO signals
+    geo = latest.get("geo")
+    if not geo:
+        actions.append({
+            "domain": "geo", "priority": "high", "icon": "globe",
+            "title": "Check AI search visibility",
+            "description": "No GEO data yet. Run a scan to see how AI platforms (ChatGPT, Perplexity, etc.) talk about your brand.",
+        })
+    elif geo.get("score") is not None and geo["score"] < 30:
+        actions.append({
+            "domain": "geo", "priority": "high", "icon": "globe",
+            "title": f"Boost AI visibility (GEO score: {geo['score']}/100)",
+            "description": "Your brand has low AI platform visibility. Create authoritative content that AI models can cite.",
+        })
+    elif geo.get("score") is not None and geo["score"] < 60:
+        actions.append({
+            "domain": "geo", "priority": "medium", "icon": "globe",
+            "title": f"Strengthen AI positioning (GEO score: {geo['score']}/100)",
+            "description": "Your brand is known to AI but not top-of-mind. Focus on being mentioned earlier and more positively.",
+        })
+
+    # Community signals
+    community = latest.get("community")
+    if not community:
+        actions.append({
+            "domain": "community", "priority": "medium", "icon": "users",
+            "title": "Start community monitoring",
+            "description": "No community data yet. Run a scan to discover where people discuss your brand on Reddit, HN, and Dev.to.",
+        })
+    elif community.get("total_hits", 0) == 0:
+        actions.append({
+            "domain": "community", "priority": "high", "icon": "users",
+            "title": "Build community presence",
+            "description": "No community discussions found. Share your product on Reddit, Hacker News, or Dev.to to get initial traction.",
+        })
+
+    # SERP signals
+    serp = latest.get("serp", [])
+    if not serp:
+        actions.append({
+            "domain": "serp", "priority": "medium", "icon": "trending-up",
+            "title": "Track keyword rankings",
+            "description": "No keywords tracked yet. Add keywords to monitor your search engine position over time.",
+        })
+    else:
+        unranked = [s for s in serp if not s.get("position")]
+        if unranked:
+            kws = ", ".join(s["keyword"] for s in unranked[:3])
+            actions.append({
+                "domain": "serp", "priority": "high", "icon": "trending-up",
+                "title": f"Not ranking for {len(unranked)} keyword(s)",
+                "description": f"You're not appearing in search results for: {kws}. Create targeted content to rank for these terms.",
+            })
+
+    # Graph / competitors
+    competitors = await storage.list_competitors(project_id)
+    if not competitors:
+        actions.append({
+            "domain": "graph", "priority": "medium", "icon": "git-branch",
+            "title": "Discover competitors",
+            "description": "No competitors tracked. Use the Knowledge Graph to discover and analyze your competitive landscape.",
+        })
+
+    # Sort by priority
+    priority_order = {"high": 0, "medium": 1, "low": 2}
+    actions.sort(key=lambda a: priority_order.get(a["priority"], 9))
+
+    return JSONResponse({"actions": actions})
 
 
 # --- Scan data ---
@@ -662,6 +803,26 @@ async def api_v1_delete_keyword(keyword_id: int):
     if not ok:
         return JSONResponse({"error": "Not found"}, status_code=404)
     return JSONResponse({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# REST API v1 — Campaigns
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/v1/projects/{project_id}/campaigns")
+async def api_v1_campaigns(project_id: int):
+    """List campaign runs for a project."""
+    return JSONResponse(await storage.list_campaign_runs(project_id))
+
+
+@app.get("/api/v1/campaigns/{run_id}")
+async def api_v1_campaign_detail(run_id: int):
+    """Get a campaign run with all its artifacts."""
+    run = await storage.get_campaign_run(run_id)
+    if not run:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    return JSONResponse(run)
 
 
 # ---------------------------------------------------------------------------
@@ -1044,6 +1205,8 @@ async def api_v1_settings_get():
     geo_chatgpt = await _get_setting("OPENCMO_GEO_CHATGPT")
     # SEO
     pagespeed_key = await _get_setting("PAGESPEED_API_KEY")
+    # Search (Tavily)
+    tavily_key = await _get_setting("TAVILY_API_KEY")
     # SERP
     dataforseo_login = await _get_setting("DATAFORSEO_LOGIN")
     dataforseo_pass = await _get_setting("DATAFORSEO_PASSWORD")
@@ -1074,6 +1237,9 @@ async def api_v1_settings_get():
         # SEO
         "pagespeed_key_set": bool(pagespeed_key),
         "pagespeed_key_masked": _mask_key(pagespeed_key),
+        # Search (Tavily)
+        "tavily_key_set": bool(tavily_key),
+        "tavily_key_masked": _mask_key(tavily_key),
         # SERP
         "dataforseo_configured": bool(dataforseo_login and dataforseo_pass),
         "dataforseo_login": dataforseo_login,
@@ -1097,6 +1263,8 @@ _ALL_SETTING_KEYS = (
     "ANTHROPIC_API_KEY", "GOOGLE_AI_API_KEY", "OPENCMO_GEO_CHATGPT",
     # SEO
     "PAGESPEED_API_KEY",
+    # Search (Tavily)
+    "TAVILY_API_KEY",
     # SERP
     "DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD",
     # Email

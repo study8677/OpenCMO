@@ -863,6 +863,11 @@ class ProductHuntProvider(CommunityProvider):
     recommended_max_details = 0
 
     async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        # TODO: 使用 Product Hunt GraphQL API v2 实现搜索功能
+        # 实现思路：
+        # 1. 使用 GraphQL 查询 'posts'，通过 term 参数搜索品牌名称或类别。
+        # 2. 解析返回的数据，获取产品名称、Tagline、投票数 (votesCount)、评论数 (commentsCount) 和 URL。
+        # 3. 需处理 OAuth2 认证，在请求头中携带 PRODUCTHUNT_TOKEN。
         return ProviderSearchResult()
 
 

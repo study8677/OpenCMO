@@ -78,7 +78,7 @@ export function ExpansionControls({ projectId }: { projectId: number }) {
         </span>
       )}
 
-      {(isPaused || isInterrupted) && wave > 0 && (
+      {(isPaused || isInterrupted || (isIdle && wave > 0)) && wave > 0 && (
         <button
           onClick={() => setShowReset(true)}
           disabled={resetMut.isPending}

@@ -46,6 +46,21 @@ export const en = {
   "score.recommendations": "Actions",
   "score.tracked": "{{count}} tracked",
 
+  // Next Best Actions
+  "project.nextActions": "Next Best Actions",
+
+  // Campaigns
+  "project.campaigns": "Campaign Runs",
+  "project.artifacts": "artifacts",
+
+  // Global Overview
+  "overview.avgSeo": "Avg SEO Score",
+  "overview.avgGeo": "Avg GEO Score",
+  "overview.communityHits": "Community Hits",
+  "overview.keywords": "Keywords Tracked",
+  "overview.competitors": "Competitors",
+  "overview.campaigns": "Campaigns",
+
   // Scan History
   "scan.latestScans": "Latest Scans",
   "scan.type": "Type",
@@ -186,6 +201,12 @@ export const en = {
   "settings.pagespeedKey": "Google PageSpeed API Key",
   "settings.pagespeedHint": "Works without a key but with lower rate limits.",
   "settings.pagespeedNotConfigured": "PageSpeed API key not set (rate-limited mode)",
+
+  // Settings — Tavily Search
+  "settings.tavilySection": "Web Search (Tavily)",
+  "settings.tavilyKey": "Tavily API Key",
+  "settings.tavilyHint": "Enables high-quality web search for blog research, graph expansion, SERP tracking, and agent web search fallback. Get a key at tavily.com.",
+  "settings.tavilyNotConfigured": "Tavily not configured (using Google crawling fallback)",
 
   // Settings — SERP
   "settings.serpSection": "SERP Tracking",

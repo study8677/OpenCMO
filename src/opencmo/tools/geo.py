@@ -67,9 +67,29 @@ async def scan_geo_visibility(brand_name: str, category: str) -> str:
         int(sum(position_scores) / len(position_scores)) if position_scores else 0
     )
 
-    # Sentiment (0-30): placeholder -- needs NLP in future versions
-    # For now, give 15/30 if mentioned (neutral), 0 if not
-    sentiment_score = 15 if platforms_mentioned > 0 else 0
+    # Sentiment (0-30): LLM-based analysis of how AI platforms talk about the brand
+    try:
+        from opencmo.tools.text_signals import analyze_geo_sentiment
+
+        # Collect snippets from all platforms for sentiment analysis
+        sentiment_snippets: dict[str, str] = {}
+        for name, agg in aggregated_results.items():
+            parts = []
+            for qr in agg.per_query_results:
+                if qr.content_snippet:
+                    parts.append(qr.content_snippet)
+            if parts:
+                sentiment_snippets[name] = "\n".join(parts)
+
+        signal = await analyze_geo_sentiment(brand_name, sentiment_snippets)
+        sentiment_score = signal.score
+        sentiment_label = signal.label
+        sentiment_reasoning = signal.reasoning
+    except Exception:
+        # Graceful fallback if sentiment analysis fails
+        sentiment_score = 15 if platforms_mentioned > 0 else 0
+        sentiment_label = "neutral" if platforms_mentioned > 0 else "not_mentioned"
+        sentiment_reasoning = "Sentiment analysis unavailable"
 
     geo_score = visibility_score + position_score + sentiment_score
 
@@ -109,8 +129,10 @@ async def scan_geo_visibility(brand_name: str, category: str) -> str:
         "|-----------|-------|-----|",
         f"| Visibility | {visibility_score} | 40 |",
         f"| Position | {position_score} | 30 |",
-        f"| Sentiment | {sentiment_score} | 30 |",
+        f"| Sentiment ({sentiment_label}) | {sentiment_score} | 30 |",
         f"| **Total** | **{geo_score}** | **100** |",
+        "",
+        f"**Sentiment Analysis**: {sentiment_reasoning}",
         "",
         f"## Platform Results ({len(enabled_providers)} enabled, {len(disabled_providers)} disabled)\n",
     ]

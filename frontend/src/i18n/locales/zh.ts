@@ -48,6 +48,21 @@ export const zh: Record<TranslationKey, string> = {
   "score.recommendations": "行动建议",
   "score.tracked": "{{count}} 个跟踪中",
 
+  // Next Best Actions
+  "project.nextActions": "下一步行动建议",
+
+  // Campaigns
+  "project.campaigns": "营销战役",
+  "project.artifacts": "个产物",
+
+  // Global Overview
+  "overview.avgSeo": "平均 SEO 分",
+  "overview.avgGeo": "平均 GEO 分",
+  "overview.communityHits": "社区讨论数",
+  "overview.keywords": "追踪关键词",
+  "overview.competitors": "竞品数量",
+  "overview.campaigns": "营销战役",
+
   // Scan History
   "scan.latestScans": "最近扫描",
   "scan.type": "类型",
@@ -188,6 +203,12 @@ export const zh: Record<TranslationKey, string> = {
   "settings.pagespeedKey": "Google PageSpeed API Key",
   "settings.pagespeedHint": "无密钥也可使用，但有速率限制。",
   "settings.pagespeedNotConfigured": "PageSpeed API 密钥未设置（限速模式）",
+
+  // Settings — Tavily Search
+  "settings.tavilySection": "网络搜索 (Tavily)",
+  "settings.tavilyKey": "Tavily API Key",
+  "settings.tavilyHint": "启用高质量网络搜索，用于博客研究、图谱扩展、SERP 追踪和 Agent 搜索回退。在 tavily.com 获取密钥。",
+  "settings.tavilyNotConfigured": "Tavily 未配置（使用 Google 爬取回退）",
 
   // Settings — SERP
   "settings.serpSection": "SERP 排名追踪",
