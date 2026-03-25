@@ -114,12 +114,20 @@ Continuously track your target keywords' search positions. Supports web crawling
 
 ### Community Monitoring
 
-Automatically scan for brand mentions and relevant discussions across Reddit, Hacker News, and Dev.to.
+Automatically scan for brand mentions and relevant discussions across **Reddit, Hacker News, Dev.to, YouTube, Bluesky, and Twitter/X**. Features multi-signal scoring (engagement velocity, text relevance, temporal recency, cross-platform convergence detection) for cross-platform comparable rankings.
 
 <div align="center">
   <img src="assets/screenshots/community-page.png" alt="Community Monitoring" width="850" />
   <p><i>Cross-platform scan history and tracked discussions.</i></p>
 </div>
+
+### Trend Research
+
+Research any topic across community platforms with the **Trend Research** agent. Supports query expansion, comparative mode ("X vs Y"), and time-window filtering. Results are ranked by multi-signal scoring and synthesized into actionable briefings.
+
+### Graph Intelligence
+
+The knowledge graph is no longer just a visualization — it's an **active intelligence layer**. Graph data (competitors, keyword gaps, overlaps, SERP rankings) is automatically injected into chat sessions and research briefs, and the CMO agent can query the competitive landscape on demand via `get_competitive_landscape`. New keywords and competitors added anywhere in the system are automatically seeded into the graph expansion frontier.
 
 ### Approval Queue & Scheduled Operations
 
@@ -138,7 +146,8 @@ OpenCMO ships with **25+ specialized AI agents** organized into three categories
 | **CMO Agent** | The orchestrator. Routes tasks to the right expert automatically. |
 | **SEO Auditor** | Audits Core Web Vitals, Schema.org, robots.txt, and sitemaps via Google PageSpeed API. |
 | **GEO Specialist** | Monitors your brand visibility across Perplexity, You.com, ChatGPT, Claude, and Gemini. |
-| **Community Radar** | Scans Reddit, Hacker News, and Dev.to for brand mentions and relevant discussions. |
+| **Community Radar** | Scans Reddit, Hacker News, Dev.to, YouTube, Bluesky, and Twitter/X for brand mentions and relevant discussions. |
+| **Trend Research** | Researches topics across community platforms with multi-signal scoring, query expansion, and comparative analysis. |
 
 ### Content Creation Agents (Global)
 
@@ -183,7 +192,9 @@ All integrations are configurable via the built-in **Settings panel** in the web
 
 | Capability | Platforms | How |
 | :--- | :--- | :--- |
-| **Community Monitoring** | Reddit, Hacker News, Dev.to | Public APIs (no auth required) |
+| **Community Monitoring** | Reddit, Hacker News, Dev.to, Bluesky | Public APIs (no auth required) |
+| **Community Monitoring** | YouTube | YouTube Data API v3 (optional key) or Tavily fallback |
+| **Community Monitoring** | Twitter/X | Bearer Token (optional) or Tavily fallback |
 | **GEO Detection** | Perplexity, You.com | Web crawling (no auth required) |
 | **GEO Detection** | ChatGPT, Claude, Gemini | API calls (configure keys in Settings) |
 | **SEO Audit** | Google PageSpeed Insights | HTTP API (optional key for higher limits) |
@@ -308,7 +319,7 @@ npm run build   # Production build
 - [x] **React SPA** with multi-language support (EN/ZH)
 - [x] **API agnostic** — OpenAI, Anthropic, DeepSeek, NVIDIA, Ollama
 - [x] **Interactive 3D Knowledge Graph** with active BFS expansion and competitor intelligence
-- [x] **Community monitoring** — Reddit, Hacker News, Dev.to
+- [x] **Community monitoring** — Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X
 - [x] **GEO detection** — Perplexity, You.com, ChatGPT, Claude, Gemini
 - [x] **SEO audit** — Core Web Vitals, Schema.org, robots.txt
 - [x] **SERP tracking** — Keyword ranking monitoring
@@ -316,6 +327,9 @@ npm run build   # Production build
 - [x] **Auto-publishing** — Reddit (post + reply) and Twitter
 - [x] **Email reports** via SMTP
 - [x] **AI-powered competitor discovery** and keyword overlap analysis
+- [x] **Multi-signal community scoring** — engagement velocity, text relevance, recency decay, cross-platform convergence
+- [x] **Trend research agent** — topic exploration with query expansion and comparative mode
+- [x] **Graph Intelligence Pipeline** — knowledge graph feeds into agent decisions, chat context, and content briefs
 - [x] **Unified Settings panel** — configure all API keys from the web UI
 - [ ] Direct publishing to LinkedIn, Product Hunt, and more
 - [ ] Custom Brand Voice fine-tuning

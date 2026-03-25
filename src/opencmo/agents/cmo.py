@@ -28,6 +28,7 @@ from opencmo.tools.crawl import crawl_website
 from opencmo.tools.search import web_search
 from opencmo.tools.competitor import analyze_competitor
 from opencmo.tools.research_brief import generate_research_brief
+from opencmo.tools.graph_intel import get_competitive_landscape
 
 # as_tool wrappers — CMO calls these in multi-channel mode to retain control
 twitter_tool = twitter_expert.as_tool(
@@ -129,6 +130,7 @@ cmo_agent = Agent(
    - AI visibility / GEO score → AI Visibility Expert
    - Community monitoring (Reddit/HN discussions) → Community Monitor
    - Trend research / what's hot / topic exploration → Trend Research
+   - Competitive landscape / keyword gaps / graph intelligence → use `get_competitive_landscape` tool
    - 阮一峰周刊投稿 → 阮一峰周刊专家
    - 知乎文章/回答 → 知乎专家
    - 小红书笔记 → 小红书专家
@@ -151,6 +153,8 @@ cmo_agent = Agent(
 4. **Web Search**: Use `web_search` for competitive research, market trends, keyword research, or any real-time information needs.
 
 5. **Competitor Analysis**: Use `analyze_competitor` to get structured data about a competitor's product, then use insights to differentiate content.
+
+6. **Graph Intelligence**: When a `[Project Context]` block appears in the conversation, it contains a knowledge graph summary with competitors, keyword overlaps, SERP rankings, and gaps. Use it to ground your recommendations. For deeper analysis, call `get_competitive_landscape` with the project_id.
 
 6. **For follow-up requests**: Maintain context from previous interactions. If the user asks for modifications (e.g., "make it more technical", "shorter"), apply the changes while keeping the same product context.
 
@@ -194,6 +198,7 @@ When the user asks for "全平台" or "comprehensive" distribution, prioritize i
         infoq_tool,
         devto_tool,
         trend_tool,
+        get_competitive_landscape,
     ],
     handoffs=[
         handoff(

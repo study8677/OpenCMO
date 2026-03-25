@@ -114,12 +114,20 @@ OpenCMO 是一个专为独立开发者、初创公司和小团队设计的 **多
 
 ### 社区监控
 
-自动扫描 Reddit、Hacker News 和 Dev.to 上的品牌提及与相关讨论。
+自动扫描 **Reddit、Hacker News、Dev.to、YouTube、Bluesky、Twitter/X** 上的品牌提及与相关讨论。支持多信号评分（互动速度、文本相关性、时效衰减、跨平台收敛检测），实现跨平台可比排名。
 
 <div align="center">
   <img src="assets/screenshots/community-page.png" alt="Community Monitoring" width="850" />
   <p><i>跨平台扫描历史与追踪中的讨论。</i></p>
 </div>
+
+### 趋势研究
+
+**趋势研究 Agent** 可跨社区平台研究任意话题，支持查询扩展、对比模式（"X vs Y"）和时间窗口过滤，结果经多信号评分后生成可操作的趋势简报。
+
+### 图谱智能
+
+知识图谱不再只是可视化工具——它现在是**主动智能层**。图谱数据（竞品关系、关键词缺口、SERP 排名）自动注入聊天上下文和研究简报，CMO Agent 可随时调用 `get_competitive_landscape` 查询完整竞争格局。系统中任何地方新增的关键词和竞品都会自动进入图谱扩展队列。
 
 ### 审批流与定时运行
 

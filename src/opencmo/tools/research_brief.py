@@ -5,6 +5,7 @@ from __future__ import annotations
 from agents import function_tool
 
 from opencmo import storage
+from opencmo.context import build_project_context
 
 
 @function_tool
@@ -38,6 +39,7 @@ async def generate_research_brief(
     latest = await storage.get_latest_scans(project_id)
     competitors = await storage.list_competitors(project_id)
     discussions = await storage.get_tracked_discussions(project_id)
+    graph_ctx = await build_project_context(project_id, depth="full")
 
     # Build context sections
     sections = [
@@ -57,6 +59,12 @@ async def generate_research_brief(
         sections.append("## Competitive Landscape")
         for comp in competitors[:5]:
             sections.append(f"- **{comp['name']}** ({comp.get('url', 'N/A')})")
+        sections.append("")
+
+    # Add knowledge graph intelligence if available
+    if graph_ctx and ("Competitive Landscape" in graph_ctx or "Keyword Gaps" in graph_ctx):
+        sections.append("## Knowledge Graph Intelligence")
+        sections.append(graph_ctx)
         sections.append("")
 
     # Add community signals if available

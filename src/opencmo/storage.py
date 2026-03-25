@@ -1555,6 +1555,22 @@ async def list_competitors(project_id: int) -> list[dict]:
         await db.close()
 
 
+async def get_competitor(competitor_id: int) -> dict | None:
+    """Return a single competitor by ID."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, project_id, name, url FROM competitors WHERE id = ?",
+            (competitor_id,),
+        )
+        row = await cursor.fetchone()
+        if not row:
+            return None
+        return {"id": row[0], "project_id": row[1], "name": row[2], "url": row[3]}
+    finally:
+        await db.close()
+
+
 async def remove_competitor(competitor_id: int) -> bool:
     """Remove a competitor and its keywords."""
     db = await get_db()
@@ -1861,6 +1877,34 @@ async def reset_expansion(project_id: int) -> None:
             "current_wave=0, nodes_discovered=0, nodes_explored=0, "
             "heartbeat_at=NULL, updated_at=datetime('now') WHERE project_id = ?",
             (project_id,),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def seed_node_if_expansion_exists(
+    project_id: int, node_type: str, db_row_id: int,
+    priority: int = 50, reason: str = "auto-seeded",
+) -> None:
+    """Seed a node into graph_expansion_nodes if an expansion row exists for this project.
+
+    Called after adding keywords/competitors via service.py or web/app.py to keep
+    the graph frontier in sync with newly added entities.
+    Does nothing if no expansion has been created for the project.
+    """
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id FROM graph_expansions WHERE project_id = ?", (project_id,),
+        )
+        if not await cursor.fetchone():
+            return  # No expansion exists, skip seeding
+        await db.execute(
+            "INSERT OR IGNORE INTO graph_expansion_nodes "
+            "(project_id, node_type, db_row_id, wave_discovered, explored, priority, reason) "
+            "VALUES (?, ?, ?, 0, 0, ?, ?)",
+            (project_id, node_type, db_row_id, priority, reason),
         )
         await db.commit()
     finally:

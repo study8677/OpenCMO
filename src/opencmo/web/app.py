@@ -636,12 +636,16 @@ async def api_v1_add_competitor(project_id: int, request: Request):
     comp_id = await storage.add_competitor(
         project_id, name, url=body.get("url"), category=body.get("category"),
     )
+    if comp_id:
+        await storage.seed_node_if_expansion_exists(project_id, "competitor", comp_id, priority=90)
     # If keywords provided, add them too
     keywords = body.get("keywords", [])
     for kw in keywords:
         kw = kw.strip() if isinstance(kw, str) else ""
         if kw:
-            await storage.add_competitor_keyword(comp_id, kw)
+            ckw_id = await storage.add_competitor_keyword(comp_id, kw)
+            if ckw_id:
+                await storage.seed_node_if_expansion_exists(project_id, "competitor_keyword", ckw_id, priority=60)
     return JSONResponse({"id": comp_id, "name": name}, status_code=201)
 
 
@@ -665,6 +669,11 @@ async def api_v1_add_competitor_keyword(competitor_id: int, request: Request):
     if not keyword:
         return JSONResponse({"error": "keyword is required"}, status_code=400)
     kw_id = await storage.add_competitor_keyword(competitor_id, keyword)
+    # Seed into graph expansion — need project_id from competitor
+    if kw_id:
+        comp = await storage.get_competitor(competitor_id)
+        if comp:
+            await storage.seed_node_if_expansion_exists(comp["project_id"], "competitor_keyword", kw_id, priority=60)
     return JSONResponse({"id": kw_id, "keyword": keyword}, status_code=201)
 
 
@@ -794,6 +803,8 @@ async def api_v1_add_keyword(project_id: int, request: Request):
     if not keyword:
         return JSONResponse({"error": "keyword is required"}, status_code=400)
     kw_id = await storage.add_tracked_keyword(project_id, keyword)
+    if kw_id:
+        await storage.seed_node_if_expansion_exists(project_id, "keyword", kw_id, priority=80)
     return JSONResponse({"id": kw_id, "keyword": keyword}, status_code=201)
 
 
@@ -1122,6 +1133,16 @@ async def api_v1_chat(request: Request):
     if input_items is None:
         return JSONResponse({"error": "Invalid session_id"}, status_code=404)
 
+    context_item = None
+    # Inject project context from knowledge graph
+    from opencmo.context import resolve_chat_project, build_project_context
+    project_id = await resolve_chat_project(body)
+    if project_id:
+        ctx = await build_project_context(project_id, depth="brief")
+        if ctx:
+            input_items.insert(0, {"role": "system", "content": f"[Project Context]\n{ctx}"})
+            context_item = input_items[0]
+
     input_items.append({"role": "user", "content": message})
 
     async def event_stream():
@@ -1158,7 +1179,10 @@ async def api_v1_chat(request: Request):
                         yield f"data: {json.dumps({'type': 'reasoning'})}\n\n"
 
             # Stream finished — persist session state
-            await chat_sessions.update_session(session_id, result.to_input_list())
+            updated_items = result.to_input_list()
+            if context_item and updated_items[:1] == [context_item]:
+                updated_items = updated_items[1:]
+            await chat_sessions.update_session(session_id, updated_items)
             agent_name = result.last_agent.name if result.last_agent else "CMO Agent"
             yield f"data: {json.dumps({'type': 'done', 'agent_name': agent_name, 'final_output': result.final_output})}\n\n"
         except Exception as e:

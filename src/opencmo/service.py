@@ -112,8 +112,10 @@ async def create_monitor(
     for kw in keywords or []:
         kw = kw.strip()
         if kw:
-            await storage.add_tracked_keyword(project_id, kw)
+            kw_id = await storage.add_tracked_keyword(project_id, kw)
             kw_added.append(kw)
+            if kw_id:
+                await storage.seed_node_if_expansion_exists(project_id, "keyword", kw_id, priority=80)
     return {"project_id": project_id, "monitor_id": job_id, "keywords_added": kw_added}
 
 
@@ -208,6 +210,8 @@ async def manage_keywords(
         if not keyword:
             return {"action": "add", "error": "Keyword is required."}
         kw_id = await storage.add_tracked_keyword(project_id, keyword)
+        if kw_id:
+            await storage.seed_node_if_expansion_exists(project_id, "keyword", kw_id, priority=80)
         return {"action": "add", "keyword_id": kw_id, "keyword": keyword}
     elif action == "rm":
         if keyword_id is None:
@@ -511,7 +515,9 @@ async def analyze_and_enrich_project(project_id: int, url: str, on_progress=None
     for kw in analysis["keywords"]:
         if kw:
             try:
-                await storage.add_tracked_keyword(project_id, kw)
+                kw_id = await storage.add_tracked_keyword(project_id, kw)
+                if kw_id:
+                    await storage.seed_node_if_expansion_exists(project_id, "keyword", kw_id, priority=80)
             except Exception:
                 pass
 
@@ -526,10 +532,14 @@ async def analyze_and_enrich_project(project_id: int, url: str, on_progress=None
                 name,
                 url=str(comp.get("url", "")).strip() or None,
             )
+            if comp_id:
+                await storage.seed_node_if_expansion_exists(project_id, "competitor", comp_id, priority=90)
             for ckw in comp.get("keywords", []):
                 ckw = str(ckw).strip()
                 if ckw:
-                    await storage.add_competitor_keyword(comp_id, ckw)
+                    ckw_id = await storage.add_competitor_keyword(comp_id, ckw)
+                    if ckw_id:
+                        await storage.seed_node_if_expansion_exists(project_id, "competitor_keyword", ckw_id, priority=60)
             logger.info("Auto-discovered competitor: %s for project %d", name, project_id)
         except Exception:
             logger.debug("Failed to save competitor %s", comp, exc_info=True)
@@ -609,11 +619,15 @@ async def discover_competitors(project_id: int, on_progress=None) -> list[dict]:
                 continue
             comp_url = str(comp.get("url", "")).strip() or None
             comp_id = await storage.add_competitor(project_id, name, url=comp_url)
+            if comp_id:
+                await storage.seed_node_if_expansion_exists(project_id, "competitor", comp_id, priority=90)
             comp_kws = []
             for ckw in comp.get("keywords", []):
                 ckw = str(ckw).strip()
                 if ckw:
-                    await storage.add_competitor_keyword(comp_id, ckw)
+                    ckw_id = await storage.add_competitor_keyword(comp_id, ckw)
+                    if ckw_id:
+                        await storage.seed_node_if_expansion_exists(project_id, "competitor_keyword", ckw_id, priority=60)
                     comp_kws.append(ckw)
             saved.append({"id": comp_id, "name": name, "url": comp_url, "keywords": comp_kws})
             logger.info("AI discovered competitor: %s", name)
