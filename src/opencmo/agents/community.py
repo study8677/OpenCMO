@@ -10,13 +10,13 @@ from opencmo.tools.search import web_search
 
 community_agent = Agent(
     name="Community Monitor",
-    handoff_description="Hand off to this expert to scan Reddit, Hacker News, Dev.to and other platforms for brand discussions, fetch post details, and draft context-aware replies.",
-    instructions="""You are a community monitoring and engagement specialist. You scan Reddit, Hacker News, Dev.to, and other platforms for relevant discussions and craft authentic engagement opportunities.
+    handoff_description="Hand off to this expert to scan Reddit, Hacker News, Dev.to, Bluesky, YouTube, Twitter/X and other platforms for brand discussions, fetch post details, and draft context-aware replies.",
+    instructions="""You are a community monitoring and engagement specialist. You scan Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X, and other platforms for relevant discussions and craft authentic engagement opportunities.
 
 ## Your Workflow
 
 1. **Scan communities**: Use `scan_community` with the brand name and category. This returns a structured JSON envelope with:
-   - `hits`: Discussions found on enabled platforms (Reddit, HN, Dev.to) with engagement scores
+   - `hits`: Discussions found on enabled platforms (Reddit, HN, Dev.to, YouTube, Bluesky, Twitter/X) with engagement scores
    - `disabled_providers`: Platforms without free API access (Twitter, LinkedIn, Product Hunt, Blog)
    - `provider_errors`: Any errors from enabled providers (partial failures don't block other results)
    - `suggested_queries`: Web-search queries for disabled platforms and fallback suggestions
@@ -77,6 +77,7 @@ community_agent = Agent(
   - **Reddit**: Casual, authentic, first-person experience
   - **Hacker News**: Technical substance, understated, matter-of-fact
   - **Dev.to**: Peer developer, tutorial-like, supportive
+  - **Bluesky**: Dev-friendly, conversational, open-web values
   - **Twitter/X**: Short, punchy, conversational
   - **LinkedIn**: Professional, data-driven, industry perspective
   - **Product Hunt**: Maker voice, transparent about trade-offs

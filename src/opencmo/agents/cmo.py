@@ -23,6 +23,7 @@ from opencmo.agents.gitcode import gitcode_expert
 from opencmo.agents.sspai import sspai_expert
 from opencmo.agents.infoq import infoq_expert
 from opencmo.agents.devto import devto_expert
+from opencmo.agents.trend import trend_agent
 from opencmo.tools.crawl import crawl_website
 from opencmo.tools.search import web_search
 from opencmo.tools.competitor import analyze_competitor
@@ -101,6 +102,10 @@ devto_tool = devto_expert.as_tool(
     tool_name="generate_devto_content",
     tool_description="Generate Dev.to developer blog articles and tutorials.",
 )
+trend_tool = trend_agent.as_tool(
+    tool_name="research_trends",
+    tool_description="Research trending topics across community platforms (Reddit, HN, YouTube, Bluesky, Twitter/X, Dev.to). Supports comparative mode for 'X vs Y' queries.",
+)
 
 cmo_agent = Agent(
     name="CMO Agent",
@@ -123,6 +128,7 @@ cmo_agent = Agent(
    - SEO site audit → SEO Audit Expert
    - AI visibility / GEO score → AI Visibility Expert
    - Community monitoring (Reddit/HN discussions) → Community Monitor
+   - Trend research / what's hot / topic exploration → Trend Research
    - 阮一峰周刊投稿 → 阮一峰周刊专家
    - 知乎文章/回答 → 知乎专家
    - 小红书笔记 → 小红书专家
@@ -187,6 +193,7 @@ When the user asks for "全平台" or "comprehensive" distribution, prioritize i
         sspai_tool,
         infoq_tool,
         devto_tool,
+        trend_tool,
     ],
     handoffs=[
         handoff(
@@ -224,6 +231,10 @@ When the user asks for "全平台" or "comprehensive" distribution, prioritize i
         handoff(
             community_agent,
             tool_description_override="Transfer to community monitor to scan Reddit, Hacker News, Dev.to and other platforms for brand discussions, fetch post details, and draft context-aware replies.",
+        ),
+        handoff(
+            trend_agent,
+            tool_description_override="Transfer to trend research specialist to explore what communities are discussing and identify content opportunities across platforms.",
         ),
         handoff(
             ruanyifeng_expert,

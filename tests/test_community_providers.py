@@ -11,6 +11,7 @@ import pytest
 from opencmo.tools.community_providers import (
     PROVIDER_REGISTRY,
     BlogSearchProvider,
+    BlueskyProvider,
     DevtoProvider,
     DiscussionHit,
     HackerNewsProvider,
@@ -20,6 +21,17 @@ from opencmo.tools.community_providers import (
     ProviderSearchResult,
     RedditProvider,
     TwitterProvider,
+    YouTubeProvider,
+)
+from opencmo.tools.community_scoring import (
+    compute_composite_score,
+    convergence_boost,
+    detect_convergence_clusters,
+    recency_score,
+    rescore_hits,
+    text_relevance,
+    trigram_jaccard,
+    velocity_score,
 )
 
 
@@ -39,20 +51,32 @@ def _use_light_profile(monkeypatch):
 
 def test_provider_registry_has_all_platforms():
     names = {p.name for p in PROVIDER_REGISTRY}
-    assert names == {"reddit", "hackernews", "devto", "twitter", "linkedin", "producthunt", "blog"}
+    assert names == {"reddit", "hackernews", "devto", "youtube", "bluesky", "twitter", "linkedin", "producthunt", "blog"}
 
 
 def test_free_providers_enabled_by_default():
     for p in PROVIDER_REGISTRY:
-        if p.name in ("reddit", "hackernews", "devto"):
+        if p.name in ("reddit", "hackernews", "devto", "bluesky"):
             assert p.is_enabled, f"{p.name} should be enabled"
 
 
 def test_stub_providers_disabled():
     for p in PROVIDER_REGISTRY:
-        if p.name in ("twitter", "linkedin", "producthunt", "blog"):
+        if p.name in ("linkedin", "producthunt", "blog"):
             assert not p.is_enabled, f"{p.name} should be disabled (stub)"
             assert p.status == "stub"
+
+
+def test_twitter_disabled_without_keys():
+    """Twitter should be disabled when neither TWITTER_BEARER_TOKEN nor TAVILY_API_KEY is set."""
+    provider = TwitterProvider()
+    assert not provider.is_enabled
+
+
+def test_youtube_disabled_without_keys():
+    """YouTube should be disabled without YOUTUBE_API_KEY or TAVILY_API_KEY."""
+    provider = YouTubeProvider()
+    assert not provider.is_enabled
 
 
 def test_blog_provider_no_auth_but_stub():
@@ -211,6 +235,235 @@ def test_devto_provider_tag_fallback():
         assert sq.platform == "devto"
         assert "site:dev.to" in sq.query
         assert sq.reason == "tag search returned empty"
+
+
+# ---------------------------------------------------------------------------
+# Bluesky parse tests
+# ---------------------------------------------------------------------------
+
+
+def _make_bluesky_search_json(count: int = 2) -> dict:
+    posts = []
+    for i in range(count):
+        posts.append({
+            "uri": f"at://did:plc:abc{i}/app.bsky.feed.post/rkey{i}",
+            "author": {"handle": f"user{i}.bsky.social", "did": f"did:plc:abc{i}"},
+            "record": {
+                "text": f"Post about topic {i}\nMore details here",
+                "createdAt": "2025-01-01T00:00:00.000Z",
+            },
+            "likeCount": 10 + i,
+            "repostCount": 5 + i,
+            "replyCount": 3 + i,
+        })
+    return {"posts": posts}
+
+
+def test_bluesky_provider_parse_search():
+    data = _make_bluesky_search_json(2)
+    hits = BlueskyProvider.parse_search_response(data, "brand_search")
+    assert len(hits) == 2
+    h = hits[0]
+    assert h.platform == "bluesky"
+    assert h.title == "Post about topic 0"  # first line only
+    assert h.author == "user0.bsky.social"
+    assert h.detail_id == "at://did:plc:abc0/app.bsky.feed.post/rkey0"
+    assert h.extra_param_1 == "user0.bsky.social"
+    assert h.extra_param_2 == "did:plc:abc0"
+    assert h.raw_score == 10 + 5 + 3  # likes + reposts + replies
+    assert "bsky.app/profile/user0.bsky.social/post/rkey0" in h.url
+
+
+def test_bluesky_provider_parse_thread():
+    thread_data = {
+        "thread": {
+            "post": {
+                "record": {"text": "Main post content", "createdAt": "2025-01-01T00:00:00Z"},
+                "author": {"handle": "op.bsky.social"},
+                "likeCount": 20,
+            },
+            "replies": [
+                {
+                    "post": {
+                        "record": {"text": "Great post!"},
+                        "author": {"handle": "replier.bsky.social"},
+                        "likeCount": 5,
+                    },
+                },
+                {
+                    "post": {
+                        "record": {"text": ""},  # empty → skipped
+                        "author": {"handle": "empty.bsky.social"},
+                        "likeCount": 0,
+                    },
+                },
+            ],
+        }
+    }
+    hit = DiscussionHit(
+        platform="bluesky", title="Main post content",
+        url="https://bsky.app/profile/op.bsky.social/post/rkey1",
+        engagement_score=20, raw_score=20, comments_count=2, age_days=1,
+        author="op.bsky.social", detail_id="at://did:plc:op/app.bsky.feed.post/rkey1",
+        extra_param_1="op.bsky.social", extra_param_2="did:plc:op",
+        preview="", source="brand_search",
+    )
+    detail = BlueskyProvider.parse_thread_response(thread_data, hit)
+    assert detail is not None
+    assert detail.full_content == "Main post content"
+    assert len(detail.comments) == 1  # empty reply skipped
+    assert detail.comments[0]["author"] == "replier.bsky.social"
+
+
+def test_bluesky_provider_search_mock():
+    async def _mock_bsky(url, params=None, headers=None):
+        if "searchPosts" in url:
+            return HttpResult(data=_make_bluesky_search_json(3), error=None, status_code=200)
+        return HttpResult(data=None, error="not_found", status_code=404)
+
+    with patch("opencmo.tools.community_providers._http_get_json", side_effect=_mock_bsky):
+        provider = BlueskyProvider()
+        result = asyncio.run(provider.search("TestBrand", "devtools"))
+        # 3 posts from brand_search + 3 from category_search = 6 total
+        # But different URIs so all unique
+        assert len(result.hits) == 3  # same data returned for both queries, deduped by URI
+        assert all(h.platform == "bluesky" for h in result.hits)
+
+
+# ---------------------------------------------------------------------------
+# YouTube parse tests
+# ---------------------------------------------------------------------------
+
+
+def test_youtube_parse_search_and_stats():
+    search_items = [
+        {
+            "id": {"videoId": "vid1"},
+            "snippet": {
+                "title": "AI Review Tools Tutorial",
+                "publishedAt": "2025-01-01T00:00:00Z",
+                "channelTitle": "TechChannel",
+                "channelId": "UCabc",
+                "description": "A deep dive into AI code review.",
+            },
+        },
+    ]
+    stats_map = {
+        "vid1": {"viewCount": "5000", "likeCount": "100", "commentCount": "20"},
+    }
+    hits = YouTubeProvider.parse_search_and_stats(search_items, stats_map, "brand_search")
+    assert len(hits) == 1
+    h = hits[0]
+    assert h.platform == "youtube"
+    assert h.detail_id == "vid1"
+    assert h.raw_score == 120  # 100 + 20
+    assert h.comments_count == 20
+    assert h.author == "TechChannel"
+    assert "youtube.com/watch?v=vid1" in h.url
+
+
+def test_youtube_parse_comments():
+    data = {
+        "items": [
+            {
+                "snippet": {
+                    "topLevelComment": {
+                        "snippet": {
+                            "textDisplay": "Great tutorial!",
+                            "authorDisplayName": "Viewer1",
+                            "likeCount": 5,
+                        }
+                    }
+                }
+            },
+            {
+                "snippet": {
+                    "topLevelComment": {
+                        "snippet": {
+                            "textDisplay": "",  # empty → skipped
+                            "authorDisplayName": "Empty",
+                            "likeCount": 0,
+                        }
+                    }
+                }
+            },
+        ]
+    }
+    comments = YouTubeProvider.parse_comments_response(data)
+    assert len(comments) == 1
+    assert comments[0]["author"] == "Viewer1"
+    assert comments[0]["score"] == 5
+
+
+def test_youtube_tavily_parse():
+    results = [
+        {
+            "url": "https://www.youtube.com/watch?v=abc123",
+            "title": "Best AI Tools 2025",
+            "content": "A review of the best AI tools...",
+            "score": 0.75,
+        },
+    ]
+    hits = YouTubeProvider.parse_tavily_results(results, "brand_search")
+    assert len(hits) == 1
+    assert hits[0].detail_id == "abc123"
+    assert hits[0].platform == "youtube"
+
+
+# ---------------------------------------------------------------------------
+# Twitter parse tests
+# ---------------------------------------------------------------------------
+
+
+def test_twitter_tavily_parse():
+    results = [
+        {
+            "url": "https://x.com/johndoe/status/123456789",
+            "title": "AI code review is changing everything",
+            "content": "AI code review is changing everything. Here's my take on the latest tools...",
+            "score": 0.85,
+        },
+        {
+            "url": "https://twitter.com/janedoe/status/987654321",
+            "title": "",
+            "content": "",  # empty → should be skipped
+            "score": 0.1,
+        },
+    ]
+    hits = TwitterProvider.parse_tavily_results(results, "brand_search")
+    assert len(hits) == 1
+    h = hits[0]
+    assert h.platform == "twitter"
+    assert h.author == "johndoe"
+    assert h.detail_id == "123456789"
+    assert "x.com/johndoe/status/123456789" in h.url
+    assert h.engagement_score == 85  # 0.85 * 100
+
+
+def test_twitter_provider_tavily_search_mock(monkeypatch):
+    """Twitter provider should use Tavily fallback when only TAVILY_API_KEY is set."""
+    monkeypatch.setenv("TAVILY_API_KEY", "test-key")
+
+    mock_tavily_client = AsyncMock()
+    mock_tavily_client.search = AsyncMock(return_value={
+        "results": [
+            {
+                "url": "https://x.com/testuser/status/111",
+                "title": "Testing Twitter search",
+                "content": "Some tweet content about our brand",
+                "score": 0.9,
+            },
+        ],
+    })
+
+    import tavily as tavily_mod
+    with patch("opencmo.tools.community_providers.TwitterProvider._has_bearer_token", return_value=False):
+        with patch.object(tavily_mod, "AsyncTavilyClient", return_value=mock_tavily_client):
+            provider = TwitterProvider()
+            assert provider.is_enabled
+            result = asyncio.run(provider.search("TestBrand", "devtools"))
+            assert len(result.hits) >= 1
+            assert result.hits[0].platform == "twitter"
 
 
 # ---------------------------------------------------------------------------
@@ -420,9 +673,8 @@ def test_scan_partial_failure():
     reddit_errors = [e for e in envelope["provider_errors"] if e["provider"] == "reddit"]
     assert len(reddit_errors) >= 1
 
-    # Stub providers should be in disabled_providers
+    # Stub/disabled providers should be in disabled_providers
     disabled_names = {d["name"] for d in envelope["disabled_providers"]}
-    assert "twitter" in disabled_names
     assert "linkedin" in disabled_names
 
 
@@ -451,3 +703,138 @@ def test_scrape_profile_env_override(monkeypatch):
     monkeypatch.setenv("OPENCMO_SCRAPE_DEPTH", "deep")
     profile = get_scrape_profile()
     assert profile == DEEP
+
+
+# ---------------------------------------------------------------------------
+# Multi-signal scoring tests
+# ---------------------------------------------------------------------------
+
+
+def _make_hit(
+    platform: str = "reddit",
+    title: str = "Test Post",
+    raw_score: int = 50,
+    comments_count: int = 10,
+    age_days: int = 5,
+    detail_id: str = "x1",
+    preview: str = "",
+) -> DiscussionHit:
+    return DiscussionHit(
+        platform=platform, title=title, url=f"https://{platform}.com/{detail_id}",
+        engagement_score=0, raw_score=raw_score, comments_count=comments_count,
+        age_days=age_days, author="user", detail_id=detail_id,
+        extra_param_1="", extra_param_2="", preview=preview, source="test",
+    )
+
+
+def test_velocity_score_fresh_post():
+    # A fresh post (1 day) with high engagement should score high
+    score = velocity_score(100, 50, 1)
+    assert score > 60
+
+
+def test_velocity_score_old_post():
+    # Same engagement but very old should score lower
+    fresh = velocity_score(100, 50, 1)
+    old = velocity_score(100, 50, 365)
+    assert fresh > old
+
+
+def test_recency_score_today():
+    score = recency_score(0)
+    assert score >= 99.0  # basically 100
+
+
+def test_recency_score_halflife():
+    # At the halflife, score should be ~50
+    score = recency_score(23, halflife_days=23.0)
+    assert 45 <= score <= 55
+
+
+def test_recency_score_very_old():
+    score = recency_score(365)
+    assert score < 1.0
+
+
+def test_text_relevance_exact_match():
+    score = text_relevance("AI code review", "AI code review tools")
+    assert score > 0.5
+
+
+def test_text_relevance_no_match():
+    score = text_relevance("blockchain mining", "recipe for chocolate cake")
+    assert score < 0.1
+
+
+def test_text_relevance_synonym_expansion():
+    # "seo" should match "search engine optimization" via synonyms
+    score_with = text_relevance("seo tools", "best search engine optimization tools")
+    score_without = text_relevance("seo tools", "best unrelated topic here")
+    assert score_with > score_without
+
+
+def test_trigram_jaccard_identical():
+    sim = trigram_jaccard("hello world", "hello world")
+    assert sim == 1.0
+
+
+def test_trigram_jaccard_different():
+    sim = trigram_jaccard("hello world", "completely different text")
+    assert sim < 0.3
+
+
+def test_trigram_jaccard_similar():
+    sim = trigram_jaccard("AI code review tool launches", "AI code review tool launch")
+    assert sim > 0.7
+
+
+def test_convergence_clusters_cross_platform():
+    hits = [
+        _make_hit(platform="reddit", title="AI code review tool launches today", detail_id="r1"),
+        _make_hit(platform="hackernews", title="AI code review tool launch", detail_id="h1"),
+        _make_hit(platform="devto", title="Something completely different", detail_id="d1"),
+    ]
+    clusters = detect_convergence_clusters(hits, threshold=0.5)
+    # Reddit and HN should be in the same cluster
+    assert clusters[0] == clusters[1]
+    # Dev.to should be in a different cluster
+    assert clusters[2] != clusters[0]
+
+
+def test_convergence_clusters_same_platform_not_clustered():
+    hits = [
+        _make_hit(platform="reddit", title="AI code review", detail_id="r1"),
+        _make_hit(platform="reddit", title="AI code review tool", detail_id="r2"),
+    ]
+    clusters = detect_convergence_clusters(hits, threshold=0.5)
+    # Same platform hits should NOT be clustered together even if similar
+    assert clusters[0] != clusters[1]
+
+
+def test_convergence_boost_multi_platform():
+    clusters = {0: 0, 1: 0, 2: 1}  # hits 0 and 1 in cluster 0
+    assert convergence_boost(clusters, 0) == 10.0  # 2-hit cluster: 10 * (2-1)
+    assert convergence_boost(clusters, 2) == 0.0   # single-hit cluster
+
+
+def test_composite_score_in_range():
+    hit = _make_hit(raw_score=50, comments_count=10, age_days=5)
+    score = compute_composite_score(hit, "test query")
+    assert 0 <= score <= 100
+
+
+def test_rescore_hits_mutates_engagement_score():
+    hits = [
+        _make_hit(platform="reddit", title="AI tools review", raw_score=50, age_days=2, detail_id="r1"),
+        _make_hit(platform="hackernews", title="AI tools review launch", raw_score=100, age_days=1, detail_id="h1"),
+    ]
+    rescore_hits(hits, "AI tools")
+    # Scores should be set to something reasonable (not 0)
+    assert all(h.engagement_score > 0 for h in hits)
+    # HN hit with higher raw_score and fresher age should score higher
+    assert hits[1].engagement_score >= hits[0].engagement_score
+
+
+def test_rescore_hits_empty_list():
+    result = rescore_hits([], "anything")
+    assert result == []

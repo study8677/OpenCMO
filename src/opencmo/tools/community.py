@@ -18,15 +18,13 @@ from opencmo.tools.community_providers import (
     SuggestedQuery,
     _truncate,
 )
+from opencmo.tools.community_scoring import rescore_hits
 
 # ---------------------------------------------------------------------------
 # Stub query templates (brand / category / current_year placeholders)
 # ---------------------------------------------------------------------------
 
 _STUB_QUERIES: dict[str, list[dict]] = {
-    "twitter": [
-        {"query": '"{brand}" site:x.com OR site:twitter.com', "reason": "stub — no free API"},
-    ],
     "linkedin": [
         {"query": '"{brand}" site:linkedin.com', "reason": "stub — no public search API"},
     ],
@@ -143,6 +141,14 @@ async def _scan_community_impl(brand_name: str, category: str) -> str:
             unique_sq.append(sq)
     result.suggested_queries = unique_sq
 
+    # Rescore with multi-signal composite scoring
+    query = f"{brand_name} {category}"
+    from opencmo.scrape_config import get_scrape_profile
+    profile = get_scrape_profile()
+    halflife = getattr(profile, "scoring_recency_halflife_days", 23.0)
+    convergence_threshold = getattr(profile, "scoring_convergence_threshold", 0.5)
+    rescore_hits(result.hits, query, halflife_days=halflife, convergence_threshold=convergence_threshold)
+
     # Deterministic sort: platform asc, engagement desc, raw_score desc, detail_id asc
     result.hits.sort(key=lambda h: (h.platform, -h.engagement_score, -h.raw_score, h.detail_id))
 
@@ -154,7 +160,7 @@ async def _scan_community_impl(brand_name: str, category: str) -> str:
 
 @function_tool
 async def scan_community(brand_name: str, category: str) -> str:
-    """Scan Reddit, Hacker News, Dev.to and other platforms for brand/category discussions.
+    """Scan Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X and other platforms for brand/category discussions.
 
     Returns a structured JSON envelope with hits, disabled platforms, errors, and
     suggested web-search queries for platforms without free API access.

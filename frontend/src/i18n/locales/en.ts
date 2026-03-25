@@ -90,6 +90,12 @@ export const en = {
   "community.noDiscussionsDesc": "Run a community scan to discover discussions.",
   "community.comments": "{{count}} comments",
   "community.engagement": "engagement: {{score}}",
+  "community.platform.reddit": "Reddit",
+  "community.platform.hackernews": "Hacker News",
+  "community.platform.devto": "Dev.to",
+  "community.platform.youtube": "YouTube",
+  "community.platform.bluesky": "Bluesky",
+  "community.platform.twitter": "Twitter/X",
 
   // Monitors Page
   "monitors.title": "Monitors",

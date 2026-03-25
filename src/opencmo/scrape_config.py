@@ -37,12 +37,27 @@ class ScrapeProfile:
     devto_comments_per_post: int
     devto_multi_tag: bool              # try all category words as tags
 
+    # YouTube
+    youtube_max_results: int           # max results per search query
+    youtube_comments_per_post: int     # max comment threads per video in detail fetch
+
+    # Twitter/X
+    twitter_max_results: int           # max results per query (Bearer Token search)
+
+    # Bluesky
+    bluesky_max_results: int           # max results per query
+    bluesky_comments_per_post: int     # max comments per post in detail fetch
+
     # GEO
     geo_query_templates: int           # number of query templates per provider
     geo_content_snippet_chars: int
 
     # SERP
     serp_num_results: int
+
+    # Scoring
+    scoring_recency_halflife_days: float  # recency decay half-life (default 23.0)
+    scoring_convergence_threshold: float  # trigram Jaccard threshold for convergence clusters
 
     # General
     request_delay_seconds: float       # delay between requests to avoid rate limits
@@ -70,9 +85,17 @@ LIGHT = ScrapeProfile(
     devto_category_pages=1, devto_category_per_page=10,
     devto_comments_per_post=10, devto_multi_tag=False,
 
+    youtube_max_results=5, youtube_comments_per_post=5,
+
+    twitter_max_results=10,
+
+    bluesky_max_results=10, bluesky_comments_per_post=5,
+
     geo_query_templates=1, geo_content_snippet_chars=2000,
 
     serp_num_results=20,
+
+    scoring_recency_halflife_days=23.0, scoring_convergence_threshold=0.5,
 
     request_delay_seconds=0.0, http_timeout_seconds=10,
     max_retries_on_429=1, output_budget_chars=8000,
@@ -93,9 +116,17 @@ NORMAL = ScrapeProfile(
     devto_category_pages=1, devto_category_per_page=30,
     devto_comments_per_post=15, devto_multi_tag=True,
 
+    youtube_max_results=15, youtube_comments_per_post=10,
+
+    twitter_max_results=25,
+
+    bluesky_max_results=25, bluesky_comments_per_post=10,
+
     geo_query_templates=3, geo_content_snippet_chars=4000,
 
     serp_num_results=50,
+
+    scoring_recency_halflife_days=23.0, scoring_convergence_threshold=0.5,
 
     request_delay_seconds=0.3, http_timeout_seconds=15,
     max_retries_on_429=2, output_budget_chars=30000,
@@ -116,9 +147,17 @@ DEEP = ScrapeProfile(
     devto_category_pages=2, devto_category_per_page=30,
     devto_comments_per_post=20, devto_multi_tag=True,
 
+    youtube_max_results=25, youtube_comments_per_post=20,
+
+    twitter_max_results=50,
+
+    bluesky_max_results=50, bluesky_comments_per_post=15,
+
     geo_query_templates=5, geo_content_snippet_chars=5000,
 
     serp_num_results=100,
+
+    scoring_recency_halflife_days=23.0, scoring_convergence_threshold=0.4,
 
     request_delay_seconds=0.5, http_timeout_seconds=20,
     max_retries_on_429=3, output_budget_chars=80000,

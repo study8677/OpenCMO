@@ -823,21 +823,536 @@ class DevtoProvider(CommunityProvider):
 
 
 # ---------------------------------------------------------------------------
+# YouTube — Data API v3
+# ---------------------------------------------------------------------------
+
+
+class YouTubeProvider(CommunityProvider):
+    """YouTube community monitoring via Data API v3 or Tavily fallback."""
+    name = "youtube"
+    status = "enabled"
+    requires_auth = False
+    auth_env_vars: list[str] = []
+    capabilities = {"search", "detail"}
+    max_search_calls = 4
+    recommended_max_details = 3
+
+    @staticmethod
+    def _has_api_key() -> bool:
+        return bool(os.environ.get("YOUTUBE_API_KEY"))
+
+    @staticmethod
+    def _has_tavily() -> bool:
+        return bool(os.environ.get("TAVILY_API_KEY"))
+
+    @property
+    def is_enabled(self) -> bool:
+        return self._has_api_key() or self._has_tavily()
+
+    @staticmethod
+    def parse_search_and_stats(
+        search_items: list, stats_map: dict[str, dict], source: str,
+    ) -> list[DiscussionHit]:
+        hits: list[DiscussionHit] = []
+        for item in search_items:
+            vid_id = item.get("id", {}).get("videoId", "")
+            if not vid_id:
+                continue
+            snippet = item.get("snippet", {})
+            title = snippet.get("title", "")
+            if not title:
+                continue
+            stats = stats_map.get(vid_id, {})
+            view_count = int(stats.get("viewCount", 0))
+            like_count = int(stats.get("likeCount", 0))
+            comment_count = int(stats.get("commentCount", 0))
+            raw_score = like_count + comment_count
+            hits.append(DiscussionHit(
+                platform="youtube",
+                title=title,
+                url=f"https://www.youtube.com/watch?v={vid_id}",
+                engagement_score=min(100, int(view_count / 1000 + like_count * 2 + comment_count * 5)),
+                raw_score=raw_score,
+                comments_count=comment_count,
+                age_days=_age_days(snippet.get("publishedAt", "")),
+                author=snippet.get("channelTitle", ""),
+                detail_id=vid_id,
+                extra_param_1=snippet.get("channelId", ""),
+                extra_param_2=snippet.get("channelTitle", ""),
+                preview=snippet.get("description", "")[:300],
+                source=source,
+            ))
+        return hits
+
+    @staticmethod
+    def parse_tavily_results(results: list, source: str) -> list[DiscussionHit]:
+        hits: list[DiscussionHit] = []
+        for r in results:
+            url = r.get("url", "")
+            title = r.get("title", "")
+            content = r.get("content", "")
+            if not title and not content:
+                continue
+            vid_id = ""
+            if "watch?v=" in url:
+                vid_id = url.split("watch?v=")[-1].split("&")[0]
+            elif "youtu.be/" in url:
+                vid_id = url.split("youtu.be/")[-1].split("?")[0]
+            hits.append(DiscussionHit(
+                platform="youtube",
+                title=title or content.split("\n")[0][:120],
+                url=url,
+                engagement_score=min(100, int(r.get("score", 0.5) * 100)),
+                raw_score=0,
+                comments_count=0,
+                age_days=0,
+                author="",
+                detail_id=vid_id or url,
+                extra_param_1="",
+                extra_param_2="",
+                preview=content[:300] if content else "",
+                source=source,
+            ))
+        return hits
+
+    @staticmethod
+    def parse_comments_response(data: dict) -> list[dict]:
+        comments: list[dict] = []
+        for item in data.get("items", []):
+            snippet = item.get("snippet", {}).get("topLevelComment", {}).get("snippet", {})
+            text = snippet.get("textDisplay", "")
+            if not text:
+                continue
+            comments.append({
+                "author": snippet.get("authorDisplayName", ""),
+                "text": text[:500],
+                "score": int(snippet.get("likeCount", 0)),
+            })
+        return comments
+
+    async def _search_via_api(self, query: str, source: str) -> tuple[list[DiscussionHit], list[str]]:
+        profile = _get_profile()
+        max_results = getattr(profile, "youtube_max_results", 15)
+        api_key = os.environ.get("YOUTUBE_API_KEY", "")
+        errors: list[str] = []
+
+        # Step 1: search.list (100 quota units)
+        from datetime import timedelta
+        published_after = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        r = await _http_get_json(
+            "https://www.googleapis.com/youtube/v3/search",
+            params={
+                "key": api_key, "part": "snippet", "type": "video",
+                "q": query, "order": "relevance",
+                "publishedAfter": published_after,
+                "maxResults": str(min(max_results, 50)),
+            },
+        )
+        if r.error or not r.data:
+            return [], [f"youtube search {source}: {r.error or 'empty'}"]
+
+        items = r.data.get("items", [])
+        if not items:
+            return [], errors
+
+        # Step 2: videos.list for stats (1 quota unit per call)
+        vid_ids = [it.get("id", {}).get("videoId", "") for it in items if it.get("id", {}).get("videoId")]
+        stats_map: dict[str, dict] = {}
+        if vid_ids:
+            await _delay()
+            r2 = await _http_get_json(
+                "https://www.googleapis.com/youtube/v3/videos",
+                params={
+                    "key": api_key, "part": "statistics",
+                    "id": ",".join(vid_ids[:50]),
+                },
+            )
+            if not r2.error and r2.data:
+                for v in r2.data.get("items", []):
+                    stats_map[v["id"]] = v.get("statistics", {})
+
+        return self.parse_search_and_stats(items, stats_map, source), errors
+
+    async def _search_via_tavily(self, query: str, source: str) -> tuple[list[DiscussionHit], list[str]]:
+        try:
+            from tavily import AsyncTavilyClient
+        except ImportError:
+            return [], ["tavily-python not installed"]
+        try:
+            client = AsyncTavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+            resp = await client.search(
+                query=f"{query} site:youtube.com",
+                max_results=10,
+                search_depth="basic",
+            )
+            results = resp.get("results", []) if isinstance(resp, dict) else []
+            return self.parse_tavily_results(results, source), []
+        except Exception as e:
+            return [], [f"tavily youtube {source}: {e}"]
+
+    async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        errors: list[str] = []
+        all_hits: list[DiscussionHit] = []
+        suggested: list[SuggestedQuery] = []
+
+        use_api = self._has_api_key()
+        use_tavily = self._has_tavily()
+
+        for query, source in [
+            (brand_name, "brand_search"),
+            (category, "category_search"),
+        ]:
+            if use_api:
+                hits, errs = await self._search_via_api(query, source)
+            elif use_tavily:
+                hits, errs = await self._search_via_tavily(query, source)
+            else:
+                hits, errs = [], []
+                suggested.append(SuggestedQuery(
+                    platform="youtube", provider="youtube",
+                    query=f'"{query}" site:youtube.com',
+                    reason="no YOUTUBE_API_KEY or TAVILY_API_KEY",
+                ))
+            all_hits.extend(hits)
+            errors.extend(errs)
+            await _delay()
+
+        # Deduplicate
+        seen: dict[str, DiscussionHit] = {}
+        for h in all_hits:
+            existing = seen.get(h.detail_id)
+            if existing is None or h.raw_score > existing.raw_score:
+                seen[h.detail_id] = h
+        return ProviderSearchResult(hits=list(seen.values()), errors=errors, suggested_queries=suggested)
+
+    async def fetch_detail(self, hit: DiscussionHit) -> DiscussionDetail | None:
+        if not self._has_api_key() or not hit.detail_id:
+            return None
+        api_key = os.environ.get("YOUTUBE_API_KEY", "")
+        profile = _get_profile()
+        max_comments = getattr(profile, "youtube_comments_per_post", 10)
+        r = await _http_get_json(
+            "https://www.googleapis.com/youtube/v3/commentThreads",
+            params={
+                "key": api_key, "part": "snippet",
+                "videoId": hit.detail_id,
+                "maxResults": str(min(max_comments, 100)),
+                "order": "relevance",
+            },
+        )
+        if r.error or not r.data:
+            return None
+        comments = self.parse_comments_response(r.data)
+        return DiscussionDetail(
+            platform="youtube",
+            detail_id=hit.detail_id,
+            title=hit.title,
+            full_content=hit.preview[:2000],
+            url=hit.url,
+            comments=comments,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Bluesky — AT Protocol public search API
+# ---------------------------------------------------------------------------
+
+
+class BlueskyProvider(CommunityProvider):
+    name = "bluesky"
+    status = "enabled"
+    requires_auth = False
+    auth_env_vars: list[str] = []
+    capabilities = {"search", "detail"}
+    max_search_calls = 4
+    recommended_max_details = 5
+
+    @staticmethod
+    def parse_search_response(data: dict, source: str) -> list[DiscussionHit]:
+        hits: list[DiscussionHit] = []
+        for post in data.get("posts", []):
+            record = post.get("record", {})
+            text = record.get("text", "")
+            if not text:
+                continue
+            author = post.get("author", {})
+            handle = author.get("handle", "")
+            like_count = post.get("likeCount", 0) or 0
+            repost_count = post.get("repostCount", 0) or 0
+            reply_count = post.get("replyCount", 0) or 0
+            raw_score = like_count + repost_count + reply_count
+            # Build web URL from AT URI: at://did/app.bsky.feed.post/rkey
+            uri = post.get("uri", "")
+            rkey = uri.rsplit("/", 1)[-1] if "/" in uri else ""
+            web_url = f"https://bsky.app/profile/{handle}/post/{rkey}" if handle and rkey else ""
+            hits.append(DiscussionHit(
+                platform="bluesky",
+                title=_truncate(text.split("\n")[0], 120),  # first line as title
+                url=web_url,
+                engagement_score=min(100, like_count * 2 + repost_count * 4 + reply_count * 3),
+                raw_score=raw_score,
+                comments_count=reply_count,
+                age_days=_age_days(record.get("createdAt", "")),
+                author=handle,
+                detail_id=uri,
+                extra_param_1=handle,
+                extra_param_2=author.get("did", ""),
+                preview=_truncate(text, 300),
+                source=source,
+            ))
+        return hits
+
+    @staticmethod
+    def parse_thread_response(data: dict, hit: DiscussionHit) -> DiscussionDetail | None:
+        thread = data.get("thread", {})
+        post = thread.get("post", {})
+        record = post.get("record", {})
+        text = record.get("text", "")
+        if not text:
+            return None
+        comments: list[dict] = []
+        profile = _get_profile()
+        max_comments = getattr(profile, "bluesky_comments_per_post", 10)
+        for reply in thread.get("replies", [])[:max_comments]:
+            reply_post = reply.get("post", {})
+            reply_record = reply_post.get("record", {})
+            reply_author = reply_post.get("author", {})
+            reply_text = reply_record.get("text", "")
+            if reply_text:
+                comments.append({
+                    "author": reply_author.get("handle", ""),
+                    "text": _truncate(reply_text, 500),
+                    "score": (reply_post.get("likeCount", 0) or 0),
+                })
+        return DiscussionDetail(
+            platform="bluesky",
+            detail_id=hit.detail_id,
+            title=_truncate(text.split("\n")[0], 120),
+            full_content=_truncate(text, 2000),
+            url=hit.url,
+            comments=comments,
+        )
+
+    async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        profile = _get_profile()
+        max_results = getattr(profile, "bluesky_max_results", 25)
+        errors: list[str] = []
+        all_hits: list[DiscussionHit] = []
+
+        for query, source in [
+            (brand_name, "brand_search"),
+            (category, "category_search"),
+        ]:
+            r = await _http_get_json(
+                "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts",
+                params={"q": query, "limit": str(min(max_results, 100))},
+            )
+            if r.error:
+                errors.append(f"{source}: {r.error}")
+            elif r.data:
+                all_hits.extend(self.parse_search_response(r.data, source))
+            await _delay()
+
+        # Deduplicate by AT URI
+        seen: dict[str, DiscussionHit] = {}
+        for h in all_hits:
+            existing = seen.get(h.detail_id)
+            if existing is None or h.raw_score > existing.raw_score:
+                seen[h.detail_id] = h
+        return ProviderSearchResult(hits=list(seen.values()), errors=errors)
+
+    async def fetch_detail(self, hit: DiscussionHit) -> DiscussionDetail | None:
+        if not hit.detail_id:
+            return None
+        r = await _http_get_json(
+            "https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread",
+            params={"uri": hit.detail_id, "depth": "1"},
+        )
+        if r.error or not r.data:
+            return None
+        return self.parse_thread_response(r.data, hit)
+
+
+# ---------------------------------------------------------------------------
 # Stub providers
 # ---------------------------------------------------------------------------
 
 
 class TwitterProvider(CommunityProvider):
+    """Twitter/X community monitoring.
+
+    Primary: tweepy Bearer Token search (requires TWITTER_BEARER_TOKEN, 7-day window).
+    Fallback: Tavily site-restricted search (requires TAVILY_API_KEY).
+    If neither key is set, degrades to suggested queries (same as old stub).
+    """
     name = "twitter"
-    status = "stub"
-    requires_auth = True
-    auth_env_vars = ["TWITTER_API_KEY"]
-    capabilities: set[str] = set()
-    max_search_calls = 0
+    status = "enabled"
+    requires_auth = False  # graceful fallback chain, no hard requirement
+    auth_env_vars: list[str] = []
+    capabilities = {"search"}
+    max_search_calls = 4
     recommended_max_details = 0
 
+    @staticmethod
+    def _has_bearer_token() -> bool:
+        return bool(os.environ.get("TWITTER_BEARER_TOKEN"))
+
+    @staticmethod
+    def _has_tavily() -> bool:
+        return bool(os.environ.get("TAVILY_API_KEY"))
+
+    @property
+    def is_enabled(self) -> bool:
+        return self._has_bearer_token() or self._has_tavily()
+
+    @staticmethod
+    def parse_tweepy_results(tweets: list, users_map: dict, source: str) -> list[DiscussionHit]:
+        hits: list[DiscussionHit] = []
+        for tweet in tweets:
+            text = tweet.text if hasattr(tweet, "text") else str(tweet)
+            tweet_id = str(tweet.id) if hasattr(tweet, "id") else ""
+            metrics = tweet.public_metrics if hasattr(tweet, "public_metrics") and tweet.public_metrics else {}
+            like_count = metrics.get("like_count", 0) or 0
+            retweet_count = metrics.get("retweet_count", 0) or 0
+            reply_count = metrics.get("reply_count", 0) or 0
+            raw_score = like_count + retweet_count + reply_count
+            author_id = str(tweet.author_id) if hasattr(tweet, "author_id") and tweet.author_id else ""
+            author_username = users_map.get(author_id, "")
+            created_at_str = tweet.created_at.isoformat() if hasattr(tweet, "created_at") and tweet.created_at else ""
+            hits.append(DiscussionHit(
+                platform="twitter",
+                title=_truncate(text.split("\n")[0], 120),
+                url=f"https://x.com/{author_username}/status/{tweet_id}" if author_username else f"https://x.com/i/status/{tweet_id}",
+                engagement_score=min(100, retweet_count * 3 + like_count + reply_count * 2),
+                raw_score=raw_score,
+                comments_count=reply_count,
+                age_days=_age_days(created_at_str),
+                author=author_username,
+                detail_id=tweet_id,
+                extra_param_1=author_username,
+                extra_param_2=str(tweet.conversation_id) if hasattr(tweet, "conversation_id") and tweet.conversation_id else "",
+                preview=_truncate(text, 300),
+                source=source,
+            ))
+        return hits
+
+    @staticmethod
+    def parse_tavily_results(results: list, source: str) -> list[DiscussionHit]:
+        hits: list[DiscussionHit] = []
+        for r in results:
+            url = r.get("url", "")
+            title = r.get("title", "")
+            content = r.get("content", "")
+            if not title and not content:
+                continue
+            # Extract username from x.com URL
+            author = ""
+            if "x.com/" in url or "twitter.com/" in url:
+                parts = url.split("/")
+                for i, p in enumerate(parts):
+                    if p in ("x.com", "twitter.com") and i + 1 < len(parts):
+                        author = parts[i + 1]
+                        break
+            # Extract tweet ID from URL
+            tweet_id = ""
+            if "/status/" in url:
+                tweet_id = url.split("/status/")[-1].split("?")[0].split("/")[0]
+            hits.append(DiscussionHit(
+                platform="twitter",
+                title=_truncate(title or content.split("\n")[0], 120),
+                url=url,
+                engagement_score=min(100, int(r.get("score", 0.5) * 100)),
+                raw_score=0,
+                comments_count=0,
+                age_days=0,
+                author=author,
+                detail_id=tweet_id or url,
+                extra_param_1=author,
+                extra_param_2="",
+                preview=_truncate(content, 300),
+                source=source,
+            ))
+        return hits
+
+    async def _search_via_tweepy(self, query: str, source: str) -> tuple[list[DiscussionHit], list[str]]:
+        errors: list[str] = []
+        try:
+            import tweepy
+        except ImportError:
+            return [], ["tweepy not installed"]
+
+        profile = _get_profile()
+        max_results = getattr(profile, "twitter_max_results", 25)
+        try:
+            client = tweepy.Client(bearer_token=os.environ["TWITTER_BEARER_TOKEN"])
+            resp = client.search_recent_tweets(
+                query=f"{query} -is:retweet lang:en",
+                max_results=min(max(10, max_results), 100),
+                tweet_fields=["created_at", "public_metrics", "author_id", "conversation_id"],
+                expansions=["author_id"],
+            )
+            users_map: dict[str, str] = {}
+            if resp.includes and "users" in resp.includes:
+                for u in resp.includes["users"]:
+                    users_map[str(u.id)] = u.username
+            tweets = resp.data or []
+            return self.parse_tweepy_results(tweets, users_map, source), errors
+        except Exception as e:
+            return [], [f"tweepy {source}: {e}"]
+
+    async def _search_via_tavily(self, query: str, source: str) -> tuple[list[DiscussionHit], list[str]]:
+        errors: list[str] = []
+        try:
+            from tavily import AsyncTavilyClient
+        except ImportError:
+            return [], ["tavily-python not installed"]
+
+        try:
+            client = AsyncTavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+            resp = await client.search(
+                query=f"{query} site:x.com OR site:twitter.com",
+                max_results=10,
+                search_depth="basic",
+            )
+            results = resp.get("results", []) if isinstance(resp, dict) else []
+            return self.parse_tavily_results(results, source), errors
+        except Exception as e:
+            return [], [f"tavily {source}: {e}"]
+
     async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
-        return ProviderSearchResult()
+        errors: list[str] = []
+        all_hits: list[DiscussionHit] = []
+        suggested: list[SuggestedQuery] = []
+
+        use_tweepy = self._has_bearer_token()
+        use_tavily = self._has_tavily()
+
+        for query, source in [
+            (brand_name, "brand_search"),
+            (category, "category_search"),
+        ]:
+            if use_tweepy:
+                hits, errs = await self._search_via_tweepy(query, source)
+            elif use_tavily:
+                hits, errs = await self._search_via_tavily(query, source)
+            else:
+                hits, errs = [], []
+                suggested.append(SuggestedQuery(
+                    platform="twitter", provider="twitter",
+                    query=f'"{query}" site:x.com OR site:twitter.com',
+                    reason="no TWITTER_BEARER_TOKEN or TAVILY_API_KEY",
+                ))
+            all_hits.extend(hits)
+            errors.extend(errs)
+            await _delay()
+
+        # Deduplicate by detail_id
+        seen: dict[str, DiscussionHit] = {}
+        for h in all_hits:
+            existing = seen.get(h.detail_id)
+            if existing is None or h.raw_score > existing.raw_score:
+                seen[h.detail_id] = h
+        return ProviderSearchResult(hits=list(seen.values()), errors=errors, suggested_queries=suggested)
 
 
 class LinkedInProvider(CommunityProvider):
@@ -892,6 +1407,8 @@ PROVIDER_REGISTRY: list[CommunityProvider] = [
     RedditProvider(),
     HackerNewsProvider(),
     DevtoProvider(),
+    YouTubeProvider(),
+    BlueskyProvider(),
     TwitterProvider(),
     LinkedInProvider(),
     ProductHuntProvider(),

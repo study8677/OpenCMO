@@ -92,6 +92,12 @@ export const zh: Record<TranslationKey, string> = {
   "community.noDiscussionsDesc": "运行社区扫描以发现相关讨论。",
   "community.comments": "{{count}} 条评论",
   "community.engagement": "互动度: {{score}}",
+  "community.platform.reddit": "Reddit",
+  "community.platform.hackernews": "Hacker News",
+  "community.platform.devto": "Dev.to",
+  "community.platform.youtube": "YouTube",
+  "community.platform.bluesky": "Bluesky",
+  "community.platform.twitter": "Twitter/X",
 
   // Monitors Page
   "monitors.title": "监控",

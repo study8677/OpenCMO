@@ -16,30 +16,37 @@ OpenCMO is an open-source AI Chief Marketing Officer — a multi-agent system fo
 
 ### Backend layers
 
-- `agents/cmo.py` — Orchestrator that delegates to 25+ specialist agents exposed as tools via `agent.as_tool()`
-- `agents/*.py` — Platform-specific content experts (twitter, reddit, linkedin, etc.) and market intelligence agents (seo, geo, community)
-- `tools/*.py` — Python functions for crawling, search, SEO audit, SERP tracking, GEO detection, community scraping, publishing
-- `service.py` — Business logic (monitor CRUD, keyword management, competitor discovery, reports)
-- `storage.py` — Async SQLite with 15+ tables (projects, scans, discussions, competitors, chat sessions)
-- `web/app.py` — FastAPI routes, SPA serving at `/app/`, REST API at `/api/v1/`, SSE streaming chat
-- `config.py` — ENV-driven model resolution with per-agent overrides (`OPENCMO_MODEL_{AGENT}`)
-- `scheduler.py` — APScheduler cron jobs for automated scans
+- `agents/cmo.py` — Orchestrator with 40+ tools; delegates to 25+ specialist agents via `agent.as_tool()`. Two routing strategies: single-platform handoff (deep interaction) vs multi-channel tool calls (collects all outputs via campaign runs)
+- `agents/*.py` — Platform experts + intelligence agents. Each is a standalone `Agent()` with `name`, `instructions`, `tools`, and `model=get_model("agent_name")`
+- `tools/*.py` — Crawling, search (WebSearchTool → Tavily fallback → crawl4ai scrape), SEO audit, SERP tracking, GEO detection, community scraping, publishing
+- `service.py` — Business logic bridge used by both CLI and Web: monitor CRUD, multi-agent URL analysis (3-round debate → JSON strategy), competitor discovery, approval workflow
+- `storage.py` — Async SQLite (WAL mode, foreign keys) with 27+ tables. No ORM — raw aiosqlite with dict rows. Schema auto-created; migrations via `ALTER TABLE` + try/except. DB path: `OPENCMO_DB_PATH` or `~/.opencmo/data.db`
+- `web/app.py` — FastAPI routes: REST API at `/api/v1/`, SPA serving at `/app/`, SSE chat streaming. Token auth via Bearer header or cookie (public prefixes: `/static/`, `/api/v1/auth/`, `/api/v1/health`)
+- `config.py` — Model resolution cascade: `OPENCMO_MODEL_{AGENT}` > `OPENCMO_MODEL_DEFAULT` > `'gpt-4o'`. Returns `OpenAIChatCompletionsModel` for custom `OPENAI_BASE_URL` providers. `apply_runtime_settings()` loads API keys from DB settings table into `os.environ`
+- `scheduler.py` — APScheduler (optional dep, graceful fallback). `run_scheduled_scan()` executes SEO/GEO/Community/SERP independently, not through agent framework
+- `graph_expansion.py` — Wave-based BFS discovery of competitors and keywords. Heartbeat-tracked (60s stale window), backpressure via `MAX_OPS_PER_WAVE=20`
+- `web/task_registry.py` — In-memory (not persisted) OrderedDict, max 100 tasks. Wraps async scan workflows with progress tracking
+- `web/chat_sessions.py` — SQLite-backed chat history. Auto-titling from first message. Max 20 messages per session (truncated)
 
 ### Frontend layers
 
-- `pages/` — Route-level components (Dashboard, SEO, GEO, SERP, Community, Graph, Chat, etc.)
-- `components/` — UI organized by domain (charts/, chat/, monitors/, auth/, layout/)
-- `hooks/` — TanStack Query hooks per domain (useProjects, useSeoData, useGraphData, etc.)
-- `api/` — HTTP client with Bearer token auth, one module per API domain
-- `i18n/` — English + Chinese translations via React context
+- `pages/` — Route-level components (Dashboard, SEO, GEO, SERP, Community, Graph, Chat, Approvals, Monitors)
+- `components/` — Organized by domain: `charts/` (recharts + react-force-graph-3d), `chat/` (SSE streaming), `monitors/`, `auth/`, `layout/`, `dashboard/`, `project/`
+- `hooks/` — TanStack Query hooks per domain (`useProjects`, `useSeoData`, `useGraphData`, etc.). Stale time 30s, retry 1. `useChat` manages local state + SSE via async generator
+- `api/client.ts` — `apiFetch()` adds Bearer token, dispatches `opencmo:unauthorized` on 401. Domain modules export typed wrappers around `apiJson()`
+- `i18n/` — React context-based EN + ZH translations
+- Routing: React Router v7 at base `/app`. Provider stack: QueryClient → I18n → Auth → Router
 
 ### Key patterns
 
+- **Agent tool vs handoff**: `.as_tool()` returns output to orchestrator; `handoff()` transfers control for direct user conversation
+- **Optional deps with graceful fallback**: scheduler, web, publish, geo-premium, tavily all degrade gracefully if not installed
+- **SSE chat protocol**: `POST /api/v1/chat` streams events — `delta` (text), `agent` (handoff), `tool_called`, `tool_output`, `final_output`
+- **Provider-adaptive search**: Native WebSearchTool for OpenAI, Tavily if key present, crawl4ai Google scrape as last resort
+- **Approval-first publishing**: Content queued with exact payload for human review; publish only after explicit approve. `OPENCMO_AUTO_PUBLISH=1` gates actual API calls
+- **Settings table as runtime config**: Web UI settings panel writes to SQLite KV store; `apply_runtime_settings()` loads them into env vars at startup
+- **Custom provider compatibility**: Disables OpenAI tracing for non-OpenAI providers to avoid 401 noise
 - Frontend proxies `/api` to `http://127.0.0.1:8080` in dev (vite.config.ts)
-- Frontend base path is `/app/` — all routes nest under this
-- Chat uses SSE streaming (`POST /api/v1/chat` returns event stream)
-- Agent framework is `openai-agents` (Anthropic's framework, import as `from agents import Agent`)
-- Model config supports OpenAI, NVIDIA, DeepSeek, Ollama, or any OpenAI-compatible API via `OPENAI_BASE_URL`
 
 ## Commands
 
@@ -64,7 +71,7 @@ opencmo-web                # Web dashboard (http://localhost:8080/app)
 cd frontend
 npm install
 npm run dev                # Dev server at localhost:5173
-npm run build              # Production build (tsc + vite)
+npm run build              # Production build (tsc -b && vite build)
 ```
 
 ### Tests
@@ -75,14 +82,19 @@ pytest tests/test_web.py   # Run single test file
 pytest tests/ -k "test_seo" # Run tests matching pattern
 ```
 
+Tests use temp SQLite DBs (via `tmp_path`), reset in-memory state (task registry, chat sessions), and mock all external APIs. No real API integration tests.
+
 ## Environment Variables
 
 Required: `OPENAI_API_KEY` (or equivalent for chosen provider)
 
 Key optional variables — see `.env.example` for full list:
-- `OPENCMO_MODEL_DEFAULT` / `OPENCMO_MODEL_{AGENT}` — model selection
-- `OPENAI_BASE_URL` — custom API provider
-- `ANTHROPIC_API_KEY`, `GOOGLE_AI_API_KEY` — extended GEO platforms
+- `OPENCMO_MODEL_DEFAULT` / `OPENCMO_MODEL_{AGENT}` — model selection (cascade: per-agent > default > gpt-4o)
+- `OPENAI_BASE_URL` — custom API provider (NVIDIA, DeepSeek, Ollama, etc.)
+- `OPENCMO_DB_PATH` — SQLite database location (default: `~/.opencmo/data.db`)
 - `OPENCMO_WEB_TOKEN` — dashboard auth token
+- `ANTHROPIC_API_KEY`, `GOOGLE_AI_API_KEY` — extended GEO platforms
+- `TAVILY_API_KEY` — structured web search
 - `DATAFORSEO_LOGIN/PASSWORD` — SERP tracking
 - `OPENCMO_AUTO_PUBLISH=1` + Reddit/Twitter credentials — auto-publishing
+- `OPENCMO_SMTP_*` + `OPENCMO_REPORT_EMAIL` — email reports

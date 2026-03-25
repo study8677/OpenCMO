@@ -9,6 +9,7 @@ from .serp_tracker import check_keyword_ranking, get_serp_trends
 from .blog_writer import research_blog_topic
 from .email_report import send_email_report
 from .publishers import publish_to_reddit, publish_to_twitter
+from .trend_research import research_trend
 
 __all__ = [
     "crawl_website",
@@ -27,4 +28,5 @@ __all__ = [
     "send_email_report",
     "publish_to_reddit",
     "publish_to_twitter",
+    "research_trend",
 ]

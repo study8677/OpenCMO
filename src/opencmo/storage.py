@@ -267,6 +267,18 @@ CREATE TABLE IF NOT EXISTS campaign_artifacts (
     content TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS trend_briefings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER REFERENCES projects(id),
+    topic TEXT NOT NULL,
+    mode TEXT NOT NULL DEFAULT 'summary',
+    platforms_queried TEXT NOT NULL,
+    time_window_days INTEGER NOT NULL DEFAULT 30,
+    total_hits INTEGER NOT NULL,
+    briefing_markdown TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
@@ -291,6 +303,19 @@ async def ensure_db() -> None:
                 )
             except Exception:
                 pass  # column already exists
+        # Add convergence and scoring columns
+        for table, col, col_type, default in [
+            ("tracked_discussions", "convergence_cluster_id", "TEXT", None),
+            ("discussion_snapshots", "velocity", "REAL", None),
+            ("discussion_snapshots", "text_relevance", "REAL", None),
+        ]:
+            try:
+                stmt = f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"
+                if default is not None:
+                    stmt += f" DEFAULT {default}"
+                await db.execute(stmt)
+            except Exception:
+                pass
         await db.commit()
         _SCHEMA_READY_FOR = _DB_PATH
     finally:
