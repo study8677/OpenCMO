@@ -181,6 +181,13 @@ async def run_scheduled_scan(
         except Exception:
             pass
 
+    # Detect insights (rule-based, zero LLM cost)
+    try:
+        from opencmo.insights import detect_insights
+        await detect_insights(project_id)
+    except Exception:
+        logger.exception("Insight detection failed for project %d", project_id)
+
     # Email report (only for cron + full)
     await _maybe_send_email_report(project_id, job_type, triggered_by)
 

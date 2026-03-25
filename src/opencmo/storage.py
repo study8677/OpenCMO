@@ -279,6 +279,22 @@ CREATE TABLE IF NOT EXISTS trend_briefings (
     briefing_markdown TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS insights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    insight_type TEXT NOT NULL,
+    severity TEXT NOT NULL DEFAULT 'info',
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    action_type TEXT NOT NULL DEFAULT 'navigate',
+    action_params TEXT NOT NULL DEFAULT '{}',
+    read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_insights_project_read
+ON insights(project_id, read, created_at DESC);
 """
 
 
@@ -2214,5 +2230,122 @@ async def list_campaign_runs(project_id: int, limit: int = 20) -> list[dict]:
              "artifact_count": r[6]}
             for r in rows
         ]
+    finally:
+        await db.close()
+
+
+# ---------------------------------------------------------------------------
+# Insights
+# ---------------------------------------------------------------------------
+
+
+async def save_insight(
+    project_id: int, insight_type: str, severity: str,
+    title: str, summary: str, action_type: str, action_params: str,
+) -> int:
+    """Save an insight and return its id."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "INSERT INTO insights (project_id, insight_type, severity, title, summary, action_type, action_params) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (project_id, insight_type, severity, title, summary, action_type, action_params),
+        )
+        await db.commit()
+        return cursor.lastrowid
+    finally:
+        await db.close()
+
+
+async def is_insight_duplicate(project_id: int, insight_type: str, title: str) -> bool:
+    """Check if a similar insight was created in the last 24 hours."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM insights "
+            "WHERE project_id = ? AND insight_type = ? AND title = ? "
+            "AND created_at > datetime('now', '-24 hours')",
+            (project_id, insight_type, title),
+        )
+        row = await cursor.fetchone()
+        return row[0] > 0
+    finally:
+        await db.close()
+
+
+async def list_insights(
+    project_id: int | None = None, unread_only: bool = False, limit: int = 20,
+) -> list[dict]:
+    """List insights, optionally filtered by project and read status."""
+    db = await get_db()
+    try:
+        clauses = []
+        params: list = []
+        if project_id is not None:
+            clauses.append("project_id = ?")
+            params.append(project_id)
+        if unread_only:
+            clauses.append("read = 0")
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        cursor = await db.execute(
+            f"SELECT id, project_id, insight_type, severity, title, summary, "
+            f"action_type, action_params, read, created_at "
+            f"FROM insights {where} ORDER BY created_at DESC LIMIT ?",
+            (*params, limit),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "id": r[0], "project_id": r[1], "insight_type": r[2],
+                "severity": r[3], "title": r[4], "summary": r[5],
+                "action_type": r[6], "action_params": r[7],
+                "read": bool(r[8]), "created_at": r[9],
+            }
+            for r in rows
+        ]
+    finally:
+        await db.close()
+
+
+async def mark_insight_read(insight_id: int) -> bool:
+    """Mark an insight as read. Returns True if updated."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "UPDATE insights SET read = 1 WHERE id = ? AND read = 0",
+            (insight_id,),
+        )
+        await db.commit()
+        return cursor.rowcount > 0
+    finally:
+        await db.close()
+
+
+async def get_insights_summary(project_id: int | None = None) -> dict:
+    """Get unread insight count and latest 3 for the notification bell."""
+    db = await get_db()
+    try:
+        where = "WHERE project_id = ? AND read = 0" if project_id else "WHERE read = 0"
+        params = (project_id,) if project_id else ()
+
+        cursor = await db.execute(f"SELECT COUNT(*) FROM insights {where}", params)
+        count = (await cursor.fetchone())[0]
+
+        cursor2 = await db.execute(
+            f"SELECT id, project_id, insight_type, severity, title, summary, "
+            f"action_type, action_params, created_at "
+            f"FROM insights {where} ORDER BY created_at DESC LIMIT 3",
+            params,
+        )
+        rows = await cursor2.fetchall()
+        recent = [
+            {
+                "id": r[0], "project_id": r[1], "insight_type": r[2],
+                "severity": r[3], "title": r[4], "summary": r[5],
+                "action_type": r[6], "action_params": r[7], "created_at": r[8],
+            }
+            for r in rows
+        ]
+        return {"unread_count": count, "recent": recent}
     finally:
         await db.close()

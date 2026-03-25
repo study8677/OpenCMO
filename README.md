@@ -125,6 +125,10 @@ Automatically scan for brand mentions and relevant discussions across **Reddit, 
 
 Research any topic across community platforms with the **Trend Research** agent. Supports query expansion, comparative mode ("X vs Y"), and time-window filtering. Results are ranked by multi-signal scoring and synthesized into actionable briefings.
 
+### Proactive Insights
+
+OpenCMO doesn't wait for you to check — it **tells you when something matters**. Five rule-based detectors (zero LLM cost) continuously monitor for SERP rank drops, GEO score declines, high-engagement community discussions, SEO performance regressions, and competitor keyword gaps. Insights appear as a notification bell badge and a priority banner on the Dashboard, each with actionable CTA buttons (view details, generate content, add keywords).
+
 ### Graph Intelligence
 
 The knowledge graph is no longer just a visualization — it's an **active intelligence layer**. Graph data (competitors, keyword gaps, overlaps, SERP rankings) is automatically injected into chat sessions and research briefs, and the CMO agent can query the competitive landscape on demand via `get_competitive_landscape`. New keywords and competitors added anywhere in the system are automatically seeded into the graph expansion frontier.
@@ -330,6 +334,7 @@ npm run build   # Production build
 - [x] **Multi-signal community scoring** — engagement velocity, text relevance, recency decay, cross-platform convergence
 - [x] **Trend research agent** — topic exploration with query expansion and comparative mode
 - [x] **Graph Intelligence Pipeline** — knowledge graph feeds into agent decisions, chat context, and content briefs
+- [x] **Proactive Insight Engine** — rule-based detectors for SERP drops, GEO declines, community buzz, SEO regressions, competitor gaps with actionable CTA
 - [x] **Unified Settings panel** — configure all API keys from the web UI
 - [ ] Direct publishing to LinkedIn, Product Hunt, and more
 - [ ] Custom Brand Voice fine-tuning

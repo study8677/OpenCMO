@@ -28,6 +28,13 @@ export const en = {
   "dashboard.noProjects": "No projects yet",
   "dashboard.noProjectsDesc": "Add a website URL to start monitoring your brand's online presence.",
   "dashboard.createMonitor": "Add Website",
+  "insights.title": "Insights",
+  "insights.proactive": "Proactive insight",
+  "insights.topUnread": "Top unread alerts",
+  "insights.empty": "No new insights",
+  "insights.loading": "Loading insights...",
+  "insights.view": "View",
+  "insights.dismiss": "Dismiss",
 
   // Project Tabs
   "project.overview": "Overview",

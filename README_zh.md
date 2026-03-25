@@ -125,6 +125,10 @@ OpenCMO 是一个专为独立开发者、初创公司和小团队设计的 **多
 
 **趋势研究 Agent** 可跨社区平台研究任意话题，支持查询扩展、对比模式（"X vs Y"）和时间窗口过滤，结果经多信号评分后生成可操作的趋势简报。
 
+### 主动洞察
+
+OpenCMO 不等你来查——**有事主动告诉你**。5 个纯规则检测器（零 LLM 成本）持续监控 SERP 排名下降、GEO 分数下降、高热度社区讨论、SEO 性能退化和竞品关键词差距。洞察以通知铃铛徽章和 Dashboard 顶部优先横幅展示，每条都带可操作的 CTA 按钮（查看详情、生成内容、添加关键词）。
+
 ### 图谱智能
 
 知识图谱不再只是可视化工具——它现在是**主动智能层**。图谱数据（竞品关系、关键词缺口、SERP 排名）自动注入聊天上下文和研究简报，CMO Agent 可随时调用 `get_competitive_landscape` 查询完整竞争格局。系统中任何地方新增的关键词和竞品都会自动进入图谱扩展队列。
@@ -317,7 +321,7 @@ npm run build   # 生产构建
 - [x] **React SPA**，支持多语言 (中/英)
 - [x] **API 不绑定** — OpenAI、Anthropic、DeepSeek、NVIDIA、Ollama
 - [x] **交互式 3D 知识图谱**，支持主动 BFS 扩张和竞品情报
-- [x] **社区监控** — Reddit, Hacker News, Dev.to
+- [x] **社区监控** — Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X
 - [x] **GEO 检测** — Perplexity, You.com, ChatGPT, Claude, Gemini
 - [x] **SEO 审计** — 核心 Web 指标、Schema.org、robots.txt
 - [x] **SERP 追踪** — 关键词排名监控
@@ -325,6 +329,10 @@ npm run build   # 生产构建
 - [x] **自动发布** — Reddit（发帖 + 回复）和 Twitter
 - [x] **邮件报告** — SMTP 发送
 - [x] **AI 驱动竞品发现**与关键词重叠分析
+- [x] **多信号社区评分** — 互动速度、文本相关性、时效衰减、跨平台收敛检测
+- [x] **趋势研究 Agent** — 跨平台话题探索、查询扩展、对比模式
+- [x] **图谱智能管线** — 知识图谱反馈到 agent 决策、聊天上下文、内容简报
+- [x] **主动洞察引擎** — SERP 下降/GEO 下降/社区高热/SEO 退化/竞品差距检测 + 可操作 CTA
 - [x] **统一设置面板** — 在 Web UI 中配置所有 API 密钥
 - [ ] 直接发布到 LinkedIn、Product Hunt 等更多平台
 - [ ] 自定义品牌声音微调

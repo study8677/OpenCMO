@@ -5,6 +5,7 @@ import { EmptyState } from "../components/common/EmptyState";
 import { ErrorAlert } from "../components/common/ErrorAlert";
 import { ProjectCard } from "../components/dashboard/ProjectCard";
 import { GlobalOverview } from "../components/dashboard/GlobalOverview";
+import { InsightBanner } from "../components/dashboard/InsightBanner";
 import { useI18n } from "../i18n";
 import { Plus } from "lucide-react";
 
@@ -31,6 +32,7 @@ export function DashboardPage() {
           {t("dashboard.newMonitor")}
         </Link>
       </div>
+      <InsightBanner />
       <GlobalOverview />
       {!projects?.length ? (
         <EmptyState

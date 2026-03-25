@@ -30,6 +30,13 @@ export const zh: Record<TranslationKey, string> = {
   "dashboard.noProjects": "暂无项目",
   "dashboard.noProjectsDesc": "输入网站 URL 即可开始监控您的品牌在线表现。",
   "dashboard.createMonitor": "添加网站",
+  "insights.title": "洞察",
+  "insights.proactive": "主动洞察",
+  "insights.topUnread": "重点未读提醒",
+  "insights.empty": "暂无新洞察",
+  "insights.loading": "正在加载洞察...",
+  "insights.view": "查看",
+  "insights.dismiss": "忽略",
 
   // Project Tabs
   "project.overview": "概览",

@@ -787,6 +787,34 @@ async def api_v1_expansion_progress(project_id: int):
 
 
 # ---------------------------------------------------------------------------
+# REST API v1 — Insights
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/v1/insights")
+async def api_v1_insights(request: Request):
+    project_id = request.query_params.get("project_id")
+    unread = request.query_params.get("unread", "").lower() in ("true", "1")
+    pid = int(project_id) if project_id else None
+    return JSONResponse(await storage.list_insights(project_id=pid, unread_only=unread))
+
+
+@app.get("/api/v1/insights/summary")
+async def api_v1_insights_summary(request: Request):
+    project_id = request.query_params.get("project_id")
+    pid = int(project_id) if project_id else None
+    return JSONResponse(await storage.get_insights_summary(project_id=pid))
+
+
+@app.post("/api/v1/insights/{insight_id}/read")
+async def api_v1_insight_read(insight_id: int):
+    ok = await storage.mark_insight_read(insight_id)
+    if not ok:
+        return JSONResponse({"error": "Not found or already read"}, status_code=404)
+    return JSONResponse({"ok": True})
+
+
+# ---------------------------------------------------------------------------
 # REST API v1 — Keywords
 # ---------------------------------------------------------------------------
 

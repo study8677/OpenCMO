@@ -114,12 +114,24 @@ Rastrea continuamente las posiciones de busqueda de tus palabras clave objetivo.
 
 ### Monitoreo de Comunidad
 
-Escanea automaticamente menciones de marca y discusiones relevantes en Reddit, Hacker News y Dev.to.
+Escanea automaticamente menciones de marca y discusiones relevantes en **Reddit, Hacker News, Dev.to, YouTube, Bluesky y Twitter/X**. Incluye puntuacion multi-senal (velocidad de engagement, relevancia textual, decaimiento temporal, deteccion de convergencia multiplataforma) para rankings comparables entre plataformas.
 
 <div align="center">
   <img src="assets/screenshots/community-page.png" alt="Community Monitoring" width="850" />
   <p><i>Historial de escaneos multiplataforma y discusiones en seguimiento.</i></p>
 </div>
+
+### Investigacion de Tendencias
+
+El **Agente de Investigacion de Tendencias** investiga temas en todas las plataformas comunitarias con expansion de consultas, modo comparativo ("X vs Y") y filtrado por ventana temporal. Los resultados se clasifican con puntuacion multi-senal y se sintetizan en informes accionables.
+
+### Insights Proactivos
+
+OpenCMO no espera a que revises — **te avisa cuando algo importa**. Cinco detectores basados en reglas (costo LLM cero) monitorean continuamente caidas de ranking SERP, descensos de puntuacion GEO, discusiones comunitarias de alto engagement, regresiones de rendimiento SEO y brechas de keywords con competidores. Los insights aparecen como badge de campana de notificacion y banner prioritario en el Dashboard, cada uno con botones CTA accionables.
+
+### Inteligencia del Grafo
+
+El grafo de conocimiento ya no es solo una visualizacion — es una **capa de inteligencia activa**. Los datos del grafo (competidores, brechas de keywords, rankings SERP) se inyectan automaticamente en sesiones de chat e informes de investigacion, y el agente CMO puede consultar el panorama competitivo bajo demanda.
 
 ### Cola de aprobaciones y operaciones programadas
 
@@ -316,6 +328,10 @@ npm run build   # Build de produccion
 - [x] **Publicacion automatica** — Reddit (publicar + responder) y Twitter
 - [x] **Reportes por email** — Via SMTP
 - [x] **Descubrimiento de competidores con IA** — Analisis de superposicion de palabras clave
+- [x] **Puntuacion comunitaria multi-senal** — velocidad de engagement, relevancia textual, decaimiento temporal, deteccion de convergencia
+- [x] **Agente de investigacion de tendencias** — exploracion de temas con expansion de consultas y modo comparativo
+- [x] **Pipeline de inteligencia del grafo** — el grafo alimenta decisiones de agentes, contexto de chat y briefs de contenido
+- [x] **Motor de insights proactivos** — detectores de caida SERP/GEO/comunidad/SEO/brecha competitiva + CTA accionable
 - [x] **Panel de configuracion unificado** — Configura todas las claves API desde la UI web
 - [ ] Publicacion directa en LinkedIn, Product Hunt y mas
 - [ ] Afinacion personalizada de voz de marca

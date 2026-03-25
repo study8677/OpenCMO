@@ -1,6 +1,7 @@
 import { Menu, Globe, LogOut } from "lucide-react";
 import { useAuth } from "../auth/useAuth";
 import { useI18n } from "../../i18n";
+import { NotificationBell } from "./NotificationBell";
 
 export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { isAuthenticated, logout } = useAuth();
@@ -13,6 +14,7 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
       </button>
       <div className="flex-1" />
       <div className="flex items-center gap-3 pr-2 lg:pr-4">
+        <NotificationBell />
         <button
           onClick={() => setLocale(locale === "en" ? "zh" : "en")}
           className="group flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-900 hover:scale-105 active:scale-95"
