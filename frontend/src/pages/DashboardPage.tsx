@@ -13,6 +13,12 @@ export function DashboardPage() {
   const { data: projects, isLoading, error } = useProjects();
   const deleteProject = useDeleteProject();
   const { t } = useI18n();
+  const deleteError =
+    deleteProject.error instanceof Error
+      ? deleteProject.error.message
+      : deleteProject.isError
+        ? "Failed to delete project."
+        : null;
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorAlert message={error.message} />;
@@ -32,6 +38,7 @@ export function DashboardPage() {
           {t("dashboard.newMonitor")}
         </Link>
       </div>
+      {deleteError ? <div className="mb-6"><ErrorAlert message={deleteError} /></div> : null}
       <InsightBanner />
       <GlobalOverview />
       {!projects?.length ? (

@@ -56,6 +56,7 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
 
           {onDelete && (
             <button
+              type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();

@@ -448,6 +448,16 @@ async def delete_project(project_id: int) -> bool:
             (project_id,),
         )
         await db.execute("DELETE FROM competitors WHERE project_id = ?", (project_id,))
+        # Delete campaign artifacts and runs
+        await db.execute(
+            """DELETE FROM campaign_artifacts WHERE run_id IN
+               (SELECT id FROM campaign_runs WHERE project_id = ?)""",
+            (project_id,),
+        )
+        await db.execute("DELETE FROM campaign_runs WHERE project_id = ?", (project_id,))
+        # Delete trend briefings and insights
+        await db.execute("DELETE FROM trend_briefings WHERE project_id = ?", (project_id,))
+        await db.execute("DELETE FROM insights WHERE project_id = ?", (project_id,))
         # Delete monitoring artifacts
         await db.execute(
             """DELETE FROM scan_findings WHERE run_id IN

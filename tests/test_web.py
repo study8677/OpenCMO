@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import sqlite3
 from unittest.mock import patch, AsyncMock, MagicMock
 
 import pytest
@@ -183,6 +184,77 @@ def test_api_v1_projects_crud(client):
     # 404
     resp = client.get("/api/v1/projects/9999")
     assert resp.status_code == 404
+
+
+def test_api_v1_delete_project_with_related_records(tmp_path):
+    db_path = tmp_path / "test.db"
+    with patch.object(storage, "_DB_PATH", db_path):
+        asyncio.run(chat_sessions.clear_all())
+        task_registry.clear_all()
+
+        pid = asyncio.run(storage.ensure_project("Delete Me", "https://delete-me.test", "testing"))
+        run = asyncio.run(storage.create_campaign_run(pid, "Launch", ["reddit"]))
+        asyncio.run(
+            storage.add_campaign_artifact(
+                run["id"],
+                "research_brief",
+                "artifact body",
+                None,
+                "Delete regression",
+            )
+        )
+        asyncio.run(
+            storage.save_insight(
+                pid,
+                "serp_drop",
+                "high",
+                "Visibility dropped",
+                "Investigate ranking change",
+                "navigate",
+                "{}",
+            )
+        )
+
+        conn = sqlite3.connect(db_path)
+        try:
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute(
+                """INSERT INTO trend_briefings
+                   (project_id, topic, mode, platforms_queried, time_window_days, total_hits, briefing_markdown)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (pid, "AI marketing", "summary", "[]", 30, 0, "brief"),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        with TestClient(app) as client:
+            resp = client.delete(f"/api/v1/projects/{pid}")
+            assert resp.status_code == 200
+            assert resp.json() == {"ok": True}
+
+        assert asyncio.run(storage.get_project(pid)) is None
+
+        conn = sqlite3.connect(db_path)
+        try:
+            assert conn.execute(
+                "SELECT COUNT(*) FROM campaign_runs WHERE project_id = ?",
+                (pid,),
+            ).fetchone()[0] == 0
+            assert conn.execute(
+                "SELECT COUNT(*) FROM campaign_artifacts WHERE run_id = ?",
+                (run["id"],),
+            ).fetchone()[0] == 0
+            assert conn.execute(
+                "SELECT COUNT(*) FROM insights WHERE project_id = ?",
+                (pid,),
+            ).fetchone()[0] == 0
+            assert conn.execute(
+                "SELECT COUNT(*) FROM trend_briefings WHERE project_id = ?",
+                (pid,),
+            ).fetchone()[0] == 0
+        finally:
+            conn.close()
 
 
 # ---------------------------------------------------------------------------

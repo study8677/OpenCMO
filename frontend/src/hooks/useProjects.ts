@@ -12,6 +12,13 @@ export function useDeleteProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => deleteProject(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["projects"] }),
+        qc.invalidateQueries({ queryKey: ["overview"] }),
+        qc.invalidateQueries({ queryKey: ["insights-summary"] }),
+        qc.invalidateQueries({ queryKey: ["insights"] }),
+      ]);
+    },
   });
 }
