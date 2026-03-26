@@ -82,6 +82,9 @@ export interface ApprovalRecord {
   decision_note: string;
   created_at: string;
   decided_at: string | null;
+  source_insight_id?: number | null;
+  pre_metrics_json?: string;
+  post_metrics_json?: string;
 }
 
 export interface AnalysisProgress {

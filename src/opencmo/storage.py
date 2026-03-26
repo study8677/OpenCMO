@@ -333,6 +333,40 @@ async def ensure_db() -> None:
                 await db.execute(stmt)
             except Exception:
                 pass
+        # Autopilot: add execution tracking columns to insights
+        for col, col_type, default in [
+            ("execution_status", "TEXT", "'none'"),
+            ("linked_approval_id", "INTEGER", None),
+            ("execution_context", "TEXT", "'{}'"),
+        ]:
+            try:
+                stmt = f"ALTER TABLE insights ADD COLUMN {col} {col_type}"
+                if default is not None:
+                    stmt += f" NOT NULL DEFAULT {default}"
+                await db.execute(stmt)
+            except Exception:
+                pass
+
+        # Autopilot: add source tracking columns to approvals
+        for col, col_type, default in [
+            ("source_insight_id", "INTEGER", None),
+            ("pre_metrics_json", "TEXT", "'{}'"),
+            ("post_metrics_json", "TEXT", "'{}'"),
+        ]:
+            try:
+                stmt = f"ALTER TABLE approvals ADD COLUMN {col} {col_type}"
+                if default is not None:
+                    stmt += f" DEFAULT {default}"
+                await db.execute(stmt)
+            except Exception:
+                pass
+
+        # Autopilot: add autopilot flag to scheduled_jobs
+        try:
+            await db.execute("ALTER TABLE scheduled_jobs ADD COLUMN autopilot INTEGER NOT NULL DEFAULT 1")
+        except Exception:
+            pass
+
         # Chat sessions: keep optional project association for project-scoped chat.
         try:
             await db.execute("ALTER TABLE chat_sessions ADD COLUMN project_id INTEGER REFERENCES projects(id)")
@@ -1454,7 +1488,7 @@ async def delete_setting(key: str) -> bool:
 
 
 def _approval_row_to_dict(row) -> dict:
-    return {
+    d = {
         "id": row[0],
         "project_id": row[1],
         "channel": row[2],
@@ -1472,6 +1506,12 @@ def _approval_row_to_dict(row) -> dict:
         "created_at": row[14],
         "decided_at": row[15],
     }
+    # Autopilot fields (may not exist in older rows)
+    if len(row) > 16:
+        d["source_insight_id"] = row[16]
+        d["pre_metrics_json"] = row[17] or "{}"
+        d["post_metrics_json"] = row[18] or "{}"
+    return d
 
 
 async def create_approval(
@@ -1523,7 +1563,8 @@ async def get_approval(approval_id: int) -> dict | None:
         cursor = await db.execute(
             """SELECT id, project_id, channel, approval_type, status, title, target_label,
                       target_url, agent_name, content, payload_json, preview_json,
-                      publish_result_json, decision_note, created_at, decided_at
+                      publish_result_json, decision_note, created_at, decided_at,
+                      source_insight_id, pre_metrics_json, post_metrics_json
                FROM approvals WHERE id = ?""",
             (approval_id,),
         )
@@ -2408,5 +2449,163 @@ async def get_insights_summary(project_id: int | None = None) -> dict:
             for r in rows
         ]
         return {"unread_count": count, "recent": recent}
+    finally:
+        await db.close()
+
+
+# ---------------------------------------------------------------------------
+# Autopilot helpers
+# ---------------------------------------------------------------------------
+
+
+async def get_pending_actionable_insights(project_id: int, limit: int = 3) -> list[dict]:
+    """Get insights eligible for autopilot execution (warning/critical, not yet executed)."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, project_id, insight_type, severity, title, summary, "
+            "action_type, action_params, created_at "
+            "FROM insights "
+            "WHERE project_id = ? "
+            "  AND severity IN ('warning', 'critical') "
+            "  AND execution_status = 'none' "
+            "  AND created_at > datetime('now', '-48 hours') "
+            "ORDER BY CASE severity WHEN 'critical' THEN 0 ELSE 1 END, created_at DESC "
+            "LIMIT ?",
+            (project_id, limit),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "id": r[0], "project_id": r[1], "insight_type": r[2],
+                "severity": r[3], "title": r[4], "summary": r[5],
+                "action_type": r[6], "action_params": r[7], "created_at": r[8],
+            }
+            for r in rows
+        ]
+    finally:
+        await db.close()
+
+
+async def update_insight_execution(
+    insight_id: int, status: str, approval_id: int | None = None, context: str = "{}",
+) -> None:
+    """Update execution status of an insight."""
+    db = await get_db()
+    try:
+        await db.execute(
+            "UPDATE insights SET execution_status = ?, linked_approval_id = ?, execution_context = ? "
+            "WHERE id = ?",
+            (status, approval_id, context, insight_id),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def create_approval_with_source(
+    project_id: int,
+    channel: str,
+    approval_type: str,
+    content: str,
+    payload: dict,
+    preview: dict,
+    *,
+    title: str = "",
+    target_label: str = "",
+    target_url: str = "",
+    agent_name: str = "",
+    source_insight_id: int | None = None,
+    pre_metrics_json: str = "{}",
+) -> dict:
+    """Insert a pending approval with source tracking and return the stored record."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            """INSERT INTO approvals (
+                   project_id, channel, approval_type, title, target_label, target_url,
+                   agent_name, content, payload_json, preview_json,
+                   source_insight_id, pre_metrics_json
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                project_id, channel, approval_type, title, target_label, target_url,
+                agent_name, content,
+                json.dumps(payload, ensure_ascii=False),
+                json.dumps(preview, ensure_ascii=False),
+                source_insight_id, pre_metrics_json,
+            ),
+        )
+        await db.commit()
+        approval_id = cursor.lastrowid
+    finally:
+        await db.close()
+    return await get_approval(approval_id)
+
+
+async def snapshot_project_metrics(project_id: int) -> dict:
+    """Take a snapshot of current project metrics for before/after comparison."""
+    metrics = {}
+    db = await get_db()
+    try:
+        # Latest GEO score
+        cursor = await db.execute(
+            "SELECT geo_score, visibility_score, position_score, sentiment_score "
+            "FROM geo_scans WHERE project_id = ? ORDER BY scanned_at DESC LIMIT 1",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        if row:
+            metrics["geo"] = {"score": row[0], "visibility": row[1], "position": row[2], "sentiment": row[3]}
+
+        # Latest SERP positions
+        cursor = await db.execute(
+            "SELECT keyword, position FROM serp_snapshots "
+            "WHERE project_id = ? AND error IS NULL "
+            "AND checked_at = (SELECT MAX(checked_at) FROM serp_snapshots WHERE project_id = ?)",
+            (project_id, project_id),
+        )
+        serp_rows = await cursor.fetchall()
+        if serp_rows:
+            metrics["serp"] = {r[0]: r[1] for r in serp_rows}
+
+        # Latest community hits
+        cursor = await db.execute(
+            "SELECT total_hits FROM community_scans WHERE project_id = ? ORDER BY scanned_at DESC LIMIT 1",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        if row:
+            metrics["community"] = {"total_hits": row[0]}
+    finally:
+        await db.close()
+    return metrics
+
+
+async def is_project_autopilot_enabled(project_id: int) -> bool:
+    """Check if autopilot is enabled for any job of this project."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT autopilot FROM scheduled_jobs WHERE project_id = ? AND enabled = 1 LIMIT 1",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        return bool(row and row[0])
+    finally:
+        await db.close()
+
+
+async def count_recent_autopilot_approvals(project_id: int, hours: int = 24) -> int:
+    """Count autopilot-generated approvals in the last N hours to prevent flooding."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM approvals "
+            "WHERE project_id = ? AND source_insight_id IS NOT NULL "
+            "AND created_at > datetime('now', ?)",
+            (project_id, f"-{hours} hours"),
+        )
+        row = await cursor.fetchone()
+        return row[0]
     finally:
         await db.close()
