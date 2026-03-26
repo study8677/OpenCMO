@@ -41,6 +41,14 @@ function getTitle(approval: ApprovalRecord): string {
   return approval.approval_type.replace(/_/g, " ");
 }
 
+function getPreviewString(
+  preview: Record<string, unknown>,
+  key: string,
+): string | null {
+  const value = preview[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
 export function ApprovalCard({
   approval,
   pendingCount,
@@ -62,6 +70,10 @@ export function ApprovalCard({
       />
     );
   }
+
+  const whyThis = getPreviewString(approval.preview, "why_this");
+  const whyNow = getPreviewString(approval.preview, "why_now");
+  const whyHere = getPreviewString(approval.preview, "why_here");
 
   return (
     <div className="relative mx-auto flex w-full max-w-2xl flex-col items-center justify-center">
@@ -152,25 +164,25 @@ export function ApprovalCard({
               </div>
             )}
 
-            {approval.source_insight_id && approval.preview.why_this && (
+            {approval.source_insight_id && whyThis && (
               <div className="space-y-2 rounded-xl border border-violet-100 bg-violet-50/50 p-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-500">
                   AI Reasoning
                 </p>
                 <p className="text-xs text-violet-700">
                   <span className="font-semibold">Why this:</span>{" "}
-                  {String(approval.preview.why_this)}
+                  {whyThis}
                 </p>
-                {approval.preview.why_now && (
+                {whyNow && (
                   <p className="text-xs text-violet-700">
                     <span className="font-semibold">Why now:</span>{" "}
-                    {String(approval.preview.why_now)}
+                    {whyNow}
                   </p>
                 )}
-                {approval.preview.why_here && (
+                {whyHere && (
                   <p className="text-xs text-violet-700">
                     <span className="font-semibold">Why here:</span>{" "}
-                    {String(approval.preview.why_here)}
+                    {whyHere}
                   </p>
                 )}
               </div>

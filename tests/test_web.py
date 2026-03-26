@@ -514,12 +514,22 @@ def test_api_v1_approve_approval_uses_stored_payload(client):
 
 
 def test_api_v1_task_status(client):
-    resp = client.post("/api/v1/monitors", json={
-        "brand": "T", "url": "https://t.com", "category": "dev"
-    })
-    mid = resp.json()["monitor_id"]
+    with patch("opencmo.monitoring.run_monitoring_workflow", new_callable=AsyncMock) as mock_workflow:
+        mock_workflow.return_value = {
+            "run_id": 1,
+            "summary": "done",
+            "findings": [],
+            "recommendations": [],
+        }
 
-    with patch("opencmo.scheduler.run_scheduled_scan", new_callable=AsyncMock):
+        resp = client.post("/api/v1/monitors", json={
+            "brand": "T", "url": "https://t.com", "category": "dev"
+        })
+        mid = resp.json()["monitor_id"]
+
+        # Creating a monitor auto-submits the initial analysis task.
+        task_registry.clear_all()
+
         resp = client.post(f"/api/v1/monitors/{mid}/run")
         assert resp.status_code == 202
         task_id = resp.json()["task_id"]

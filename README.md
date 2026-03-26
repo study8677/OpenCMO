@@ -139,6 +139,8 @@ Project chat is now **project-scoped by default**. Every project page exposes a 
 
 Review exact publish payloads in the SPA, approve or reject them with a durable audit trail, and let the web process keep scheduled monitors alive. Safe publishing still honors `OPENCMO_AUTO_PUBLISH=1`, so approval never bypasses the final safety gate.
 
+High-signal insights can now flow into **Autopilot drafts**. When enabled, OpenCMO snapshots the pre-action metrics, asks the mapped expert to generate a draft, and stores the approval with `why_this`, `why_now`, and `why_here` context plus a backlink to the triggering insight. Humans still stay in the loop before any publish step.
+
 ---
 
 ## Your AI Marketing Team
