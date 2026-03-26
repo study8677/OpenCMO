@@ -87,38 +87,38 @@ The **Knowledge Graph** is the heart of your market intelligence — an interact
 
 ### SEO Audit
 
-Continuously audit performance scores, Core Web Vitals (LCP, CLS, TBT), Schema.org, robots.txt, and sitemaps via the Google PageSpeed Insights API.
+Continuously audit performance scores, Core Web Vitals (LCP, CLS, TBT), Schema.org, robots.txt, and sitemaps via the Google PageSpeed Insights API. The redesigned dashboard features **4 KPI summary cards** with trend arrows and threshold-based status indicators, a **gradient-filled area chart** with Good/Needs Work reference zones, and **3 individual CWV mini-charts** each with their own threshold lines.
 
 <div align="center">
   <img src="assets/screenshots/seo-page.png" alt="SEO Audit Dashboard" width="850" />
-  <p><i>Performance trend chart and Core Web Vitals detailed analysis.</i></p>
+  <p><i>KPI cards with trend deltas, performance area chart with threshold zones, and individual CWV trend charts.</i></p>
 </div>
 
 ### GEO Detection (AI Search Visibility)
 
-Monitor your brand's visibility across AI search engines: Perplexity, You.com, ChatGPT, Claude, and Gemini.
+Monitor your brand's visibility across AI search engines: Perplexity, You.com, ChatGPT, Claude, and Gemini. The GEO dashboard includes **4 emerald-themed KPI cards**, a **multi-series area chart** with target reference lines, and a **visual snapshot** with color-coded progress bars for each metric.
 
 <div align="center">
   <img src="assets/screenshots/geo-page.png" alt="GEO Visibility Tracking" width="850" />
-  <p><i>Brand visibility score trends across AI search platforms.</i></p>
+  <p><i>GEO score KPI cards, multi-series area chart with target line, and latest snapshot progress bars.</i></p>
 </div>
 
 ### SERP Tracking
 
-Continuously track your target keywords' search positions. Supports web crawling or the DataForSEO API.
+Continuously track your target keywords' search positions. Supports web crawling or the DataForSEO API. Features **indigo-themed KPI cards** (keywords tracked, average position, Top 3/Top 10 counts), a **position distribution stacked bar** with color-coded buckets (Top 3 green, 4-10 blue, 11-20 amber, 20+ red), and an **enhanced keyword list** with colored left-border indicators and position badges.
 
 <div align="center">
   <img src="assets/screenshots/serp-page.png" alt="SERP Keyword Rankings" width="850" />
-  <p><i>Keyword position table and ranking history chart.</i></p>
+  <p><i>Position distribution bar, color-coded keyword list, and ranking history with Top 3/Top 10 reference zones.</i></p>
 </div>
 
 ### Community Monitoring
 
-Automatically scan for brand mentions and relevant discussions across **Reddit, Hacker News, Dev.to, YouTube, Bluesky, and Twitter/X**. Features multi-signal scoring (engagement velocity, text relevance, temporal recency, cross-platform convergence detection) for cross-platform comparable rankings.
+Automatically scan for brand mentions and relevant discussions across **Reddit, Hacker News, Dev.to, YouTube, Bluesky, and Twitter/X**. Features multi-signal scoring (engagement velocity, text relevance, temporal recency, cross-platform convergence detection) for cross-platform comparable rankings. The redesigned dashboard adds **amber-themed KPI cards**, a **two-column chart layout** (hits trend area chart + platform breakdown horizontal bar chart), and an **enhanced discussion list** with color-coded platform badges and engagement mini-bars.
 
 <div align="center">
   <img src="assets/screenshots/community-page.png" alt="Community Monitoring" width="850" />
-  <p><i>Cross-platform scan history and tracked discussions.</i></p>
+  <p><i>KPI summary, platform breakdown chart, and discussion feed with engagement indicators.</i></p>
 </div>
 
 ### Trend Research
@@ -336,6 +336,7 @@ npm run build   # Production build
 - [x] **Graph Intelligence Pipeline** — knowledge graph feeds into agent decisions, chat context, and content briefs
 - [x] **Proactive Insight Engine** — rule-based detectors for SERP drops, GEO declines, community buzz, SEO regressions, competitor gaps with actionable CTA
 - [x] **Unified Settings panel** — configure all API keys from the web UI
+- [x] **Analytics dashboard redesign** — KPI summary cards with trend deltas, gradient area charts with threshold zones, per-page accent colors, position distribution bars, platform breakdown charts, and engagement indicators
 - [ ] Direct publishing to LinkedIn, Product Hunt, and more
 - [ ] Custom Brand Voice fine-tuning
 - [ ] Enterprise-grade full-site SEO crawls
