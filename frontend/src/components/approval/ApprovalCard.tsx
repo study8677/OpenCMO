@@ -1,4 +1,4 @@
-import { Check, Clock3, ExternalLink, MessageSquare, Send, X } from "lucide-react";
+import { Bot, Check, Clock3, ExternalLink, MessageSquare, Send, X } from "lucide-react";
 import type { ApprovalRecord } from "../../types";
 import { EmptyState } from "../common/EmptyState";
 
@@ -84,9 +84,17 @@ export function ApprovalCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
-            <Clock3 className="h-4 w-4" />
-            {pendingCount} pending
+          <div className="flex items-center gap-3">
+            {approval.source_insight_id && (
+              <div className="flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700">
+                <Bot className="h-3.5 w-3.5" />
+                Autopilot
+              </div>
+            )}
+            <div className="flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+              <Clock3 className="h-4 w-4" />
+              {pendingCount} pending
+            </div>
           </div>
         </div>
 
@@ -141,6 +149,30 @@ export function ApprovalCard({
                   <span>{approval.target_url}</span>
                   <ExternalLink className="h-4 w-4 shrink-0" />
                 </a>
+              </div>
+            )}
+
+            {approval.source_insight_id && approval.preview.why_this && (
+              <div className="space-y-2 rounded-xl border border-violet-100 bg-violet-50/50 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-500">
+                  AI Reasoning
+                </p>
+                <p className="text-xs text-violet-700">
+                  <span className="font-semibold">Why this:</span>{" "}
+                  {String(approval.preview.why_this)}
+                </p>
+                {approval.preview.why_now && (
+                  <p className="text-xs text-violet-700">
+                    <span className="font-semibold">Why now:</span>{" "}
+                    {String(approval.preview.why_now)}
+                  </p>
+                )}
+                {approval.preview.why_here && (
+                  <p className="text-xs text-violet-700">
+                    <span className="font-semibold">Why here:</span>{" "}
+                    {String(approval.preview.why_here)}
+                  </p>
+                )}
               </div>
             )}
 

@@ -188,6 +188,15 @@ async def run_scheduled_scan(
     except Exception:
         logger.exception("Insight detection failed for project %d", project_id)
 
+    # Autopilot: turn insights into content → approval queue
+    try:
+        from opencmo.autopilot import execute_autopilot
+        results = await execute_autopilot(project_id)
+        if results:
+            logger.info("Autopilot generated %d approvals for project %d", len(results), project_id)
+    except Exception:
+        logger.exception("Autopilot execution failed for project %d", project_id)
+
     # Email report (only for cron + full)
     await _maybe_send_email_report(project_id, job_type, triggered_by)
 
