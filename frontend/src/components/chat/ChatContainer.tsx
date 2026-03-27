@@ -20,7 +20,7 @@ export function ChatContainer({
   const { t } = useI18n();
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex flex-1 min-h-0 flex-col">
       {/* Agent badge */}
       <div className="mb-3">
         <p className="text-xs text-slate-400">
