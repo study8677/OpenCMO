@@ -87,7 +87,7 @@ The **Knowledge Graph** is the heart of your market intelligence — an interact
 
 ### SEO Audit
 
-Continuously audit performance scores, Core Web Vitals (LCP, CLS, TBT), Schema.org, robots.txt, and sitemaps via the Google PageSpeed Insights API. The redesigned dashboard features **4 KPI summary cards** with trend arrows and threshold-based status indicators, a **gradient-filled area chart** with Good/Needs Work reference zones, and **3 individual CWV mini-charts** each with their own threshold lines.
+Continuously audit performance scores, Core Web Vitals (LCP, CLS, TBT), Schema.org, robots.txt, and sitemaps via the Google PageSpeed Insights API. Now includes **AI Crawler Detection** (checks robots.txt for 14 AI crawlers — GPTBot, ClaudeBot, PerplexityBot, Google-Extended, etc.) and **llms.txt** validation and generation (the emerging standard for guiding AI crawlers). The redesigned dashboard features **4 KPI summary cards** with trend arrows and threshold-based status indicators, a **gradient-filled area chart** with Good/Needs Work reference zones, and **3 individual CWV mini-charts** each with their own threshold lines.
 
 <div align="center">
   <img src="assets/screenshots/seo-page.png" alt="SEO Audit Dashboard" width="850" />
@@ -96,7 +96,7 @@ Continuously audit performance scores, Core Web Vitals (LCP, CLS, TBT), Schema.o
 
 ### GEO Detection (AI Search Visibility)
 
-Monitor your brand's visibility across AI search engines: Perplexity, You.com, ChatGPT, Claude, and Gemini. The GEO dashboard includes **4 emerald-themed KPI cards**, a **multi-series area chart** with target reference lines, and a **visual snapshot** with color-coded progress bars for each metric.
+Monitor your brand's visibility across AI search engines: Perplexity, You.com, ChatGPT, Claude, and Gemini. Now enhanced with **Citability Scoring** (5-dimension AI citation readiness analysis), **Brand Digital Footprint** scanning (YouTube, Reddit, Wikipedia, Wikidata, LinkedIn presence with correlation-weighted scoring), and **AI Crawler Access** detection (14 crawlers including GPTBot, ClaudeBot, PerplexityBot). The GEO dashboard includes **4 emerald-themed KPI cards**, a **multi-series area chart** with target reference lines, and a **visual snapshot** with color-coded progress bars for each metric.
 
 <div align="center">
   <img src="assets/screenshots/geo-page.png" alt="GEO Visibility Tracking" width="850" />
@@ -127,7 +127,7 @@ Research any topic across community platforms with the **Trend Research** agent.
 
 ### Proactive Insights
 
-OpenCMO doesn't wait for you to check — it **tells you when something matters**. Five rule-based detectors (zero LLM cost) continuously monitor for SERP rank drops, GEO score declines, high-engagement community discussions, SEO performance regressions, and competitor keyword gaps. Insights appear as a notification bell badge and a priority banner on the Dashboard, each with actionable CTA buttons (view details, generate content, add keywords).
+OpenCMO doesn't wait for you to check — it **tells you when something matters**. Seven rule-based detectors (zero LLM cost) continuously monitor for SERP rank drops, GEO score declines, high-engagement community discussions, SEO performance regressions, competitor keyword gaps, **citability score regressions**, and **AI crawler blocks**. Insights appear as a notification bell badge and a priority banner on the Dashboard, each with actionable CTA buttons (view details, generate content, add keywords).
 
 ### Graph Intelligence
 
@@ -348,6 +348,7 @@ npm run build   # Production build
 - [x] **Proactive Insight Engine** — rule-based detectors for SERP drops, GEO declines, community buzz, SEO regressions, competitor gaps with actionable CTA
 - [x] **Unified Settings panel** — configure all API keys from the web UI
 - [x] **Analytics dashboard redesign** — KPI summary cards with trend deltas, gradient area charts with threshold zones, per-page accent colors, position distribution bars, platform breakdown charts, and engagement indicators
+- [x] **GEO optimization toolkit** — Citability scoring (5-dimension AI citation readiness), AI crawler detection (14 crawlers), brand digital footprint scanning (YouTube/Reddit/Wikipedia/LinkedIn), llms.txt validation and generation. Inspired by [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude)
 - [ ] Direct publishing to LinkedIn, Product Hunt, and more
 - [ ] Custom Brand Voice fine-tuning
 - [ ] Enterprise-grade full-site SEO crawls
@@ -367,6 +368,7 @@ npm run build   # Production build
 
 ## Acknowledgments
 
+- [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) by [@zubair-trabzada](https://github.com/zubair-trabzada) — A comprehensive GEO (Generative Engine Optimization) audit toolkit for Claude Code. OpenCMO's GEO module draws inspiration from its citability scoring framework, AI crawler detection approach (14+ crawlers including GPTBot, ClaudeBot, PerplexityBot), platform-specific optimization matrix (separate strategies for Google AIO, ChatGPT, Perplexity, Gemini, Bing Copilot), and E-E-A-T evaluation methodology.
 - [last30days-skill](https://github.com/mvanhorn/last30days-skill) by [@mvanhorn](https://github.com/mvanhorn) — OpenCMO's multi-signal scoring system, cross-platform convergence detection, and trend research tool were inspired by last30days' approach to multi-platform community research and quality ranking.
 
 ---

@@ -191,6 +191,48 @@ async def _detect_competitor_gaps(project_id: int) -> list[Insight]:
     return insights
 
 
+async def _detect_citability_regression(project_id: int) -> list[Insight]:
+    """Detect citability score regression (>10 point drop)."""
+    insights: list[Insight] = []
+    history = await storage.get_citability_history(project_id, limit=2)
+    if len(history) >= 2:
+        current = history[0]["avg_score"]
+        previous = history[1]["avg_score"]
+        drop = previous - current
+        if drop > 10:
+            insights.append(Insight(
+                project_id=project_id,
+                insight_type="citability_regression",
+                severity="warning",
+                title=f"Citability score dropped {drop:.0f} points",
+                summary=f"AI citation readiness fell from {previous:.0f} to {current:.0f}. Content may be less likely to be cited by AI search engines.",
+                action_type="chat",
+                action_params=f'{{"message": "My citability score dropped from {previous:.0f} to {current:.0f}. How can I improve my content for AI citations?"}}',
+            ))
+    return insights
+
+
+async def _detect_ai_crawler_blocks(project_id: int) -> list[Insight]:
+    """Detect if >50% of AI crawlers are blocked."""
+    insights: list[Insight] = []
+    history = await storage.get_ai_crawler_history(project_id, limit=1)
+    if history:
+        latest = history[0]
+        blocked = latest["blocked_count"]
+        total = latest["total_crawlers"]
+        if blocked > total * 0.5:
+            insights.append(Insight(
+                project_id=project_id,
+                insight_type="ai_crawlers_blocked",
+                severity="critical",
+                title=f"{blocked}/{total} AI crawlers blocked",
+                summary=f"More than half of AI crawlers are blocked by robots.txt. This severely limits your AI search visibility.",
+                action_type="chat",
+                action_params=f'{{"message": "My robots.txt is blocking {blocked} out of {total} AI crawlers. Help me fix this."}}',
+            ))
+    return insights
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -201,6 +243,8 @@ _DETECTORS = [
     _detect_community_buzz,
     _detect_seo_regress,
     _detect_competitor_gaps,
+    _detect_citability_regression,
+    _detect_ai_crawler_blocks,
 ]
 
 

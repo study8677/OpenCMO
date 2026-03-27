@@ -5,6 +5,8 @@ from opencmo.tools.seo_audit import audit_page_seo
 from opencmo.tools.search import web_search
 from opencmo.tools.trends import get_seo_trends
 from opencmo.tools.serp_tracker import check_keyword_ranking, get_serp_trends
+from opencmo.tools.ai_crawler_check import check_ai_crawler_access, check_llms_txt
+from opencmo.tools.llmstxt import validate_llmstxt, generate_llmstxt
 
 seo_agent = Agent(
     name="SEO Audit Expert",
@@ -36,7 +38,9 @@ seo_agent = Agent(
 6. **Keyword research**: Use `web_search` to suggest 3-5 target keywords relevant to the product/page.
 7. **SERP Ranking Check**: Use `check_keyword_ranking` to check where the site ranks for target keywords.
 8. **SERP Trends**: Use `get_serp_trends` to show historical ranking data for tracked keywords.
-9. **Summary**: End with a prioritized action list (do this first, then this, etc.).
+9. **AI Crawler Access**: Use `check_ai_crawler_access` to check whether the site's robots.txt blocks AI crawlers (GPTBot, ClaudeBot, PerplexityBot, etc.). If crawlers are blocked, the site cannot appear in AI search results.
+10. **llms.txt**: Use `check_llms_txt` to see if the site has a /llms.txt file. Use `validate_llmstxt` to check compliance with the standard. Use `generate_llmstxt` to create one if missing — this emerging format (<5% adoption) helps AI crawlers understand site structure.
+11. **Summary**: End with a prioritized action list (do this first, then this, etc.).
 
 ## Output Format
 
@@ -68,6 +72,7 @@ seo_agent = Agent(
 - Every recommendation must include code the user can copy-paste
 - Communicate in the same language the user uses
 """,
-    tools=[audit_page_seo, web_search, get_seo_trends, check_keyword_ranking, get_serp_trends],
+    tools=[audit_page_seo, web_search, get_seo_trends, check_keyword_ranking, get_serp_trends,
+           check_ai_crawler_access, check_llms_txt, validate_llmstxt, generate_llmstxt],
     model=get_model("seo"),
 )

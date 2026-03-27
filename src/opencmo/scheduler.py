@@ -112,6 +112,22 @@ async def run_scheduled_scan(
         except Exception:
             logger.exception("SERP tracking failed for project %d", project_id)
 
+        # AI crawler access check (independent)
+        try:
+            import json as _json
+            from opencmo.tools.ai_crawler_check import _ai_crawler_impl
+
+            data = await _ai_crawler_impl(url)
+            await storage.save_ai_crawler_scan(
+                project_id, url, data["blocked_count"],
+                total_crawlers=data["total_crawlers"],
+                has_llms_txt=data["has_llms_txt"],
+                results_json=_json.dumps(data["crawler_results"]),
+            )
+            logger.info("AI crawler scan saved for project %d", project_id)
+        except Exception:
+            logger.exception("AI crawler scan failed for project %d", project_id)
+
     if job_type in ("geo", "full"):
         try:
             import json
@@ -147,6 +163,38 @@ async def run_scheduled_scan(
             logger.info("GEO scan saved for project %d", project_id)
         except Exception:
             logger.exception("GEO scan failed for project %d", project_id)
+
+        # Citability scan (independent)
+        try:
+            import json as _json
+            from opencmo.tools.citability import _citability_impl
+
+            data = await _citability_impl(url)
+            if not data.get("error"):
+                await storage.save_citability_scan(
+                    project_id, url, data["avg_score"],
+                    top_blocks_json=_json.dumps(data["top_blocks"]),
+                    bottom_blocks_json=_json.dumps(data["bottom_blocks"]),
+                    grade_distribution_json=_json.dumps(data["grade_distribution"]),
+                    report_json=_json.dumps(data),
+                )
+                logger.info("Citability scan saved for project %d", project_id)
+        except Exception:
+            logger.exception("Citability scan failed for project %d", project_id)
+
+        # Brand presence scan (independent)
+        try:
+            import json as _json
+            from opencmo.tools.brand_presence import _brand_presence_impl
+
+            data = await _brand_presence_impl(brand, url)
+            await storage.save_brand_presence_scan(
+                project_id, brand, data["footprint_score"],
+                platforms_json=_json.dumps(data["platforms"], default=str),
+            )
+            logger.info("Brand presence scan saved for project %d", project_id)
+        except Exception:
+            logger.exception("Brand presence scan failed for project %d", project_id)
 
     if job_type in ("community", "full"):
         try:

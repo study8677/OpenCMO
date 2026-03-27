@@ -4,6 +4,8 @@ from opencmo.config import get_model
 from opencmo.tools.geo import scan_geo_visibility
 from opencmo.tools.search import web_search
 from opencmo.tools.trends import get_geo_trends
+from opencmo.tools.citability import score_page_citability
+from opencmo.tools.brand_presence import scan_brand_presence
 
 geo_agent = Agent(
     name="AI Visibility Expert",
@@ -25,10 +27,12 @@ The report will show which platforms are enabled vs disabled, and how to enable 
    - Is the brand mentioned positively, negatively, or neutrally?
    - Is it mentioned as a recommendation or just in passing?
    - Are competitors being recommended instead?
-3. **Supplement with web search**: Use `web_search` to find:
+3. **Citability analysis**: Use `score_page_citability` to analyze how likely AI models are to cite the brand's content. This scores individual content blocks on answer quality, self-containment, readability, statistical density, and uniqueness.
+4. **Brand presence scan**: Use `scan_brand_presence` to check the brand's digital footprint across YouTube, Reddit, Wikipedia, Wikidata, and LinkedIn — platforms that correlate strongly with AI visibility (YouTube: 0.737, Reddit: 0.68, Wikipedia: 0.65 correlation).
+5. **Supplement with web search**: Use `web_search` to find:
    - Recent roundup articles or "best X tools" lists that include/exclude the brand
    - Review articles or comparisons mentioning the brand
-4. **Provide GEO improvement strategy**: Based on findings, suggest specific actions to improve AI visibility.
+6. **Provide GEO improvement strategy**: Based on findings, suggest specific actions to improve AI visibility.
 
 ## Output Format
 
@@ -54,6 +58,7 @@ Specific, actionable steps:
 - Focus on actionable improvements the user can implement
 - Communicate in the same language the user uses
 """,
-    tools=[scan_geo_visibility, web_search, get_geo_trends],
+    tools=[scan_geo_visibility, web_search, get_geo_trends,
+           score_page_citability, scan_brand_presence],
     model=get_model("geo"),
 )

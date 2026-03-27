@@ -127,7 +127,11 @@ cmo_agent = Agent(
    - Hacker News Show HN → Hacker News Expert
    - Blog/SEO content → Blog/SEO Expert
    - SEO site audit → SEO Audit Expert
+   - AI crawler access / robots.txt AI check → SEO Audit Expert
+   - llms.txt validation or generation → SEO Audit Expert
    - AI visibility / GEO score → AI Visibility Expert
+   - Citability analysis / AI citation scoring → AI Visibility Expert
+   - Brand presence / digital footprint → AI Visibility Expert
    - Community monitoring (Reddit/HN discussions) → Community Monitor
    - Trend research / what's hot / topic exploration → Trend Research
    - Competitive landscape / keyword gaps / graph intelligence → use `get_competitive_landscape` tool
