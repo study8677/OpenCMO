@@ -87,7 +87,7 @@ OpenCMO 是一个专为独立开发者、初创公司和小团队设计的 **多
 
 ### SEO 审计
 
-基于 Google PageSpeed Insights API，持续审计性能分数、Core Web Vitals（LCP、CLS、TBT）、Schema.org、robots.txt 和站点地图。
+基于 Google PageSpeed Insights API，持续审计性能分数、Core Web Vitals（LCP、CLS、TBT）、Schema.org、robots.txt 和站点地图。新增 **AI 爬虫检测**（检查 robots.txt 中 14 种 AI 爬虫 — GPTBot、ClaudeBot、PerplexityBot、Google-Extended 等）和 **llms.txt** 验证与生成（引导 AI 爬虫的新兴标准）。
 
 <div align="center">
   <img src="assets/screenshots/seo-page.png" alt="SEO Audit Dashboard" width="850" />
@@ -96,7 +96,7 @@ OpenCMO 是一个专为独立开发者、初创公司和小团队设计的 **多
 
 ### GEO 检测（AI 搜索可见度）
 
-监控品牌在 AI 搜索引擎中的可见度：Perplexity、You.com、ChatGPT、Claude 和 Gemini。
+监控品牌在 AI 搜索引擎中的可见度：Perplexity、You.com、ChatGPT、Claude 和 Gemini。新增 **可引用性评分**（5 维度 AI 引用就绪度分析）、**品牌数字足迹**扫描（YouTube、Reddit、Wikipedia、Wikidata、LinkedIn 存在度及相关性加权评分）和 **AI 爬虫访问**检测（14 种爬虫，包括 GPTBot、ClaudeBot、PerplexityBot）。
 
 <div align="center">
   <img src="assets/screenshots/geo-page.png" alt="GEO Visibility Tracking" width="850" />
@@ -127,7 +127,7 @@ OpenCMO 是一个专为独立开发者、初创公司和小团队设计的 **多
 
 ### 主动洞察
 
-OpenCMO 不等你来查——**有事主动告诉你**。5 个纯规则检测器（零 LLM 成本）持续监控 SERP 排名下降、GEO 分数下降、高热度社区讨论、SEO 性能退化和竞品关键词差距。洞察以通知铃铛徽章和 Dashboard 顶部优先横幅展示，每条都带可操作的 CTA 按钮（查看详情、生成内容、添加关键词）。
+OpenCMO 不等你来查——**有事主动告诉你**。7 个纯规则检测器（零 LLM 成本）持续监控 SERP 排名下降、GEO 分数下降、高热度社区讨论、SEO 性能退化、竞品关键词差距、**可引用性评分回退**和 **AI 爬虫封锁**。洞察以通知铃铛徽章和 Dashboard 顶部优先横幅展示，每条都带可操作的 CTA 按钮（查看详情、生成内容、添加关键词）。
 
 ### 图谱智能
 
@@ -345,6 +345,7 @@ npm run build   # 生产构建
 - [x] **图谱智能管线** — 知识图谱反馈到 agent 决策、聊天上下文、内容简报
 - [x] **主动洞察引擎** — SERP 下降/GEO 下降/社区高热/SEO 退化/竞品差距检测 + 可操作 CTA
 - [x] **统一设置面板** — 在 Web UI 中配置所有 API 密钥
+- [x] **GEO 优化工具包** — 可引用性评分（5 维度 AI 引用就绪度）、AI 爬虫检测（14 种爬虫）、品牌数字足迹扫描（YouTube/Reddit/Wikipedia/LinkedIn）、llms.txt 验证与生成。灵感源自 [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude)
 - [ ] 直接发布到 LinkedIn、Product Hunt 等更多平台
 - [ ] 自定义品牌声音微调
 - [ ] 企业级全站 SEO 深度爬取
@@ -364,6 +365,7 @@ npm run build   # 生产构建
 
 ## 致谢
 
+- [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) by [@zubair-trabzada](https://github.com/zubair-trabzada) — 一个面向 Claude Code 的综合性 GEO（生成式引擎优化）审计工具包。OpenCMO 的 GEO 模块从其可引用性评分框架、AI 爬虫检测方案（14+ 种爬虫，包括 GPTBot、ClaudeBot、PerplexityBot）、平台专属优化矩阵（Google AIO、ChatGPT、Perplexity、Gemini、Bing Copilot 各有独立策略）以及 E-E-A-T 评估方法论中汲取了灵感。
 - [last30days-skill](https://github.com/mvanhorn/last30days-skill) by [@mvanhorn](https://github.com/mvanhorn) — OpenCMO 的多信号评分系统、跨平台收敛检测和趋势研究工具的设计灵感来源于 last30days 的多平台社区研究和质量排序方案。
 
 ---

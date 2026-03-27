@@ -87,7 +87,7 @@ El **Grafo de Conocimiento** es el corazon de tu inteligencia de mercado — una
 
 ### Auditoria SEO
 
-Utiliza la API de Google PageSpeed Insights para auditar continuamente puntuacion de rendimiento, Core Web Vitals (LCP, CLS, TBT), Schema.org, robots.txt y sitemaps.
+Utiliza la API de Google PageSpeed Insights para auditar continuamente puntuacion de rendimiento, Core Web Vitals (LCP, CLS, TBT), Schema.org, robots.txt y sitemaps. Ahora incluye **Deteccion de Crawlers IA** (verifica robots.txt para 14 crawlers de IA — GPTBot, ClaudeBot, PerplexityBot, Google-Extended, etc.) y validacion y generacion de **llms.txt** (el estandar emergente para guiar crawlers de IA).
 
 <div align="center">
   <img src="assets/screenshots/seo-page.png" alt="SEO Audit Dashboard" width="850" />
@@ -96,7 +96,7 @@ Utiliza la API de Google PageSpeed Insights para auditar continuamente puntuacio
 
 ### Deteccion GEO (Visibilidad en Busqueda IA)
 
-Monitorea la visibilidad de tu marca en motores de busqueda IA: Perplexity, You.com, ChatGPT, Claude y Gemini.
+Monitorea la visibilidad de tu marca en motores de busqueda IA: Perplexity, You.com, ChatGPT, Claude y Gemini. Ahora mejorado con **Puntuacion de Citabilidad** (analisis de preparacion para citacion IA en 5 dimensiones), escaneo de **Huella Digital de Marca** (presencia en YouTube, Reddit, Wikipedia, Wikidata, LinkedIn con puntuacion ponderada por correlacion) y deteccion de **Acceso de Crawlers IA** (14 crawlers incluyendo GPTBot, ClaudeBot, PerplexityBot).
 
 <div align="center">
   <img src="assets/screenshots/geo-page.png" alt="GEO Visibility Tracking" width="850" />
@@ -127,7 +127,7 @@ El **Agente de Investigacion de Tendencias** investiga temas en todas las plataf
 
 ### Insights Proactivos
 
-OpenCMO no espera a que revises — **te avisa cuando algo importa**. Cinco detectores basados en reglas (costo LLM cero) monitorean continuamente caidas de ranking SERP, descensos de puntuacion GEO, discusiones comunitarias de alto engagement, regresiones de rendimiento SEO y brechas de keywords con competidores. Los insights aparecen como badge de campana de notificacion y banner prioritario en el Dashboard, cada uno con botones CTA accionables.
+OpenCMO no espera a que revises — **te avisa cuando algo importa**. Siete detectores basados en reglas (costo LLM cero) monitorean continuamente caidas de ranking SERP, descensos de puntuacion GEO, discusiones comunitarias de alto engagement, regresiones de rendimiento SEO, brechas de keywords con competidores, **regresiones de puntuacion de citabilidad** y **bloqueos de crawlers IA**. Los insights aparecen como badge de campana de notificacion y banner prioritario en el Dashboard, cada uno con botones CTA accionables.
 
 ### Inteligencia del Grafo
 
@@ -333,9 +333,17 @@ npm run build   # Build de produccion
 - [x] **Pipeline de inteligencia del grafo** — el grafo alimenta decisiones de agentes, contexto de chat y briefs de contenido
 - [x] **Motor de insights proactivos** — detectores de caida SERP/GEO/comunidad/SEO/brecha competitiva + CTA accionable
 - [x] **Panel de configuracion unificado** — Configura todas las claves API desde la UI web
+- [x] **Kit de optimizacion GEO** — Puntuacion de citabilidad (preparacion para citacion IA en 5 dimensiones), deteccion de crawlers IA (14 crawlers), escaneo de huella digital de marca (YouTube/Reddit/Wikipedia/LinkedIn), validacion y generacion de llms.txt. Inspirado por [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude)
 - [ ] Publicacion directa en LinkedIn, Product Hunt y mas
 - [ ] Afinacion personalizada de voz de marca
 - [ ] Crawls SEO de sitio completo a nivel empresarial
+
+---
+
+## Agradecimientos
+
+- [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) de [@zubair-trabzada](https://github.com/zubair-trabzada) — Un completo kit de auditoria GEO (Generative Engine Optimization) para Claude Code. El modulo GEO de OpenCMO se inspira en su marco de puntuacion de citabilidad, enfoque de deteccion de crawlers IA (mas de 14 crawlers incluyendo GPTBot, ClaudeBot, PerplexityBot), matriz de optimizacion especifica por plataforma (estrategias separadas para Google AIO, ChatGPT, Perplexity, Gemini, Bing Copilot) y metodologia de evaluacion E-E-A-T.
+- [last30days-skill](https://github.com/mvanhorn/last30days-skill) de [@mvanhorn](https://github.com/mvanhorn) — El sistema de puntuacion multi-senal, la deteccion de convergencia multiplataforma y la herramienta de investigacion de tendencias de OpenCMO se inspiraron en el enfoque de last30days para la investigacion comunitaria multiplataforma y el ranking de calidad.
 
 ---
 
