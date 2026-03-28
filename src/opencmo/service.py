@@ -14,6 +14,8 @@ _APPROVAL_CHANNELS = {
     "reddit_post": "reddit",
     "reddit_reply": "reddit",
     "twitter_post": "twitter",
+    "blog_post": "blog",
+    "reddit_comment": "reddit",
 }
 
 _PUBLISH_ENV_KEYS = {
@@ -71,6 +73,16 @@ async def _preview_approval_payload(approval_type: str, payload: dict) -> tuple[
     elif approval_type == "twitter_post":
         _require_payload_fields(payload, "text")
         result = await publishers.publish_tweet_impl(payload["text"], dry_run=True)
+    elif approval_type in ("blog_post", "reddit_comment"):
+        _require_payload_fields(payload, "body")
+        result = {
+            "ok": True,
+            "preview": {
+                "title": payload.get("title", ""),
+                "body": payload.get("body", "")[:500],
+                "content_preview": payload.get("body", "")[:300] + "...",
+            },
+        }
     else:
         raise ValueError(f"Unsupported approval_type: {approval_type}")
 
@@ -93,6 +105,9 @@ async def _execute_approval_payload(approval_type: str, payload: dict) -> dict:
         )
     if approval_type == "twitter_post":
         return await publishers.publish_tweet_impl(payload["text"], dry_run=False)
+    if approval_type in ("blog_post", "reddit_comment"):
+        # Internal draft — store as campaign artifact, no external publish needed
+        return await publishers.save_blog_draft_impl(payload)
     return {"ok": False, "error": f"Unsupported approval_type: {approval_type}"}
 
 
@@ -278,8 +293,14 @@ async def approve_approval(approval_id: int, decision_note: str = "") -> dict:
 
     channel = approval["channel"]
     await _hydrate_publish_settings(channel)
-    if os.environ.get("OPENCMO_AUTO_PUBLISH", "0") != "1":
-        return {"ok": False, "error": "OPENCMO_AUTO_PUBLISH is not enabled."}
+    # Blog drafts are internal — skip the external publish gate
+    if channel != "blog" and os.environ.get("OPENCMO_AUTO_PUBLISH", "0") != "1":
+        return {
+            "ok": False,
+            "error": "OPENCMO_AUTO_PUBLISH is not enabled.",
+            "error_code": "auto_publish_disabled",
+            "approval": approval,
+        }
 
     result = await _execute_approval_payload(approval["approval_type"], approval["payload"])
     if result.get("ok"):

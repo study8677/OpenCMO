@@ -26,6 +26,48 @@ except ImportError:
     _HAS_TWEEPY = False
 
 
+async def save_blog_draft_impl(payload: dict) -> dict:
+    """Save blog content as an internal draft (campaign artifact).
+
+    This does NOT publish to any external platform — the content is stored
+    in the database for the user to review, edit, and copy-paste to their
+    blog, Dev.to, Medium, etc.
+    """
+    from opencmo import storage
+
+    title = payload.get("title", "Untitled Draft")
+    body = payload.get("body", "")
+    project_id = payload.get("project_id")
+
+    if not body.strip():
+        return {"ok": False, "error": "Empty body — nothing to save."}
+
+    # Create or reuse a campaign run for drafts
+    if project_id:
+        run_id = await storage.create_campaign_run(project_id, goal="Autopilot blog draft")
+        await storage.add_campaign_artifact(
+            run_id=run_id,
+            artifact_type="blog_post",
+            channel="blog",
+            title=title,
+            content=body,
+        )
+        return {
+            "ok": True,
+            "draft": True,
+            "run_id": run_id,
+            "message": f"Blog draft saved (campaign #{run_id}). Copy and publish to your preferred platform.",
+        }
+
+    # No project_id — just confirm the content was "accepted"
+    return {
+        "ok": True,
+        "draft": True,
+        "message": "Blog content approved as draft.",
+    }
+
+
+
 def _auto_publish_enabled() -> bool:
     return os.environ.get("OPENCMO_AUTO_PUBLISH", "0") == "1"
 

@@ -1,35 +1,31 @@
-"""Web search tool — uses OpenAI WebSearchTool when available, falls back to crawl-based search."""
+"""Web search tool — Tavily-first, with OpenAI WebSearchTool or crawl4ai fallback."""
 
-from opencmo.config import is_custom_provider
+import logging
+import os
 
-if not is_custom_provider():
-    # OpenAI native — use built-in WebSearchTool (Responses API)
-    from agents import WebSearchTool
+from agents import function_tool
 
-    web_search = WebSearchTool()
-else:
-    # Custom provider (NVIDIA, DeepSeek, etc.) — WebSearchTool not available.
-    # Prefer Tavily when TAVILY_API_KEY is set; otherwise fall back to crawl4ai Google search.
-    import os
-    from agents import function_tool
+logger = logging.getLogger(__name__)
 
+
+@function_tool
+async def web_search(query: str) -> str:
+    """Search the web for real-time information.
+
+    Args:
+        query: The search query string.
+    """
+    # 1. Try Tavily first (regardless of LLM provider)
     if os.environ.get("TAVILY_API_KEY"):
-        from tavily import AsyncTavilyClient
+        try:
+            from tavily import AsyncTavilyClient
 
-        _tavily_client = AsyncTavilyClient()
-
-        @function_tool
-        async def web_search(query: str) -> str:
-            """Search the web for real-time information.
-
-            Args:
-                query: The search query string.
-            """
-            try:
-                response = await _tavily_client.search(query=query, max_results=5, search_depth="basic")
-                results = response.get("results", [])
-                if not results:
-                    return "No search results found."
+            client = AsyncTavilyClient()
+            response = await client.search(
+                query=query, max_results=5, search_depth="basic",
+            )
+            results = response.get("results", [])
+            if results:
                 parts = []
                 for r in results:
                     title = r.get("title", "")
@@ -37,26 +33,37 @@ else:
                     content = r.get("content", "")
                     parts.append(f"### {title}\n{url}\n\n{content}")
                 return "\n\n---\n\n".join(parts)
-            except Exception as e:
-                return f"Web search failed: {e}. Try using other available tools instead."
+        except Exception as exc:
+            logger.debug("Tavily search failed, trying fallback: %s", exc)
 
-    else:
+    # 2. Fallback: OpenAI built-in web search (native provider only)
+    from opencmo.config import is_custom_provider
 
-        @function_tool
-        async def web_search(query: str) -> str:
-            """Search the web for real-time information.
+    if not is_custom_provider():
+        try:
+            from agents import WebSearchTool
 
-            Args:
-                query: The search query string.
-            """
-            try:
-                from crawl4ai import AsyncWebCrawler
-                from opencmo.tools.crawl import _extract_markdown
+            _openai_ws = WebSearchTool()
+            # WebSearchTool.on_invoke_tool expects a RunContextWrapper + raw JSON string
+            import json
 
-                url = f"https://www.google.com/search?q={query.replace(' ', '+')}&num=5"
-                async with AsyncWebCrawler() as crawler:
-                    result = await crawler.arun(url=url)
-                content = _extract_markdown(result)
-                return content[:4000] if content else "No search results found."
-            except Exception as e:
-                return f"Web search failed: {e}. Try using other available tools instead."
+            result = await _openai_ws.on_invoke_tool(
+                None, json.dumps({"query": query}),
+            )
+            if result:
+                return result
+        except Exception as exc:
+            logger.debug("OpenAI WebSearchTool fallback failed: %s", exc)
+
+    # 3. Final fallback: crawl4ai Google scrape
+    try:
+        from crawl4ai import AsyncWebCrawler
+        from opencmo.tools.crawl import _extract_markdown
+
+        url = f"https://www.google.com/search?q={query.replace(' ', '+')}&num=5"
+        async with AsyncWebCrawler() as crawler:
+            result = await crawler.arun(url=url)
+        content = _extract_markdown(result)
+        return content[:4000] if content else "No search results found."
+    except Exception as e:
+        return f"Web search failed: {e}. Try using other available tools instead."

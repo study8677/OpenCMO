@@ -30,7 +30,7 @@ export async function apiJson<T>(
   const resp = await apiFetch(path, init);
   if (!resp.ok) {
     const body = await resp.json().catch(() => ({}));
-    throw new ApiError(resp.status, body.error ?? resp.statusText);
+    throw new ApiError(resp.status, body.error ?? resp.statusText, body.error_code);
   }
   return resp.json() as Promise<T>;
 }
@@ -39,6 +39,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public errorCode?: string,
   ) {
     super(message);
     this.name = "ApiError";

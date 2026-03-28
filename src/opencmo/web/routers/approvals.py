@@ -80,7 +80,11 @@ async def api_v1_approve_approval(approval_id: int, request: Request):
     )
     if not result["ok"]:
         status_code = 404 if "not found" in result["error"].lower() else 400
-        return JSONResponse({"error": result["error"], "approval": result.get("approval")}, status_code=status_code)
+        return JSONResponse({
+            "error": result["error"],
+            "error_code": result.get("error_code"),
+            "approval": result.get("approval"),
+        }, status_code=status_code)
     return JSONResponse(result["approval"])
 
 

@@ -202,6 +202,7 @@ async def execute_autopilot(project_id: int) -> list[dict]:
             payload = {
                 "body": content,
                 "title": f"[Autopilot] {insight['title']}",
+                "project_id": project_id,
             }
             preview = {
                 "content_preview": content[:500],
