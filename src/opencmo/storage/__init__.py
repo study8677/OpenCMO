@@ -162,6 +162,15 @@ from opencmo.storage.geo_tools import (
     get_brand_presence_history,
 )
 
+# --- Reports ---
+from opencmo.storage.reports import (
+    create_report_bundle,
+    list_reports,
+    get_report,
+    get_latest_report,
+    get_latest_reports,
+)
+
 
 # ---------------------------------------------------------------------------
 # Patch propagation: tests use ``patch.object(storage, "_DB_PATH", ...)``
@@ -256,4 +265,7 @@ __all__ = [
     "save_citability_scan", "get_citability_history",
     "save_ai_crawler_scan", "get_ai_crawler_history",
     "save_brand_presence_scan", "get_brand_presence_history",
+    # reports
+    "create_report_bundle", "list_reports", "get_report",
+    "get_latest_report", "get_latest_reports",
 ]

@@ -328,6 +328,29 @@ CREATE TABLE IF NOT EXISTS brand_presence_scans (
     footprint_score INTEGER NOT NULL DEFAULT 0,
     platforms_json TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    kind TEXT NOT NULL,
+    audience TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    is_latest INTEGER NOT NULL DEFAULT 1,
+    source_run_id INTEGER REFERENCES scan_runs(id),
+    window_start TEXT,
+    window_end TEXT,
+    generation_status TEXT NOT NULL DEFAULT 'completed',
+    content TEXT NOT NULL DEFAULT '',
+    content_html TEXT NOT NULL DEFAULT '',
+    meta_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_project_kind_audience_version
+ON reports(project_id, kind, audience, version);
+
+CREATE INDEX IF NOT EXISTS idx_reports_project_latest
+ON reports(project_id, kind, audience, is_latest, created_at DESC);
 """
 
 

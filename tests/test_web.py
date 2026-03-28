@@ -571,6 +571,48 @@ def test_api_v1_report_not_found(client):
     assert resp.status_code == 404
 
 
+def test_api_v1_reports_lifecycle(client):
+    resp = client.post("/api/v1/monitors", json={
+        "brand": "RepV2", "url": "https://repv2.com", "category": "dev"
+    })
+    pid = resp.json()["project_id"]
+
+    with patch("opencmo.reports._generate_llm_markdown", new_callable=AsyncMock) as mock_llm:
+        mock_llm.side_effect = [
+            "# Strategic Human",
+            "# Strategic Agent",
+            "# Weekly Human",
+            "# Weekly Agent",
+        ]
+
+        strategic = client.post(f"/api/v1/projects/{pid}/reports/strategic/regenerate")
+        assert strategic.status_code == 200
+        assert strategic.json()["kind"] == "strategic"
+
+        periodic = client.post(f"/api/v1/projects/{pid}/reports/periodic/regenerate")
+        assert periodic.status_code == 200
+        assert periodic.json()["kind"] == "periodic"
+
+    latest = client.get(f"/api/v1/projects/{pid}/reports/latest")
+    assert latest.status_code == 200
+    latest_payload = latest.json()
+    assert latest_payload["strategic"]["human"]["version"] == 1
+    assert latest_payload["periodic"]["agent"]["version"] == 1
+
+    listed = client.get(f"/api/v1/projects/{pid}/reports")
+    assert listed.status_code == 200
+    assert len(listed.json()) == 4
+
+    report_id = latest_payload["strategic"]["human"]["id"]
+    detail = client.get(f"/api/v1/reports/{report_id}")
+    assert detail.status_code == 200
+    assert detail.json()["kind"] == "strategic"
+
+    summary = client.get(f"/api/v1/projects/{pid}/summary")
+    assert summary.status_code == 200
+    assert summary.json()["latest_reports"]["strategic"]["human"]["id"] == report_id
+
+
 # ---------------------------------------------------------------------------
 # Chat API
 # ---------------------------------------------------------------------------

@@ -243,6 +243,21 @@ async def send_project_report(project_id: int) -> dict:
     return await send_report_impl(project_id)
 
 
+async def regenerate_project_report(project_id: int, kind: str) -> dict:
+    """Generate and persist a strategic or periodic report bundle."""
+    project = await storage.get_project(project_id)
+    if not project:
+        raise ValueError(f"Project {project_id} not found.")
+
+    from opencmo import reports
+
+    if kind == "strategic":
+        return await reports.generate_strategic_report_bundle(project_id)
+    if kind == "periodic":
+        return await reports.generate_periodic_report_bundle(project_id)
+    raise ValueError(f"Unsupported report kind: {kind}")
+
+
 async def create_approval(
     project_id: int,
     approval_type: str,

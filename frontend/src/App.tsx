@@ -10,6 +10,7 @@ import { GraphPage } from "./pages/GraphPage";
 import { MonitorsPage } from "./pages/MonitorsPage";
 import { ChatPage } from "./pages/ChatPage";
 import { ApprovalsPage } from "./pages/ApprovalsPage";
+import { ReportsPage } from "./pages/ReportsPage";
 
 function AppRoutes() {
   return (
@@ -18,6 +19,7 @@ function AppRoutes() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/approvals" element={<ApprovalsPage />} />
         <Route path="/projects/:id" element={<ProjectPage />} />
+        <Route path="/projects/:id/reports" element={<ReportsPage />} />
         <Route path="/projects/:id/seo" element={<SeoPage />} />
         <Route path="/projects/:id/geo" element={<GeoPage />} />
         <Route path="/projects/:id/serp" element={<SerpPage />} />
@@ -37,4 +39,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-

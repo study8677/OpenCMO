@@ -1,6 +1,6 @@
 """Tests for scheduler module."""
 
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 
 import pytest
 
@@ -133,3 +133,33 @@ def test_stop_scheduler_clears_global_state():
     with patch.object(scheduler_module, "_scheduler", fake_scheduler):
         scheduler_module.stop_scheduler()
         assert scheduler_module._scheduler is None
+
+
+@pytest.mark.asyncio
+async def test_run_scheduled_scan_generates_periodic_report_on_cron_full(tmp_path):
+    db_path = tmp_path / "test.db"
+    with patch.object(storage, "_DB_PATH", db_path):
+        pid = await storage.ensure_project("SchedReport", "https://sched-report.com", "testing")
+        await storage.add_scheduled_job(pid, "full", "0 9 * * 1")
+
+        crawl_result = type("CrawlResult", (), {"html": "<html><title>Sched</title></html>"})()
+        crawler = AsyncMock()
+        crawler.__aenter__.return_value = crawler
+        crawler.__aexit__.return_value = False
+        crawler.arun.return_value = crawl_result
+
+        with patch("crawl4ai.AsyncWebCrawler", return_value=crawler), \
+             patch("opencmo.tools.seo_audit._fetch_core_web_vitals", new_callable=AsyncMock, return_value={"performance": 0.8, "lcp": 2200, "cls": 0.02, "tbt": 150}), \
+             patch("opencmo.tools.seo_audit._check_robots_and_sitemap", new_callable=AsyncMock, return_value={"has_robots": True, "has_sitemap": True}), \
+             patch("opencmo.tools.serp_tracker.track_project_keywords", new_callable=AsyncMock), \
+             patch("opencmo.tools.ai_crawler_check._ai_crawler_impl", new_callable=AsyncMock, return_value={"blocked_count": 0, "total_crawlers": 14, "has_llms_txt": True, "crawler_results": []}), \
+             patch("opencmo.tools.geo_providers.GEO_PROVIDER_REGISTRY", []), \
+             patch("opencmo.tools.citability._citability_impl", new_callable=AsyncMock, return_value={"avg_score": 80, "top_blocks": [], "bottom_blocks": [], "grade_distribution": {}, "error": False}), \
+             patch("opencmo.tools.brand_presence._brand_presence_impl", new_callable=AsyncMock, return_value={"footprint_score": 60, "platforms": []}), \
+             patch("opencmo.tools.community._scan_community_impl", new_callable=AsyncMock, return_value='{"hits": []}'), \
+             patch("opencmo.insights.detect_insights", new_callable=AsyncMock, return_value=[]), \
+             patch("opencmo.autopilot.execute_autopilot", new_callable=AsyncMock, return_value=[]), \
+             patch("opencmo.reports.generate_periodic_report_bundle", new_callable=AsyncMock) as mock_periodic:
+            await run_scheduled_scan(pid, "full", triggered_by="cron")
+
+        mock_periodic.assert_awaited_once_with(pid, source_run_id=None)

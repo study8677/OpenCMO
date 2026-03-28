@@ -94,11 +94,13 @@ async def api_v1_project_summary(project_id: int):
     latest = await storage.get_latest_scans(project_id)
     previous = await storage.get_previous_scans(project_id)
     monitoring = await storage.get_latest_monitoring_summary(project_id)
+    latest_reports = await storage.get_latest_reports(project_id)
     return JSONResponse({
         "project": project,
         "latest": latest,
         "previous": previous,
         "latest_monitoring": monitoring,
+        "latest_reports": latest_reports,
     })
 
 

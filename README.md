@@ -148,6 +148,16 @@ Project chat is now **project-scoped by default**. Every project page exposes a 
 
 Review exact publish payloads in the SPA, approve or reject them with a durable audit trail, and let the web process keep scheduled monitors alive. Safe publishing still honors `OPENCMO_AUTO_PUBLISH=1`, so approval never bypasses the final safety gate.
 
+
+### AI CMO Reports
+
+OpenCMO now ships with a formal report system inside the project workspace:
+
+- **Strategic Report** — generated after a full scan to explain what the project is, where its strengths and weaknesses are, how competitors frame the market, and what the CMO-level recommendation is.
+- **Email delivery** — weekly email sending now reuses the persisted periodic human report instead of building a separate snapshot template.
+- **Weekly Report** — generated from the latest 7-day monitoring window to summarize the most important changes across SEO, GEO, SERP, community, and approvals.
+- **Dual outputs** — every report is stored as both a **Human Readout** and an **Agent Brief**.
+- **Version history** — reports are retained as historical versions, with latest pointers exposed in the API and visible in the new **Reports** tab.
 High-signal insights can now flow into **Autopilot drafts**. When enabled, OpenCMO snapshots the pre-action metrics, asks the mapped expert to generate a draft, and stores the approval with `why_this`, `why_now`, and `why_here` context plus a backlink to the triggering insight. Humans still stay in the loop before any publish step.
 
 ---

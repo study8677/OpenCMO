@@ -251,6 +251,59 @@ export interface ProjectSummary {
     geo?: { scanned_at: string; score: number };
   } | null;
   latest_monitoring?: MonitoringSummary | null;
+  latest_reports?: LatestReports;
+}
+
+export type ReportKind = "strategic" | "periodic";
+export type ReportAudience = "human" | "agent";
+export type ReportGenerationStatus = "pending" | "running" | "completed" | "failed";
+
+export interface ReportMeta {
+  sample_count?: number;
+  low_sample?: boolean;
+  facts_summary?: string;
+  model?: string;
+  used_fallback?: boolean;
+  llm_error?: string;
+  window_days?: number;
+  window_start?: string;
+  window_end?: string;
+  [key: string]: unknown;
+}
+
+export interface ReportRecord {
+  id: number;
+  project_id: number;
+  kind: ReportKind;
+  audience: ReportAudience;
+  version: number;
+  is_latest: boolean;
+  source_run_id: number | null;
+  window_start: string | null;
+  window_end: string | null;
+  generation_status: ReportGenerationStatus;
+  status: ReportGenerationStatus;
+  content: string;
+  content_html: string;
+  meta: ReportMeta;
+  created_at: string;
+}
+
+export interface ReportBundle {
+  kind: ReportKind;
+  human: ReportRecord;
+  agent: ReportRecord;
+}
+
+export interface LatestReports {
+  strategic: {
+    human: ReportRecord | null;
+    agent: ReportRecord | null;
+  };
+  periodic: {
+    human: ReportRecord | null;
+    agent: ReportRecord | null;
+  };
 }
 
 export interface ChatSessionSummary {

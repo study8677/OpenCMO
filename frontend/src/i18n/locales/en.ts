@@ -38,6 +38,7 @@ export const en = {
 
   // Project Tabs
   "project.overview": "Overview",
+  "project.reports": "Reports",
   "project.seo": "SEO",
   "project.geo": "GEO",
   "project.serp": "SERP",
