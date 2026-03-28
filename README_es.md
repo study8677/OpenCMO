@@ -18,11 +18,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-green.svg?style=for-the-badge" alt="License"></a>
   <a href="https://github.com/study8677/OpenCMO/stargazers"><img src="https://img.shields.io/github/stars/study8677/OpenCMO?style=for-the-badge&color=yellow&logo=github" alt="Stars"></a>
   <img src="https://img.shields.io/badge/react-SPA-61DAFB.svg?style=for-the-badge&logo=react" alt="React SPA">
-  <a href="https://724claw.icu/app/"><img src="https://img.shields.io/badge/🚀_Demo_en_vivo-724claw.icu-ff6b35.svg?style=for-the-badge" alt="Live Demo"></a>
-</p>
-
-<p align="center">
-  <b>🔑 BYOK (Trae Tu Propia Clave) — Sin almacenamiento de claves en el servidor. Tus claves API se guardan localmente en tu navegador.</b>
 </p>
 
 ---
@@ -63,6 +58,15 @@ Una moderna React SPA con diseno glassmorphism, construida para maxima claridad 
     </a>
   </h3>
   <sub>Recorrido de 10 minutos con todas las funciones: Auditoria SEO, Deteccion GEO, Seguimiento SERP, Grafo de Conocimiento, Chat Multiagente y mas.</sub>
+  <br/><br/>
+  <h2>
+    🚀 <a href="https://724claw.icu/app/">¡Prueba el Demo en vivo ahora!</a>
+  </h2>
+  <p>
+    <b>🔑 Modelo Seguro BYOK (Trae Tu Propia Clave)</b><br/>
+    Sin registro. Tus claves API se guardan <b>solo de forma local en tu navegador</b>.<br/>
+    El servidor no almacena ni registra tus claves. Prueba con total tranquilidad.
+  </p>
 </div>
 
 ---

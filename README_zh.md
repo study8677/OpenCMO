@@ -18,11 +18,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-green.svg?style=for-the-badge" alt="License"></a>
   <a href="https://github.com/study8677/OpenCMO/stargazers"><img src="https://img.shields.io/github/stars/study8677/OpenCMO?style=for-the-badge&color=yellow&logo=github" alt="Stars"></a>
   <img src="https://img.shields.io/badge/react-SPA-61DAFB.svg?style=for-the-badge&logo=react" alt="React SPA">
-  <a href="https://724claw.icu/app/"><img src="https://img.shields.io/badge/🚀_在线体验-724claw.icu-ff6b35.svg?style=for-the-badge" alt="在线体验 (Live Demo)"></a>
-</p>
-
-<p align="center">
-  <b>🔑 BYOK (自带 Key) — 无需登录，您的 API 密钥仅保存在本地浏览器中，服务端无中心化密钥存储。</b>
 </p>
 
 ---
@@ -63,6 +58,15 @@ OpenCMO 是一个专为独立开发者、初创公司和小团队设计的 **多
     </a>
   </h3>
   <sub>10 分钟全功能演示：SEO 审计、GEO 检测、SERP 追踪、知识图谱、多智能体对话等。</sub>
+  <br/><br/>
+  <h2>
+    🚀 <a href="https://724claw.icu/app/">立即在线体验！</a>
+  </h2>
+  <p>
+    <b>🔑 安全的 BYOK (自带 Key) 模式</b><br/>
+    无需注册登录。您的 API 密钥<b>仅保存在您本机的浏览器里</b>（利用 localStorage）。<br/>
+    我们的服务器绝不会保存或者记录您的 API 密钥，请放心体验。
+  </p>
 </div>
 
 ---
