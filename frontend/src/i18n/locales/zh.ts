@@ -173,6 +173,12 @@ export const zh: Record<TranslationKey, string> = {
   "chat.allProjects": "不限定项目",
   "chat.noProjectSelected": "未选择项目",
   "chat.projectHint": "聊天会使用所选项目已保存的监控摘要，不会自动读取当前页面上临时显示的状态。",
+  "chat.contextLoaded": "项目分析就绪",
+  "chat.contextKeywords": "追踪关键词",
+  "chat.contextCompetitors": "竞品",
+  "chat.contextGaps": "关键词差距",
+  "chat.contextFindings": "最近发现",
+  "chat.contextQuickStart": "快速开始",
 
   // Settings
   "settings.title": "设置",

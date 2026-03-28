@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useChat } from "../hooks/useChat";
+import { useChatContext } from "../hooks/useChatContext";
 import { useProjects } from "../hooks/useProjects";
 import { ChatContainer } from "../components/chat/ChatContainer";
 import { ChatSidebar } from "../components/chat/ChatSidebar";
@@ -20,6 +21,7 @@ export function ChatPage() {
   );
   const chat = useChat(initialProjectId);
   const { data: projects } = useProjects();
+  const { data: chatContext } = useChatContext(chat.projectId);
   const { t } = useI18n();
   const activeProject =
     projects?.find((project) => project.id === chat.projectId) ?? null;
@@ -94,6 +96,8 @@ export function ChatPage() {
           currentAgent={chat.currentAgent}
           sendMessage={chat.sendMessage}
           hasMessages={chat.messages.length > 0}
+          projectId={chat.projectId}
+          projectContext={chatContext ?? null}
         />
       </div>
     </div>

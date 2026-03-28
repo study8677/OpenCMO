@@ -287,9 +287,25 @@ function PriorityStars({ count }: { count: number }) {
   );
 }
 
-export function AgentGrid({ onSelect }: { onSelect: (prompt: string) => void }) {
+export function AgentGrid({ onSelect, projectName }: { onSelect: (prompt: string) => void; projectName?: string | null }) {
   const { locale } = useI18n();
   const isZh = locale === "zh";
+
+  // When a project is selected, prefix prompts with project name
+  const buildPrompt = (basePrompt: string) => {
+    if (!projectName || !basePrompt) return basePrompt;
+    const prefix = isZh
+      ? `针对 ${projectName} 项目，`
+      : `For the ${projectName} project, `;
+    return prefix + basePrompt;
+  };
+
+  // Special CMO prompt when project is selected
+  const cmoPrompt = projectName
+    ? (isZh
+        ? `帮我分析 ${projectName} 项目的整体营销策略和当前状况`
+        : `Analyze the overall marketing strategy and current status for ${projectName}`)
+    : "";
 
   return (
     <div>
@@ -306,15 +322,18 @@ export function AgentGrid({ onSelect }: { onSelect: (prompt: string) => void }) 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         {AGENTS.map((agent) => {
           const Icon = agent.icon;
+          const resolvedPrompt = agent.id === "cmo"
+            ? cmoPrompt
+            : buildPrompt(agent.prompt);
           return (
             <button
               key={agent.id}
               onClick={() => {
-                if (agent.prompt) {
-                  onSelect(agent.prompt);
+                if (resolvedPrompt) {
+                  onSelect(resolvedPrompt);
                 }
               }}
-              disabled={!agent.prompt}
+              disabled={!resolvedPrompt}
               className="group flex flex-col items-start rounded-xl border border-slate-100 p-4 text-left transition-all duration-150 hover:border-slate-200 hover:bg-slate-50 hover:shadow-sm disabled:cursor-default disabled:hover:border-slate-100 disabled:hover:bg-transparent disabled:hover:shadow-none"
             >
               <div

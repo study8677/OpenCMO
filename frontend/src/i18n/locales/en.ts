@@ -171,6 +171,12 @@ export const en = {
   "chat.allProjects": "No project scope",
   "chat.noProjectSelected": "No project selected",
   "chat.projectHint": "Chat uses the stored monitoring summary for the selected project, not the page state currently on screen.",
+  "chat.contextLoaded": "Project context loaded",
+  "chat.contextKeywords": "Tracked Keywords",
+  "chat.contextCompetitors": "Competitors",
+  "chat.contextGaps": "Keyword Gaps",
+  "chat.contextFindings": "Recent Findings",
+  "chat.contextQuickStart": "Quick Start",
 
   // Settings
   "settings.title": "Settings",

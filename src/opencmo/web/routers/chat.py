@@ -13,6 +13,90 @@ from opencmo import storage
 router = APIRouter(prefix="/api/v1")
 
 
+@router.get("/chat/context/{project_id}")
+async def api_v1_chat_context(project_id: int):
+    """Return structured project context for the Chat UI."""
+    project = await storage.get_project(project_id)
+    if not project:
+        return JSONResponse({"error": "Project not found"}, status_code=404)
+
+    # Latest scan scores
+    latest = await storage.get_latest_scans(project_id)
+
+    # Graph data for competitors, keywords, gaps
+    graph = await storage.get_graph_data(project_id)
+    nodes = graph.get("nodes", [])
+    links = graph.get("links", [])
+
+    competitors = [
+        {"label": n["label"], "url": n.get("url", "")}
+        for n in nodes if n.get("type") == "competitor"
+    ][:6]
+
+    keywords = [
+        n["label"]
+        for n in nodes if n.get("type") == "keyword"
+    ][:10]
+
+    brand_kw_set = {n["label"].lower() for n in nodes if n.get("type") == "keyword"}
+    keyword_gaps = [
+        n["label"]
+        for n in nodes
+        if n.get("type") == "competitor_keyword" and n["label"].lower() not in brand_kw_set
+    ][:5]
+
+    # Latest findings from most recent scan run
+    from opencmo.storage._db import get_db
+    findings = []
+    try:
+        db = await get_db()
+        cursor = await db.execute(
+            """SELECT f.domain, f.severity, f.title
+               FROM scan_findings f
+               JOIN scan_runs r ON r.id = f.run_id
+               WHERE r.project_id = ?
+               ORDER BY r.id DESC, f.id
+               LIMIT 4""",
+            (project_id,),
+        )
+        rows = await cursor.fetchall()
+        findings = [
+            {"domain": row[0], "severity": row[1], "title": row[2]}
+            for row in rows
+        ]
+        await db.close()
+    except Exception:
+        pass
+
+
+    # Scores
+    seo = latest.get("seo")
+    geo = latest.get("geo")
+    community = latest.get("community")
+    serp = latest.get("serp", [])
+
+    ctx = {
+        "project": {
+            "id": project["id"],
+            "brand_name": project["brand_name"],
+            "url": project["url"],
+            "category": project["category"],
+        },
+        "scores": {
+            "seo": seo.get("score") if seo else None,
+            "geo": geo.get("score") if geo else None,
+            "community_hits": community.get("total_hits") if community else None,
+            "serp_tracked": len(serp),
+            "serp_top10": sum(1 for s in serp if (s.get("position") or 999) <= 10),
+        },
+        "keywords": keywords,
+        "competitors": competitors,
+        "keyword_gaps": keyword_gaps,
+        "findings": findings,
+    }
+    return JSONResponse(ctx)
+
+
 def _get_item_name(item) -> str:
     """Safely extract tool/handoff name from a RunItem."""
     raw = getattr(item, "raw_item", None)

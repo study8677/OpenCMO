@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   createSession,
   streamChat,
@@ -20,6 +20,9 @@ export function useChat(initialProjectId: number | null = null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [currentAgent, setCurrentAgent] = useState("CMO Agent");
+  // Track whether sessionReady means we can accept input (even without a session yet)
+  const [ready, setReady] = useState(false);
+  const creatingSessionRef = useRef(false);
 
   const refreshSessions = useCallback(async () => {
     try {
@@ -30,24 +33,44 @@ export function useChat(initialProjectId: number | null = null) {
     }
   }, []);
 
-  // Load sessions + create initial session on mount
+  // On mount: just load existing sessions list, mark as ready (no auto session creation)
   useEffect(() => {
-    let cancelled = false;
+    void refreshSessions().then(() => setReady(true));
+  }, [refreshSessions]);
 
-    void refreshSessions();
-    createSession(initialProjectId)
-      .then(async (id) => {
-        if (cancelled) return;
-        setSessionId(id);
-        setProjectId(initialProjectId);
-        await refreshSessions();
-      })
-      .catch(console.error);
+  // Ensure a session exists for sending messages. Returns sessionId.
+  const ensureSession = useCallback(async (): Promise<string> => {
+    if (sessionId) return sessionId;
+    if (creatingSessionRef.current) {
+      // Wait for existing creation to finish
+      await new Promise<void>((resolve) => {
+        const interval = setInterval(() => {
+          if (!creatingSessionRef.current) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 50);
+      });
+      // sessionId should be set by now via setState, but we read from the closure
+      // So we return a promise that resolves with the updated value
+      return new Promise<string>((resolve) => {
+        setSessionId((current) => {
+          if (current) resolve(current);
+          return current;
+        });
+      });
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [initialProjectId, refreshSessions]);
+    creatingSessionRef.current = true;
+    try {
+      const newId = await createSession(projectId);
+      setSessionId(newId);
+      await refreshSessions();
+      return newId;
+    } finally {
+      creatingSessionRef.current = false;
+    }
+  }, [sessionId, projectId, refreshSessions]);
 
   const loadSession = useCallback(
     async (id: string) => {
@@ -74,7 +97,11 @@ export function useChat(initialProjectId: number | null = null) {
 
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!sessionId || isStreaming || !content.trim()) return;
+      if (isStreaming || !content.trim()) return;
+
+      // Ensure session exists (lazy creation)
+      const sid = sessionId ?? await ensureSession();
+      if (!sid) return;
 
       const userMsg: ChatMessage = {
         id: nextId(),
@@ -93,7 +120,7 @@ export function useChat(initialProjectId: number | null = null) {
       setIsStreaming(true);
 
       try {
-        for await (const event of streamChat(sessionId, content.trim(), projectId)) {
+        for await (const event of streamChat(sid, content.trim(), projectId)) {
           handleEvent(event, assistantMsg.id);
         }
         // Refresh session list after completion (title may have changed)
@@ -115,7 +142,7 @@ export function useChat(initialProjectId: number | null = null) {
         setIsStreaming(false);
       }
     },
-    [sessionId, isStreaming, currentAgent, projectId, refreshSessions],
+    [sessionId, isStreaming, currentAgent, projectId, refreshSessions, ensureSession],
   );
 
   const handleEvent = useCallback(
@@ -215,21 +242,21 @@ export function useChat(initialProjectId: number | null = null) {
     setMessages([]);
     setCurrentAgent("CMO Agent");
     setProjectId(nextProjectId);
-    try {
-      const newId = await createSession(nextProjectId);
-      setSessionId(newId);
-      await refreshSessions();
-    } catch (e) {
-      console.error("Failed to create new session", e);
-    }
-  }, [isStreaming, projectId, refreshSessions]);
+    setSessionId(null); // Defer session creation until first message
+  }, [isStreaming, projectId]);
 
   const selectProject = useCallback(
     async (nextProjectId: number | null) => {
       if (nextProjectId === projectId) return;
-      await resetChat(nextProjectId);
+      // Only reset if there are existing messages, otherwise just update projectId
+      if (messages.length > 0) {
+        await resetChat(nextProjectId);
+      } else {
+        setProjectId(nextProjectId);
+        setSessionId(null); // Clear stale session
+      }
     },
-    [projectId, resetChat],
+    [projectId, messages.length, resetChat],
   );
 
   const removeSession = useCallback(
@@ -256,7 +283,7 @@ export function useChat(initialProjectId: number | null = null) {
     sendMessage,
     resetChat,
     selectProject,
-    sessionReady: !!sessionId,
+    sessionReady: ready,
     sessionId,
     sessions,
     loadSession,
