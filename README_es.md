@@ -53,21 +53,26 @@
 
 OpenCMO ya incluye un sistema formal de reportes dentro de cada proyecto. Abre la pestaña **Reports** o visita `/app/projects/<id>/reports`.
 
-- **Strategic Report**: se genera después de un full scan.
-  - Posicionamiento actual del proyecto
-  - Fortalezas y debilidades
-  - Panorama competitivo y diferenciación
-  - Recomendación de nivel CMO
-  - Cambios frente a la versión anterior
-- **Weekly Report**: se genera con la ventana más reciente de 7 días.
-  - Los 3 cambios más importantes
-  - Resumen de tendencias SEO / GEO / SERP / comunidad
-  - Nuevos riesgos y señales positivas
-  - Señales de mercado y competencia
-  - Foco para la próxima semana
-- **Salida dual**: cada reporte se guarda como **Human Readout** y **Agent Brief**.
+### Pipeline Multi-Agente de Reportes Profundos
+
+Los reportes para personas se generan a través de un **pipeline de 6 fases multi-agente** (~14 llamadas LLM) en vez de un solo prompt. Esto produce análisis de nivel McKinsey con datos validados cruzadamente y control de calidad iterativo.
+
+| Fase | Rol | Función |
+| :--- | :--- | :--- |
+| 1. Reflection Agent | Auditor de calidad | Valida cruzadamente datos de todos los Agents |
+| 2. Insight Distiller | Analista | Extrae insights analíticos multi-dimensionales |
+| 3. Outline Planner | Editor en Jefe | Diseña arco narrativo con tesis y evidencias |
+| 4. Section Writers | Autores (paralelo) | Escriben secciones en paralelo |
+| 5. Section Grader | Revisor | Puntua 1-5, rechaza y reintenta bajo umbral |
+| 6. Report Synthesizer | Editor General | Escribe resumen ejecutivo, intro y estrategia |
+
+- **Strategic Report**: tras un full scan — análisis competitivo profundo, evaluación de riesgos, recomendaciones estratégicas CMO.
+- **Weekly Report**: ventana de 7 días — análisis de tendencias, riesgos/logros, plan de acción.
+- **Salida dual**: **Human Readout** (análisis profundo) y **Agent Brief** (acciones concisas).
+- **Exportar PDF**: descarga PDFs con logo de marca en header y footer.
 - **Historial de versiones**: puedes ver latest e histórico.
-- **Email**: el correo semanal reutiliza el mismo reporte persistido que ves en el producto.
+- **Email**: el correo semanal reutiliza el mismo reporte persistido.
+- **Fallback elegante**: fallos del pipeline degradan automáticamente a llamada única → plantilla.
 
 ## Superficie Principal del Producto
 
@@ -118,7 +123,7 @@ La app de desarrollo corre en `http://localhost:5173/app` y proxya la API a `:80
 | Monitoreo | SEO, GEO, SERP, Community | Keys opcionales |
 | Fuentes de comunidad | Reddit, HN, Dev.to, Bluesky, YouTube, Twitter/X | Opcional |
 | Publicación | Reddit, Twitter/X | Obligatoria |
-| Reportes | Web + Email | SMTP para email |
+| Reportes | Web + Email + PDF | SMTP para email |
 | LLM | APIs compatibles con OpenAI | Obligatoria |
 
 ## Roadmap
@@ -126,6 +131,8 @@ La app de desarrollo corre en `http://localhost:5173/app` y proxya la API a `:80
 - [x] Escaneo estratégico AI CMO
 - [x] Monitoreo SEO / GEO / SERP / comunidad
 - [x] Reportes estratégicos y semanales versionados
+- [x] Pipeline multi-agente de reportes profundos (6 fases)
+- [x] Exportar PDF con marca
 - [x] Grafo de conocimiento 3D
 - [x] Aprobaciones y publicación controlada
 - [ ] Más destinos de publicación

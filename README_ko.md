@@ -53,21 +53,26 @@
 
 OpenCMO에는 프로젝트별 정식 리포트 시스템이 있습니다. **Reports** 탭 또는 `/app/projects/<id>/reports` 에서 확인할 수 있습니다.
 
-- **Strategic Report**: full scan 이후 생성됩니다.
-  - 현재 프로젝트 포지셔닝
-  - 강점과 약점
-  - 경쟁 구도와 차별화
-  - CMO 수준의 권고안
-  - 이전 버전 대비 변화
-- **Weekly Report**: 최근 7일 모니터링 윈도우 기준으로 생성됩니다.
-  - 가장 중요한 3가지 변화
-  - SEO / GEO / SERP / 커뮤니티 추세 요약
-  - 새로운 리스크와 긍정 신호
-  - 시장 및 경쟁 신호
-  - 다음 주 집중 포인트
-- **이중 출력**: 모든 리포트는 **Human Readout** 과 **Agent Brief** 둘 다 저장됩니다.
+### 멀티 에이전트 딕 리포트 파이프라인
+
+인간용 리포트는 단일 프롬프트 대신 **6단계 멀티 에이전트 파이프라인**(약 14회 LLM 호출)으로 생성됩니다.
+
+| 단계 | 역할 | 기능 |
+| :--- | :--- | :--- |
+| 1. Reflection Agent | 품질 감사관 | 모든 Agent 데이터 교차 검증, 이상값 탐지 |
+| 2. Insight Distiller | 분석가 | 다차원 분석 인사이트 추출 |
+| 3. Outline Planner | 편집장 | 논지와 증거 매핑으로 서사 구조 설계 |
+| 4. Section Writers | 저자 (병렬) | 각 섹션을 병렬 작성 |
+| 5. Section Grader | 심사자 | 1-5점 채점, 임계값 미달 시 재작성 |
+| 6. Report Synthesizer | 총편집 | 요약, 서론, 전략 제안 작성 |
+
+- **Strategic Report**: full scan 이후 생성 — 심층 경쟁 분석, 리스크 평가, CMO 수준 전략 제안.
+- **Weekly Report**: 최근 7일 모니터링 윈도우 — 트렌드 분석, 리스크/성과, 다음 주 액션 계획.
+- **이중 출력**: **Human Readout**(심층 분석)과 **Agent Brief**(간결한 액션 항목).
+- **PDF 내보내기**: 브랜드 로고 헤더/푸터 포함 PDF 다운로드.
 - **버전 히스토리**: latest 와 과거 버전을 함께 확인할 수 있습니다.
 - **이메일 재사용**: 주간 이메일은 화면에 보이는 동일한 저장 리포트를 그대로 사용합니다.
+- **우아한 폴백**: 파이프라인 장애 시 자동으로 싱글 콜 → 템플릿 생성으로 강등.
 
 ## 핵심 제품 면
 
@@ -118,7 +123,7 @@ npm run build
 | 모니터링 | SEO, GEO, SERP, Community | 선택적 provider key |
 | 커뮤니티 소스 | Reddit, HN, Dev.to, Bluesky, YouTube, Twitter/X | 선택 |
 | 발행 | Reddit, Twitter/X | 필수 |
-| 리포트 | Web + Email | 이메일은 SMTP 필요 |
+| 리포트 | Web + Email + PDF | 이메일은 SMTP 필요 |
 | LLM | OpenAI 호환 API | 필수 |
 
 ## 로드맵
@@ -126,6 +131,8 @@ npm run build
 - [x] AI CMO 전략 스캔
 - [x] SEO / GEO / SERP / 커뮤니티 모니터링
 - [x] 버전 관리되는 전략 리포트와 주간 리포트
+- [x] 멀티 에이전트 딕 리포트 파이프라인 (6단계)
+- [x] 브랜드 포함 PDF 내보내기
 - [x] 3D 지식 그래프
 - [x] 승인 흐름과 통제된 발행
 - [ ] 더 많은 발행 채널

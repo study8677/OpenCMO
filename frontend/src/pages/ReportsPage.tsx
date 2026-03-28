@@ -1,7 +1,7 @@
 import { useMemo, type ElementType, type ReactNode } from "react";
 import { useParams } from "react-router";
 import ReactMarkdown from "react-markdown";
-import { Bot, FileText, History, Mail, RefreshCcw, User } from "lucide-react";
+import { Bot, FileText, History, Mail, RefreshCcw, User, Download } from "lucide-react";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { ErrorAlert } from "../components/common/ErrorAlert";
 import { ProjectHeader } from "../components/project/ProjectHeader";
@@ -10,6 +10,7 @@ import { useProjectSummary } from "../hooks/useProject";
 import { useLatestReports, useRegenerateReport, useReports, useSendReport } from "../hooks/useReports";
 import type { ReportKind, ReportRecord } from "../types";
 import { useI18n } from "../i18n";
+import { downloadAsPDF } from "../utils/pdf";
 
 function formatStamp(value: string | null | undefined) {
   if (!value) return "N/A";
@@ -20,10 +21,12 @@ function ReportCard({
   label,
   icon,
   report,
+  allowDownload,
 }: {
   label: string;
   icon: ElementType;
   report: ReportRecord | null;
+  allowDownload?: boolean;
 }) {
   const Icon = icon;
 
@@ -43,16 +46,34 @@ function ReportCard({
             ) : null}
           </div>
         </div>
-        {report?.meta?.low_sample ? (
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-700">
-            Low Sample
-          </span>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {report?.meta?.low_sample ? (
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-700">
+              Low Sample
+            </span>
+          ) : null}
+          {allowDownload && report ? (
+            <button
+              type="button"
+              onClick={() =>
+                downloadAsPDF({
+                  elementId: `report-content-${report.id}`,
+                  filename: `OpenCMO-${label.replace(/\s+/g, "-")}-v${report.version}.pdf`,
+                  title: `${label} (v${report.version})`
+                })
+              }
+              className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus:outline-none"
+              title="Download PDF"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {report ? (
-        <div className="prose prose-sm prose-slate max-w-none">
-          <ReactMarkdown>{report.content}</ReactMarkdown>
+        <div id={`report-content-${report.id}`} className="prose prose-sm prose-slate max-w-none">
+           <ReactMarkdown>{report.content}</ReactMarkdown>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
@@ -141,7 +162,7 @@ function ReportSection({
         </div>
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
-        <ReportCard label="Human Readout" icon={User} report={human} />
+        <ReportCard label="Human Readout" icon={User} report={human} allowDownload />
         <ReportCard label="Agent Brief" icon={Bot} report={agent} />
       </div>
     </section>

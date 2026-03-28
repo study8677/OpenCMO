@@ -114,11 +114,15 @@ async def test_report_version_history_tracks_latest_per_kind_and_audience():
 async def test_generate_strategic_report_bundle_creates_human_and_agent_versions():
     project_id = await _seed_project()
 
-    with patch("opencmo.reports._generate_llm_markdown", new_callable=AsyncMock) as mock_llm:
-        mock_llm.side_effect = [
+    # Human now goes through the pipeline; agent uses single-call
+    with patch("opencmo.report_pipeline.run_deep_report_pipeline", new_callable=AsyncMock) as mock_pipeline, \
+         patch("opencmo.reports._generate_llm_markdown", new_callable=AsyncMock) as mock_llm:
+        mock_pipeline.side_effect = [
             "# Strategic Human\n\n## 当前优势\n- 好",
-            "# Strategic Agent\n\n- objective: expand visibility",
             "# Strategic Human v2\n\n## 最近变化摘要\n- GEO up",
+        ]
+        mock_llm.side_effect = [
+            "# Strategic Agent\n\n- objective: expand visibility",
             "# Strategic Agent v2\n\n- objective: defend gains",
         ]
 
@@ -129,6 +133,7 @@ async def test_generate_strategic_report_bundle_creates_human_and_agent_versions
     assert first["human"]["version"] == 1
     assert first["agent"]["version"] == 1
     assert "当前优势" in first["human"]["content"]
+    assert first["human"]["meta"]["used_pipeline"] is True
 
     assert second["human"]["version"] == 2
     assert second["agent"]["version"] == 2
@@ -147,11 +152,10 @@ async def test_generate_periodic_report_bundle_marks_sparse_samples():
         platform_results_json='{}',
     )
 
-    with patch("opencmo.reports._generate_llm_markdown", new_callable=AsyncMock) as mock_llm:
-        mock_llm.side_effect = [
-            "# Weekly Human\n\n样本稀疏",
-            "# Weekly Agent\n\nsample_count: 1",
-        ]
+    with patch("opencmo.report_pipeline.run_deep_report_pipeline", new_callable=AsyncMock) as mock_pipeline, \
+         patch("opencmo.reports._generate_llm_markdown", new_callable=AsyncMock) as mock_llm:
+        mock_pipeline.return_value = "# Weekly Human\n\n样本稀疏"
+        mock_llm.return_value = "# Weekly Agent\n\nsample_count: 1"
         report = await service.regenerate_project_report(project_id, "periodic")
 
     assert report["kind"] == "periodic"
@@ -159,7 +163,8 @@ async def test_generate_periodic_report_bundle_marks_sparse_samples():
     assert report["human"]["meta"]["sample_count"] == 1
     assert report["human"]["meta"]["low_sample"] is True
     assert "样本稀疏" in report["human"]["content"]
-    assert mock_llm.await_count == 2
+    assert mock_pipeline.await_count == 1  # human via pipeline
+    assert mock_llm.await_count == 1       # agent via single-call
 
 
 @pytest.mark.asyncio
@@ -171,11 +176,10 @@ async def test_send_project_report_reuses_latest_periodic_human_report(monkeypat
     monkeypatch.setenv("OPENCMO_SMTP_PASS", "pass")
     monkeypatch.setenv("OPENCMO_REPORT_EMAIL", "report@test.com")
 
-    with patch("opencmo.reports._generate_llm_markdown", new_callable=AsyncMock) as mock_llm:
-        mock_llm.side_effect = [
-            "# Weekly Human\n\n重要变化",
-            "# Weekly Agent\n\nbrief",
-        ]
+    with patch("opencmo.report_pipeline.run_deep_report_pipeline", new_callable=AsyncMock) as mock_pipeline, \
+         patch("opencmo.reports._generate_llm_markdown", new_callable=AsyncMock) as mock_llm:
+        mock_pipeline.return_value = "# Weekly Human\n\n重要变化"
+        mock_llm.return_value = "# Weekly Agent\n\nbrief"
         await service.regenerate_project_report(project_id, "periodic")
 
     with patch("smtplib.SMTP") as mock_smtp:
@@ -207,7 +211,8 @@ async def test_generate_report_uses_persisted_llm_settings(monkeypatch):
 
     fake_create = AsyncMock(
         side_effect=[
-            fake_response("# Human report"),
+            # Pipeline internally calls _generate_llm_markdown multiple times,
+            # but we mock the pipeline itself for the human report.
             fake_response("# Agent brief"),
         ]
     )
@@ -217,16 +222,20 @@ async def test_generate_report_uses_persisted_llm_settings(monkeypatch):
         )
     )
 
-    with patch("openai.AsyncOpenAI", return_value=fake_client) as mock_client:
+    with patch("opencmo.report_pipeline.run_deep_report_pipeline", new_callable=AsyncMock) as mock_pipeline, \
+         patch("openai.AsyncOpenAI", return_value=fake_client) as mock_client:
+        mock_pipeline.return_value = "# Human report via pipeline"
         report = await service.regenerate_project_report(project_id, "strategic")
 
     assert report["human"]["meta"]["used_fallback"] is False
+    assert report["human"]["meta"]["used_pipeline"] is True
     assert report["human"]["meta"]["model"] == "provider-model"
-    assert mock_client.call_count == 2
+    # Agent brief uses _generate_llm_markdown → openai client
+    assert mock_client.call_count == 1
     for call in mock_client.call_args_list:
         assert call.kwargs == {
             "api_key": "persisted-key",
             "base_url": "https://example.test/v1",
         }
-    assert fake_create.await_count == 2
+    assert fake_create.await_count == 1
     assert all(call.kwargs["model"] == "provider-model" for call in fake_create.await_args_list)

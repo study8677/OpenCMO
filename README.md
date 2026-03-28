@@ -53,21 +53,26 @@
 
 OpenCMO now includes a formal report system inside each project workspace. Open the **Reports** tab or visit `/app/projects/<id>/reports`.
 
-- **Strategic Report**: generated after a full scan.
-  - Current project positioning
-  - Strengths and weaknesses
-  - Competitor landscape and differentiation
-  - CMO recommendation
-  - Changes since the previous version
-- **Weekly Report**: generated from the latest 7-day monitoring window.
-  - The 3 most important changes
-  - SEO / GEO / SERP / community trend summary
-  - New risks and notable wins
-  - Market and competitor signals
-  - Next-week focus
-- **Dual outputs**: every report is stored as both a **Human Readout** and an **Agent Brief**.
+### Multi-Agent Deep Report Pipeline
+
+Human-facing reports are generated through a **6-phase multi-agent pipeline** (~14 LLM calls) instead of a single prompt. This produces McKinsey-grade analysis with cross-validated data, evidence-based reasoning, and iterative quality control.
+
+| Phase | Role | What it does |
+| :--- | :--- | :--- |
+| 1. Reflection Agent | Quality Auditor | Cross-validates all agent data, flags anomalies and gaps |
+| 2. Insight Distiller | Analyst | Extracts analytical insights with cross-dimensional correlations |
+| 3. Outline Planner | Editor-in-Chief | Plans narrative arc with per-section thesis and evidence mapping |
+| 4. Section Writers | Authors (parallel) | Write each section concurrently with focused context |
+| 5. Section Grader | Reviewer | Scores each section 1-5, rejects and retries below threshold |
+| 6. Report Synthesizer | Managing Editor | Writes executive summary, intro, strategic recommendations |
+
+- **Strategic Report**: generated after a full scan — deep competitive analysis, risk assessment, and CMO-level strategic recommendations.
+- **Weekly Report**: generated from the latest 7-day monitoring window — trend analysis, risk/win highlights, and next-week action plan.
+- **Dual outputs**: every report is stored as both a **Human Readout** (deep analysis) and an **Agent Brief** (concise action items).
+- **PDF export**: download branded PDF reports with logo header and footer.
 - **Version history**: reports are retained and viewable as historical versions.
 - **Email delivery**: weekly email uses the same persisted report content you see in the product.
+- **Graceful fallback**: pipeline failures automatically fall back to single-call → template generation.
 
 ## Core Product Surface
 
@@ -118,7 +123,7 @@ The dev app runs at `http://localhost:5173/app` and proxies API traffic to `:808
 | Monitoring | SEO, GEO, SERP, Community | Optional provider keys |
 | Community sources | Reddit, HN, Dev.to, Bluesky, YouTube, Twitter/X | Optional |
 | Publishing | Reddit, Twitter/X | Required |
-| Reports | Web + Email | SMTP for email |
+| Reports | Web + Email + PDF | SMTP for email |
 | LLM providers | OpenAI-compatible APIs | Required |
 
 ## Roadmap
@@ -126,6 +131,8 @@ The dev app runs at `http://localhost:5173/app` and proxies API traffic to `:808
 - [x] AI CMO strategic scan
 - [x] SEO / GEO / SERP / community monitoring
 - [x] Versioned strategic and weekly reports
+- [x] Multi-agent deep report pipeline (6-phase)
+- [x] PDF export with branded header/footer
 - [x] 3D knowledge graph
 - [x] Approval queue and controlled publishing
 - [ ] More publishing targets
