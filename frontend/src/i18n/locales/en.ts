@@ -307,6 +307,9 @@ export const en = {
   "setup.tavilyKey": "Tavily Search Key",
   "setup.configureNow": "Go to Settings",
   "setup.dismissHint": "Dismiss for this session",
+
+  // Settings
+  "settings.localKeysHint": "Your API keys are stored locally in your browser — never sent to our server for storage.",
 } as const;
 
 export type TranslationKey = keyof typeof en;

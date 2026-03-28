@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { X, Key, Check, ChevronDown, ChevronRight } from "lucide-react";
+import { X, Key, Check, ChevronDown, ChevronRight, Shield } from "lucide-react";
 import { getSettings, saveSettings } from "../../api/settings";
+import { getUserKeys, setUserKeys, type UserKeys } from "../../api/userKeys";
 import { useI18n } from "../../i18n";
 import type { AISettings } from "../../types";
 
@@ -114,40 +115,28 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [saved, setSaved] = useState(false);
   const [status, setStatus] = useState<AISettings | null>(null);
 
-  // AI Provider
+  // ── User-local keys (stored in browser localStorage) ──
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [model, setModel] = useState("");
+  const [tavilyKey, setTavilyKey] = useState("");
+  const [anthropicKey, setAnthropicKey] = useState("");
+  const [googleAiKey, setGoogleAiKey] = useState("");
+  const [pagespeedKey, setPagespeedKey] = useState("");
 
-  // Reddit
+  // ── Server-side settings ──
   const [redditClientId, setRedditClientId] = useState("");
   const [redditClientSecret, setRedditClientSecret] = useState("");
   const [redditUsername, setRedditUsername] = useState("");
   const [redditPassword, setRedditPassword] = useState("");
   const [autoPublish, setAutoPublish] = useState(false);
-
-  // Twitter
   const [twitterApiKey, setTwitterApiKey] = useState("");
   const [twitterApiSecret, setTwitterApiSecret] = useState("");
   const [twitterAccessToken, setTwitterAccessToken] = useState("");
   const [twitterAccessSecret, setTwitterAccessSecret] = useState("");
-
-  // GEO
-  const [anthropicKey, setAnthropicKey] = useState("");
-  const [googleAiKey, setGoogleAiKey] = useState("");
   const [geoChatgpt, setGeoChatgpt] = useState(false);
-
-  // SEO
-  const [pagespeedKey, setPagespeedKey] = useState("");
-
-  // Search (Tavily)
-  const [tavilyKey, setTavilyKey] = useState("");
-
-  // SERP
   const [dataforseoLogin, setDataforseoLogin] = useState("");
   const [dataforseoPassword, setDataforseoPassword] = useState("");
-
-  // Email
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("");
   const [smtpUser, setSmtpUser] = useState("");
@@ -155,10 +144,21 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [reportEmail, setReportEmail] = useState("");
 
   useEffect(() => {
+    // Load user-local keys
+    const uk = getUserKeys();
+    if (uk.OPENAI_API_KEY) setApiKey(uk.OPENAI_API_KEY);
+    if (uk.OPENAI_BASE_URL) setBaseUrl(uk.OPENAI_BASE_URL);
+    if (uk.OPENCMO_MODEL_DEFAULT) setModel(uk.OPENCMO_MODEL_DEFAULT);
+    if (uk.TAVILY_API_KEY) setTavilyKey(uk.TAVILY_API_KEY);
+    if (uk.ANTHROPIC_API_KEY) setAnthropicKey(uk.ANTHROPIC_API_KEY);
+    if (uk.GOOGLE_AI_API_KEY) setGoogleAiKey(uk.GOOGLE_AI_API_KEY);
+    if (uk.PAGESPEED_API_KEY) setPagespeedKey(uk.PAGESPEED_API_KEY);
+
+    // Load server-side status
     getSettings().then((s) => {
       setStatus(s);
-      setBaseUrl(s.base_url);
-      setModel(s.model);
+      if (!uk.OPENAI_BASE_URL && s.base_url) setBaseUrl(s.base_url);
+      if (!uk.OPENCMO_MODEL_DEFAULT && s.model) setModel(s.model);
       setAutoPublish(s.auto_publish);
       setGeoChatgpt(s.geo_chatgpt_enabled);
       setSmtpHost(s.smtp_host);
@@ -172,43 +172,40 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     setLoading(true);
     setSaved(false);
     try {
+      // 1. Save user-local keys to localStorage
+      const newKeys: UserKeys = {};
+      if (apiKey) newKeys.OPENAI_API_KEY = apiKey;
+      if (baseUrl) newKeys.OPENAI_BASE_URL = baseUrl;
+      if (model) newKeys.OPENCMO_MODEL_DEFAULT = model;
+      if (tavilyKey) newKeys.TAVILY_API_KEY = tavilyKey;
+      if (anthropicKey) newKeys.ANTHROPIC_API_KEY = anthropicKey;
+      if (googleAiKey) newKeys.GOOGLE_AI_API_KEY = googleAiKey;
+      if (pagespeedKey) newKeys.PAGESPEED_API_KEY = pagespeedKey;
+      setUserKeys(newKeys);
+
+      // 2. Save server-side settings (non-key configs)
       await saveSettings({
-        // AI Provider
-        OPENAI_API_KEY: apiKey || undefined,
-        OPENAI_BASE_URL: baseUrl,
-        OPENCMO_MODEL_DEFAULT: model,
-        // Reddit
         REDDIT_CLIENT_ID: redditClientId || undefined,
         REDDIT_CLIENT_SECRET: redditClientSecret || undefined,
         REDDIT_USERNAME: redditUsername || undefined,
         REDDIT_PASSWORD: redditPassword || undefined,
         OPENCMO_AUTO_PUBLISH: autoPublish ? "1" : "0",
-        // Twitter
         TWITTER_API_KEY: twitterApiKey || undefined,
         TWITTER_API_SECRET: twitterApiSecret || undefined,
         TWITTER_ACCESS_TOKEN: twitterAccessToken || undefined,
         TWITTER_ACCESS_SECRET: twitterAccessSecret || undefined,
-        // GEO
-        ANTHROPIC_API_KEY: anthropicKey || undefined,
-        GOOGLE_AI_API_KEY: googleAiKey || undefined,
         OPENCMO_GEO_CHATGPT: geoChatgpt ? "1" : "0",
-        // SEO
-        PAGESPEED_API_KEY: pagespeedKey || undefined,
-        // Search (Tavily)
-        TAVILY_API_KEY: tavilyKey || undefined,
-        // SERP
         DATAFORSEO_LOGIN: dataforseoLogin || undefined,
         DATAFORSEO_PASSWORD: dataforseoPassword || undefined,
-        // Email
         OPENCMO_SMTP_HOST: smtpHost || undefined,
         OPENCMO_SMTP_PORT: smtpPort || undefined,
         OPENCMO_SMTP_USER: smtpUser || undefined,
         OPENCMO_SMTP_PASS: smtpPass || undefined,
         OPENCMO_REPORT_EMAIL: reportEmail || undefined,
       });
+
       setSaved(true);
-      // Clear sensitive fields
-      setApiKey("");
+      // Clear server-side sensitive fields
       setRedditClientId("");
       setRedditClientSecret("");
       setRedditUsername("");
@@ -217,14 +214,10 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       setTwitterApiSecret("");
       setTwitterAccessToken("");
       setTwitterAccessSecret("");
-      setAnthropicKey("");
-      setGoogleAiKey("");
-      setPagespeedKey("");
-      setTavilyKey("");
       setDataforseoLogin("");
       setDataforseoPassword("");
       setSmtpPass("");
-      // Refresh status
+      // Refresh server status
       const s = await getSettings();
       setStatus(s);
       setTimeout(() => setSaved(false), 2000);
@@ -247,14 +240,18 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="space-y-4">
+          {/* ── Security badge ── */}
+          <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700">
+            <Shield size={14} />
+            {t("settings.localKeysHint")}
+          </div>
+
           {/* ── AI Provider (always open) ── */}
-          {status && (
-            <StatusBadge
-              ok={status.api_key_set}
-              okText={`${t("settings.apiKeySet")} (${status.api_key_masked})`}
-              noText={t("settings.apiKeyNotSet")}
-            />
-          )}
+          <StatusBadge
+            ok={!!apiKey}
+            okText={`${t("settings.apiKeySet")} (${apiKey ? apiKey.slice(0, 3) + "..." + apiKey.slice(-4) : ""})`}
+            noText={t("settings.apiKeyNotSet")}
+          />
           <Field
             label={t("settings.apiKey")}
             type="password"

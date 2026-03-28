@@ -309,4 +309,7 @@ export const zh: Record<TranslationKey, string> = {
   "setup.tavilyKey": "Tavily 搜索 Key",
   "setup.configureNow": "前往设置",
   "setup.dismissHint": "本次不再提醒",
+
+  // Settings
+  "settings.localKeysHint": "您的 API 密钥仅保存在本地浏览器中，不会上传到服务器。",
 };

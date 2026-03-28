@@ -74,10 +74,57 @@ async def _shutdown_runtime_services():
 
 
 # ---------------------------------------------------------------------------
-# Auth middleware
+# BYOK middleware — per-user API key isolation
 # ---------------------------------------------------------------------------
 
-# No auth middleware — app is open. Users configure API keys in Settings.
+# Keys that can be injected from the X-User-Keys header
+_INJECTABLE_KEYS = frozenset({
+    "OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENCMO_MODEL_DEFAULT",
+    "TAVILY_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_AI_API_KEY",
+    "PAGESPEED_API_KEY",
+})
+
+
+@app.middleware("http")
+async def byok_middleware(request: Request, call_next):
+    """Read per-user API keys from X-User-Keys header and inject into env."""
+    raw = request.headers.get("X-User-Keys")
+    if not raw:
+        return await call_next(request)
+
+    import base64
+    import json as _json
+
+    try:
+        decoded = base64.b64decode(raw).decode()
+        user_keys: dict = _json.loads(decoded)
+    except Exception:
+        return await call_next(request)
+
+    # Save originals, inject user keys
+    originals: dict[str, str | None] = {}
+    for k, v in user_keys.items():
+        if k in _INJECTABLE_KEYS and isinstance(v, str) and v.strip():
+            originals[k] = os.environ.get(k)
+            os.environ[k] = v.strip()
+
+    try:
+        # Also reset the OpenAI client so it picks up new key/url
+        from opencmo import config
+        config.reset_client()
+        response = await call_next(request)
+    finally:
+        # Restore originals
+        for k, orig in originals.items():
+            if orig is not None:
+                os.environ[k] = orig
+            else:
+                os.environ.pop(k, None)
+        if originals:
+            from opencmo import config
+            config.reset_client()
+
+    return response
 
 
 @app.get("/api/v1/health")

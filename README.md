@@ -18,6 +18,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-green.svg?style=for-the-badge" alt="License"></a>
   <a href="https://github.com/study8677/OpenCMO/stargazers"><img src="https://img.shields.io/github/stars/study8677/OpenCMO?style=for-the-badge&color=yellow&logo=github" alt="Stars"></a>
   <img src="https://img.shields.io/badge/react-SPA-61DAFB.svg?style=for-the-badge&logo=react" alt="React SPA">
+  <a href="https://724claw.icu/app/"><img src="https://img.shields.io/badge/🚀_Live_Demo-724claw.icu-ff6b35.svg?style=for-the-badge" alt="Live Demo"></a>
+</p>
+
+<p align="center">
+  <b>🔑 BYOK (Bring Your Own Key) — Each user configures their own API keys, stored locally in the browser. No server-side key storage.</b>
 </p>
 
 ---
@@ -349,6 +354,8 @@ npm run build   # Production build
 - [x] **Unified Settings panel** — configure all API keys from the web UI
 - [x] **Analytics dashboard redesign** — KPI summary cards with trend deltas, gradient area charts with threshold zones, per-page accent colors, position distribution bars, platform breakdown charts, and engagement indicators
 - [x] **GEO optimization toolkit** — Citability scoring (5-dimension AI citation readiness), AI crawler detection (14 crawlers), brand digital footprint scanning (YouTube/Reddit/Wikipedia/LinkedIn), llms.txt validation and generation. Inspired by [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude)
+- [x] **BYOK API key isolation** — Each user stores their own API keys in the browser's localStorage, transmitted per-request via headers. No shared key storage on the server.
+- [x] **Live Demo** — [724claw.icu/app](https://724claw.icu/app/) — Try it instantly with your own API keys
 - [ ] Direct publishing to LinkedIn, Product Hunt, and more
 - [ ] Custom Brand Voice fine-tuning
 - [ ] Enterprise-grade full-site SEO crawls

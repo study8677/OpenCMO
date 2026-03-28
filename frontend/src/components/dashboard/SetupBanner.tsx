@@ -1,36 +1,31 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getSettings } from "../../api/settings";
+import { useState, useEffect, useCallback } from "react";
+import { hasEssentialKeys } from "../../api/userKeys";
 import { useI18n } from "../../i18n";
 import { KeyRound, ChevronRight, X, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 /**
  * A persistent banner shown at the top of the app when essential API keys
- * (OpenAI + Tavily) are not configured. Clicking it opens the Settings dialog.
+ * (OpenAI + Tavily) are not configured in localStorage. Clicking opens Settings.
  */
 export function SetupBanner({ onOpenSettings }: { onOpenSettings: () => void }) {
   const { t } = useI18n();
   const [dismissed, setDismissed] = useState(false);
-  const { data: settings } = useQuery({
-    queryKey: ["settings"],
-    queryFn: getSettings,
-    staleTime: 60_000,
-  });
+  const [keyStatus, setKeyStatus] = useState(() => hasEssentialKeys());
+
+  // Re-check when keys change (e.g., after saving in Settings)
+  const refresh = useCallback(() => setKeyStatus(hasEssentialKeys()), []);
+  useEffect(() => {
+    window.addEventListener("opencmo:keys-changed", refresh);
+    return () => window.removeEventListener("opencmo:keys-changed", refresh);
+  }, [refresh]);
 
   // Don't show if dismissed this session
   if (dismissed) return null;
-  // Don't show until settings loaded
-  if (!settings) return null;
 
-  const hasLLM = settings.api_key_set;
-  const hasTavily = settings.tavily_key_set;
+  const { llm: hasLLM, tavily: hasTavily } = keyStatus;
 
   // All configured — don't show
   if (hasLLM && hasTavily) return null;
-
-  const missingItems: string[] = [];
-  if (!hasLLM) missingItems.push(t("setup.llmKey"));
-  if (!hasTavily) missingItems.push(t("setup.tavilyKey"));
 
   return (
     <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -54,25 +49,23 @@ export function SetupBanner({ onOpenSettings }: { onOpenSettings: () => void }) 
 
             {/* Missing items */}
             <div className="mt-3 flex flex-wrap gap-2">
-              {!hasLLM && (
+              {!hasLLM ? (
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/70 border border-amber-200/50 px-3 py-1.5 text-xs font-medium text-amber-800">
                   <X size={12} className="text-rose-500" />
                   {t("setup.llmKey")}
                 </span>
-              )}
-              {hasLLM && (
+              ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200/50 px-3 py-1.5 text-xs font-medium text-emerald-700">
                   <CheckCircle2 size={12} />
                   {t("setup.llmKey")}
                 </span>
               )}
-              {!hasTavily && (
+              {!hasTavily ? (
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/70 border border-amber-200/50 px-3 py-1.5 text-xs font-medium text-amber-800">
                   <X size={12} className="text-rose-500" />
                   {t("setup.tavilyKey")}
                 </span>
-              )}
-              {hasTavily && (
+              ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200/50 px-3 py-1.5 text-xs font-medium text-emerald-700">
                   <CheckCircle2 size={12} />
                   {t("setup.tavilyKey")}

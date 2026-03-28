@@ -1,4 +1,5 @@
 import { apiFetch, apiJson } from "./client";
+import { buildUserKeysHeader } from "./userKeys";
 import type { ChatEvent, ChatSessionSummary } from "../types";
 
 export async function createSession(projectId?: number | null): Promise<string> {
@@ -32,9 +33,15 @@ export async function* streamChat(
   message: string,
   projectId?: number | null,
 ): AsyncGenerator<ChatEvent> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const keysHeader = buildUserKeysHeader();
+  if (keysHeader) headers["X-User-Keys"] = keysHeader;
+
   const resp = await fetch("/api/v1/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({
       session_id: sessionId,
       message,

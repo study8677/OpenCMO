@@ -1,3 +1,5 @@
+import { buildUserKeysHeader } from "./userKeys";
+
 const API_PREFIX = "/api/v1";
 
 export async function apiFetch(
@@ -12,6 +14,10 @@ export async function apiFetch(
   ) {
     headers.set("Content-Type", "application/json");
   }
+
+  // Inject per-user API keys
+  const keysHeader = buildUserKeysHeader();
+  if (keysHeader) headers.set("X-User-Keys", keysHeader);
 
   return fetch(`${API_PREFIX}${path}`, { ...init, headers });
 }
