@@ -40,6 +40,7 @@ export const zh: Record<TranslationKey, string> = {
 
   // Project Tabs
   "project.overview": "概览",
+  "project.reports": "报告",
   "project.seo": "SEO",
   "project.geo": "GEO",
   "project.serp": "SERP",

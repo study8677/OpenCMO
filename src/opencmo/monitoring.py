@@ -746,6 +746,26 @@ async def run_monitoring_workflow(
             agent="Monitoring Orchestrator",
         ))
 
+        if job_type == "full":
+            try:
+                from opencmo.reports import generate_strategic_report_bundle
+
+                await generate_strategic_report_bundle(project_id, source_run_id=run_id)
+                await _emit(run_id, on_progress, _event(
+                    "reporting",
+                    "completed",
+                    "Strategic report refreshed from the completed monitoring run.",
+                    agent="AI CMO Reporter",
+                ))
+            except Exception as exc:
+                await _emit(run_id, on_progress, _event(
+                    "reporting",
+                    "failed",
+                    f"Strategic report refresh failed: {exc}",
+                    agent="AI CMO Reporter",
+                    detail=str(exc),
+                ))
+
         return {
             "run_id": run_id,
             "status": "completed",

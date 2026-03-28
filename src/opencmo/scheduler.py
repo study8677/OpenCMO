@@ -245,6 +245,23 @@ async def run_scheduled_scan(
     except Exception:
         logger.exception("Autopilot execution failed for project %d", project_id)
 
+    # Strategic + periodic reports
+    if job_type == "full":
+        try:
+            from opencmo.reports import generate_strategic_report_bundle
+
+            await generate_strategic_report_bundle(project_id, source_run_id=None)
+        except Exception:
+            logger.exception("Strategic report generation failed for project %d", project_id)
+
+    if job_type == "full" and triggered_by == "cron":
+        try:
+            from opencmo.reports import generate_periodic_report_bundle
+
+            await generate_periodic_report_bundle(project_id, source_run_id=None)
+        except Exception:
+            logger.exception("Periodic report generation failed for project %d", project_id)
+
     # Email report (only for cron + full)
     await _maybe_send_email_report(project_id, job_type, triggered_by)
 

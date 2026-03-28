@@ -117,6 +117,7 @@ async def delete_project(project_id: int) -> bool:
         # Delete trend briefings and insights
         await db.execute("DELETE FROM trend_briefings WHERE project_id = ?", (project_id,))
         await db.execute("DELETE FROM insights WHERE project_id = ?", (project_id,))
+        await db.execute("DELETE FROM reports WHERE project_id = ?", (project_id,))
         # Delete monitoring artifacts
         await db.execute(
             """DELETE FROM scan_findings WHERE run_id IN

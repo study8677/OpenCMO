@@ -4,6 +4,7 @@ import type { TranslationKey } from "../../i18n";
 
 const TABS: { path: string; labelKey: TranslationKey }[] = [
   { path: "", labelKey: "project.overview" },
+  { path: "/reports", labelKey: "project.reports" },
   { path: "/seo", labelKey: "project.seo" },
   { path: "/geo", labelKey: "project.geo" },
   { path: "/serp", labelKey: "project.serp" },
