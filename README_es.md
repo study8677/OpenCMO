@@ -22,7 +22,7 @@
 
 <div align="center">
   <h3>
-    <a href="https://724claw.icu/app/">Probar Demo en Vivo</a> · <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">Ver Video Demo</a>
+    <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">Ver Video Demo</a>
   </h3>
   <sub>BYOK (Trae Tu Propia Clave): sin login y con claves API guardadas solo en tu navegador.</sub>
 </div>

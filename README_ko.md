@@ -22,7 +22,7 @@
 
 <div align="center">
   <h3>
-    <a href="https://724claw.icu/app/">라이브 데모 체험</a> · <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">데모 영상 시청</a>
+    <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">데모 영상 시청</a>
   </h3>
   <sub>BYOK (Bring Your Own Key) 지원. 로그인 없이 사용하고 API 키는 브라우저에만 저장됩니다.</sub>
 </div>

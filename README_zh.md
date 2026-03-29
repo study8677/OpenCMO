@@ -22,7 +22,7 @@
 
 <div align="center">
   <h3>
-    <a href="https://724claw.icu/app/">在线体验</a> · <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">观看演示视频</a>
+    <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">观看演示视频</a>
   </h3>
   <sub>BYOK（自带 Key）模式，无需注册，API 密钥仅保存在你的浏览器中。</sub>
 </div>

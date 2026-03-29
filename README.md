@@ -22,7 +22,7 @@
 
 <div align="center">
   <h3>
-    <a href="https://724claw.icu/app/">Try the Live Demo</a> · <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">Watch Demo Video</a>
+    <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">Watch Demo Video</a>
   </h3>
   <sub>BYOK (Bring Your Own Key) — no login, and your API keys stay in your browser.</sub>
 </div>
