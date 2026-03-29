@@ -10,6 +10,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from urllib.parse import quote_plus
 
+import html as html_mod
+import re
+
 import httpx
 
 
@@ -174,6 +177,36 @@ def _truncate(text: str, limit: int) -> str:
     return text[:limit]
 
 
+def _strip_html(text: str) -> str:
+    """Remove HTML tags and decode common entities."""
+    text = re.sub(r"<[^>]+>", "", text)
+    return html_mod.unescape(text).strip()
+
+
+def _age_days_epoch(epoch_seconds: float) -> int:
+    """Return age in days from a Unix epoch timestamp."""
+    if not epoch_seconds:
+        return 0
+    try:
+        dt = datetime.fromtimestamp(epoch_seconds, tz=timezone.utc)
+        delta = datetime.now(timezone.utc) - dt
+        return max(0, delta.days)
+    except Exception:
+        return 0
+
+
+def _parse_weibo_date(date_str: str) -> int:
+    """Parse Weibo date format 'Tue Jan 01 12:00:00 +0800 2024' to age_days."""
+    if not date_str:
+        return 0
+    try:
+        dt = datetime.strptime(date_str, "%a %b %d %H:%M:%S %z %Y")
+        delta = datetime.now(timezone.utc) - dt
+        return max(0, delta.days)
+    except Exception:
+        return 0
+
+
 # ---------------------------------------------------------------------------
 # Category -> subreddit mapping for targeted search
 # ---------------------------------------------------------------------------
@@ -211,6 +244,42 @@ def _get_subreddits_for_category(category: str) -> list[str]:
             if word in key or key in word:
                 return subs
     return []
+
+
+# ---------------------------------------------------------------------------
+# Category -> V2EX node mapping for targeted browsing
+# ---------------------------------------------------------------------------
+
+_CATEGORY_V2EX_NODES: dict[str, list[str]] = {
+    "devtools": ["programmer", "devtools", "create", "github"],
+    "ai": ["openai", "programmer", "create"],
+    "saas": ["create", "share", "programmer"],
+    "marketing": ["share", "create"],
+    "cloud": ["cloud", "devops", "programmer"],
+    "database": ["programmer", "devtools"],
+    "mobile": ["idev", "android", "programmer"],
+    "gaming": ["games", "programmer"],
+    "fintech": ["bitcoin", "programmer"],
+    "design": ["design", "creative"],
+    "security": ["programmer", "linux"],
+    "python": ["python", "programmer"],
+    "golang": ["go", "programmer"],
+    "javascript": ["nodejs", "programmer"],
+    "productivity": ["programmer", "apple", "share"],
+}
+
+
+def _get_v2ex_nodes_for_category(category: str) -> list[str]:
+    """Return relevant V2EX nodes for a category."""
+    cat_lower = category.lower()
+    for key, nodes in _CATEGORY_V2EX_NODES.items():
+        if key in cat_lower or cat_lower in key:
+            return nodes
+    for word in cat_lower.split():
+        for key, nodes in _CATEGORY_V2EX_NODES.items():
+            if word in key or key in word:
+                return nodes
+    return ["programmer", "share"]
 
 
 # ---------------------------------------------------------------------------
@@ -1400,6 +1469,566 @@ class BlogSearchProvider(CommunityProvider):
 
 
 # ---------------------------------------------------------------------------
+# V2EX — Chinese developer community (public API, no auth)
+# ---------------------------------------------------------------------------
+
+
+class V2EXProvider(CommunityProvider):
+    name = "v2ex"
+    status = "enabled"
+    requires_auth = False
+    auth_env_vars: list[str] = []
+    capabilities = {"search", "detail"}
+    max_search_calls = 4
+    recommended_max_details = 3
+
+    _BASE = "https://www.v2ex.com/api"
+
+    @staticmethod
+    def parse_topics_response(data: list, source: str) -> list[DiscussionHit]:
+        hits: list[DiscussionHit] = []
+        for t in data:
+            title = t.get("title", "")
+            content = _strip_html(t.get("content_rendered", "") or t.get("content", ""))
+            hits.append(DiscussionHit(
+                platform="v2ex",
+                title=title,
+                url=f"https://www.v2ex.com/t/{t.get('id', '')}",
+                engagement_score=0,
+                raw_score=t.get("replies", 0),
+                comments_count=t.get("replies", 0),
+                age_days=_age_days_epoch(t.get("created", 0)),
+                author=(t.get("member") or {}).get("username", ""),
+                detail_id=str(t.get("id", "")),
+                extra_param_1=(t.get("node") or {}).get("name", ""),
+                extra_param_2="",
+                preview=_truncate(content, 300),
+                source=source,
+            ))
+        return hits
+
+    @staticmethod
+    def parse_replies_response(data: list, hit: DiscussionHit) -> DiscussionDetail:
+        comments = []
+        for r in data:
+            comments.append({
+                "author": (r.get("member") or {}).get("username", ""),
+                "body": _strip_html(r.get("content_rendered", "") or r.get("content", "")),
+                "created": r.get("created", ""),
+            })
+        return DiscussionDetail(
+            platform="v2ex",
+            detail_id=hit.detail_id,
+            title=hit.title,
+            full_content=hit.preview,
+            url=hit.url,
+            comments=comments,
+        )
+
+    async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        profile = _get_profile()
+        max_results = profile.v2ex_max_results
+        all_hits: list[DiscussionHit] = []
+        errors: list[str] = []
+        suggested: list[SuggestedQuery] = []
+
+        # 1. Fetch hot topics and filter client-side
+        r = await _http_get_json(f"{self._BASE}/topics/hot.json")
+        if r.error:
+            errors.append(f"v2ex_hot: {r.error}")
+        elif isinstance(r.data, list):
+            for h in self.parse_topics_response(r.data, "v2ex_hot"):
+                text = f"{h.title} {h.preview}".lower()
+                if brand_name.lower() in text or category.lower() in text:
+                    all_hits.append(h)
+        await _delay()
+
+        # 2. Fetch category-relevant nodes
+        nodes = _get_v2ex_nodes_for_category(category)
+        for node in nodes[:3]:
+            r = await _http_get_json(
+                f"{self._BASE}/topics/show.json",
+                params={"node_name": node},
+            )
+            if r.error:
+                errors.append(f"v2ex_node_{node}: {r.error}")
+            elif isinstance(r.data, list):
+                parsed = self.parse_topics_response(r.data[:max_results], f"v2ex_node_{node}")
+                for h in parsed:
+                    text = f"{h.title} {h.preview}".lower()
+                    if brand_name.lower() in text or category.lower() in text:
+                        all_hits.append(h)
+            await _delay()
+
+        # 3. Always suggest web search (V2EX has no search API)
+        suggested.append(SuggestedQuery(
+            platform="v2ex", provider="v2ex",
+            query=f'site:v2ex.com "{brand_name}"',
+            reason="V2EX has no search API; use web search for broader coverage",
+        ))
+
+        # Deduplicate
+        seen: dict[str, DiscussionHit] = {}
+        for h in all_hits:
+            existing = seen.get(h.detail_id)
+            if existing is None or h.raw_score > existing.raw_score:
+                seen[h.detail_id] = h
+        return ProviderSearchResult(
+            hits=list(seen.values())[:max_results],
+            errors=errors,
+            suggested_queries=suggested,
+        )
+
+    async def fetch_detail(self, hit: DiscussionHit) -> DiscussionDetail | None:
+        profile = _get_profile()
+        r = await _http_get_json(
+            f"{self._BASE}/replies/show.json",
+            params={"topic_id": hit.detail_id},
+        )
+        if r.error or not isinstance(r.data, list):
+            return None
+        replies = r.data[:profile.v2ex_comments_per_post]
+        return self.parse_replies_response(replies, hit)
+
+
+# ---------------------------------------------------------------------------
+# Weibo — Chinese microblogging (mobile API, no auth for search)
+# ---------------------------------------------------------------------------
+
+
+class WeiboProvider(CommunityProvider):
+    name = "weibo"
+    status = "enabled"
+    requires_auth = False
+    auth_env_vars: list[str] = []
+    capabilities = {"search", "detail"}
+    max_search_calls = 4
+    recommended_max_details = 3
+
+    _BASE = "https://m.weibo.cn"
+    _HEADERS = {
+        "Referer": "https://m.weibo.cn/",
+        "X-Requested-With": "XMLHttpRequest",
+    }
+
+    @staticmethod
+    def parse_search_cards(cards: list, source: str) -> list[DiscussionHit]:
+        hits: list[DiscussionHit] = []
+        for card in cards:
+            mblog = card.get("mblog")
+            if not mblog:
+                continue
+            text = _strip_html(mblog.get("text", ""))
+            reposts = mblog.get("reposts_count", 0)
+            comments = mblog.get("comments_count", 0)
+            attitudes = mblog.get("attitudes_count", 0)
+            mid = str(mblog.get("mid", "") or mblog.get("id", ""))
+            user = mblog.get("user") or {}
+            hits.append(DiscussionHit(
+                platform="weibo",
+                title=_truncate(text, 100),
+                url=f"https://m.weibo.cn/detail/{mid}",
+                engagement_score=0,
+                raw_score=reposts + comments + attitudes,
+                comments_count=comments,
+                age_days=_parse_weibo_date(mblog.get("created_at", "")),
+                author=user.get("screen_name", ""),
+                detail_id=mid,
+                extra_param_1="",
+                extra_param_2="",
+                preview=_truncate(text, 300),
+                source=source,
+            ))
+        return hits
+
+    @staticmethod
+    def parse_comments_response(data: list, hit: DiscussionHit) -> DiscussionDetail:
+        comments = []
+        for c in data:
+            comments.append({
+                "author": (c.get("user") or {}).get("screen_name", ""),
+                "body": _strip_html(c.get("text", "")),
+                "created_at": c.get("created_at", ""),
+            })
+        return DiscussionDetail(
+            platform="weibo",
+            detail_id=hit.detail_id,
+            title=hit.title,
+            full_content=hit.preview,
+            url=hit.url,
+            comments=comments,
+        )
+
+    async def _search_query(self, query: str, source: str) -> tuple[list[DiscussionHit], list[str]]:
+        containerid = f"100103type=1&q={query}"
+        r = await _http_get_json(
+            f"{self._BASE}/api/container/getIndex",
+            params={"containerid": containerid},
+            headers=self._HEADERS,
+        )
+        if r.error:
+            return [], [f"weibo_{source}: {r.error}"]
+        data = r.data or {}
+        cards = data.get("data", {}).get("cards", [])
+        return self.parse_search_cards(cards, source), []
+
+    async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        profile = _get_profile()
+        all_hits: list[DiscussionHit] = []
+        errors: list[str] = []
+
+        # Brand search
+        hits, errs = await self._search_query(brand_name, "brand")
+        all_hits.extend(hits[:profile.weibo_max_results])
+        errors.extend(errs)
+        await _delay()
+
+        # Category search
+        hits, errs = await self._search_query(category, "category")
+        all_hits.extend(hits[:profile.weibo_max_results])
+        errors.extend(errs)
+
+        # Deduplicate
+        seen: dict[str, DiscussionHit] = {}
+        for h in all_hits:
+            existing = seen.get(h.detail_id)
+            if existing is None or h.raw_score > existing.raw_score:
+                seen[h.detail_id] = h
+        return ProviderSearchResult(
+            hits=list(seen.values())[:profile.weibo_max_results],
+            errors=errors,
+        )
+
+    async def fetch_detail(self, hit: DiscussionHit) -> DiscussionDetail | None:
+        profile = _get_profile()
+        r = await _http_get_json(
+            f"{self._BASE}/api/comments/show",
+            params={"id": hit.detail_id, "page": "1"},
+            headers=self._HEADERS,
+        )
+        if r.error:
+            return None
+        data = r.data or {}
+        comments_data = data.get("data", {}).get("data", [])
+        return self.parse_comments_response(
+            comments_data[:profile.weibo_comments_per_post], hit,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Bilibili — Chinese video platform (public API, no auth)
+# ---------------------------------------------------------------------------
+
+
+class BilibiliProvider(CommunityProvider):
+    name = "bilibili"
+    status = "enabled"
+    requires_auth = False
+    auth_env_vars: list[str] = []
+    capabilities = {"search", "detail"}
+    max_search_calls = 4
+    recommended_max_details = 3
+
+    _SEARCH_URL = "https://api.bilibili.com/x/web-interface/search/all/v2"
+    _VIEW_URL = "https://api.bilibili.com/x/web-interface/view"
+    _REPLY_URL = "https://api.bilibili.com/x/v2/reply"
+    _HEADERS = {"Referer": "https://www.bilibili.com"}
+
+    @staticmethod
+    def parse_search_response(data: dict, source: str) -> list[DiscussionHit]:
+        hits: list[DiscussionHit] = []
+        result_groups = (data.get("data") or {}).get("result", [])
+        for group in result_groups:
+            if group.get("result_type") != "video":
+                continue
+            for v in (group.get("data") or []):
+                title = _strip_html(v.get("title", ""))
+                bvid = v.get("bvid", "")
+                aid = str(v.get("aid", "") or v.get("id", ""))
+                hits.append(DiscussionHit(
+                    platform="bilibili",
+                    title=title,
+                    url=f"https://www.bilibili.com/video/{bvid}",
+                    engagement_score=0,
+                    raw_score=v.get("play", 0) + v.get("like", 0),
+                    comments_count=v.get("review", 0),
+                    age_days=_age_days_epoch(v.get("pubdate", 0)),
+                    author=v.get("author", ""),
+                    detail_id=bvid,
+                    extra_param_1=aid,
+                    extra_param_2="",
+                    preview=_truncate(v.get("description", "") or title, 300),
+                    source=source,
+                ))
+        return hits
+
+    @staticmethod
+    def parse_comments_response(data: dict, hit: DiscussionHit) -> DiscussionDetail:
+        comments = []
+        replies = (data.get("data") or {}).get("replies") or []
+        for r in replies:
+            member = r.get("member") or {}
+            content = r.get("content") or {}
+            comments.append({
+                "author": member.get("uname", ""),
+                "body": content.get("message", ""),
+                "like": r.get("like", 0),
+            })
+        return DiscussionDetail(
+            platform="bilibili",
+            detail_id=hit.detail_id,
+            title=hit.title,
+            full_content=hit.preview,
+            url=hit.url,
+            comments=comments,
+        )
+
+    async def _search_keyword(self, keyword: str, source: str, max_results: int) -> tuple[list[DiscussionHit], list[str]]:
+        r = await _http_get_json(
+            self._SEARCH_URL,
+            params={"keyword": keyword},
+            headers=self._HEADERS,
+        )
+        if r.error:
+            return [], [f"bilibili_{source}: {r.error}"]
+        hits = self.parse_search_response(r.data or {}, source)
+        return hits[:max_results], []
+
+    async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        profile = _get_profile()
+        all_hits: list[DiscussionHit] = []
+        errors: list[str] = []
+
+        hits, errs = await self._search_keyword(brand_name, "brand", profile.bilibili_max_results)
+        all_hits.extend(hits)
+        errors.extend(errs)
+        await _delay()
+
+        hits, errs = await self._search_keyword(category, "category", profile.bilibili_max_results)
+        all_hits.extend(hits)
+        errors.extend(errs)
+
+        # Deduplicate
+        seen: dict[str, DiscussionHit] = {}
+        for h in all_hits:
+            existing = seen.get(h.detail_id)
+            if existing is None or h.raw_score > existing.raw_score:
+                seen[h.detail_id] = h
+        return ProviderSearchResult(
+            hits=list(seen.values())[:profile.bilibili_max_results],
+            errors=errors,
+        )
+
+    async def fetch_detail(self, hit: DiscussionHit) -> DiscussionDetail | None:
+        profile = _get_profile()
+        aid = hit.extra_param_1
+        if not aid:
+            # Try to get aid from video detail
+            r = await _http_get_json(
+                self._VIEW_URL,
+                params={"bvid": hit.detail_id},
+                headers=self._HEADERS,
+            )
+            if r.error:
+                return None
+            aid = str((r.data or {}).get("data", {}).get("aid", ""))
+            if not aid:
+                return None
+        r = await _http_get_json(
+            self._REPLY_URL,
+            params={"type": "1", "oid": aid, "sort": "1"},
+            headers=self._HEADERS,
+        )
+        if r.error:
+            return None
+        detail = self.parse_comments_response(r.data or {}, hit)
+        detail.comments = detail.comments[:profile.bilibili_comments_per_post]
+        return detail
+
+
+# ---------------------------------------------------------------------------
+# XueQiu — Chinese stock/finance community (requires cookie)
+# ---------------------------------------------------------------------------
+
+
+class XueQiuProvider(CommunityProvider):
+    name = "xueqiu"
+    status = "enabled"
+    requires_auth = True
+    auth_env_vars = ["XUEQIU_COOKIE"]
+    capabilities = {"search"}
+    max_search_calls = 4
+    recommended_max_details = 0
+
+    _SEARCH_URL = "https://xueqiu.com/statuses/search.json"
+
+    @staticmethod
+    def parse_search_response(data: dict, source: str) -> list[DiscussionHit]:
+        hits: list[DiscussionHit] = []
+        statuses = data.get("list") or data.get("statuses") or []
+        for s in statuses:
+            text = _strip_html(s.get("text", "") or s.get("description", ""))
+            title = _strip_html(s.get("title", "") or "")
+            if not title:
+                title = _truncate(text, 100)
+            reply_count = s.get("reply_count", 0)
+            retweet_count = s.get("retweet_count", 0)
+            like_count = s.get("like_count", 0) or s.get("fav_count", 0)
+            # XueQiu timestamps are in milliseconds
+            created_ms = s.get("created_at", 0)
+            epoch_s = created_ms / 1000.0 if created_ms > 1e12 else created_ms
+            user = s.get("user") or {}
+            sid = str(s.get("id", ""))
+            hits.append(DiscussionHit(
+                platform="xueqiu",
+                title=title,
+                url=f"https://xueqiu.com/{user.get('id', '')}/{sid}",
+                engagement_score=0,
+                raw_score=reply_count + retweet_count + like_count,
+                comments_count=reply_count,
+                age_days=_age_days_epoch(epoch_s),
+                author=user.get("screen_name", ""),
+                detail_id=sid,
+                extra_param_1="",
+                extra_param_2="",
+                preview=_truncate(text, 300),
+                source=source,
+            ))
+        return hits
+
+    async def _search_query(self, query: str, source: str, max_results: int) -> tuple[list[DiscussionHit], list[str]]:
+        cookie = os.environ.get("XUEQIU_COOKIE", "")
+        r = await _http_get_json(
+            self._SEARCH_URL,
+            params={"q": query, "sort": "time", "count": str(max_results)},
+            headers={
+                "Cookie": cookie,
+                "Referer": "https://xueqiu.com/",
+            },
+        )
+        if r.error:
+            return [], [f"xueqiu_{source}: {r.error}"]
+        return self.parse_search_response(r.data or {}, source), []
+
+    async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        profile = _get_profile()
+        all_hits: list[DiscussionHit] = []
+        errors: list[str] = []
+
+        hits, errs = await self._search_query(brand_name, "brand", profile.xueqiu_max_results)
+        all_hits.extend(hits)
+        errors.extend(errs)
+        await _delay()
+
+        hits, errs = await self._search_query(category, "category", profile.xueqiu_max_results)
+        all_hits.extend(hits)
+        errors.extend(errs)
+
+        seen: dict[str, DiscussionHit] = {}
+        for h in all_hits:
+            existing = seen.get(h.detail_id)
+            if existing is None or h.raw_score > existing.raw_score:
+                seen[h.detail_id] = h
+        return ProviderSearchResult(
+            hits=list(seen.values())[:profile.xueqiu_max_results],
+            errors=errors,
+        )
+
+
+# ---------------------------------------------------------------------------
+# XiaoHongShu — stub (requires Docker + xiaohongshu-mcp)
+# ---------------------------------------------------------------------------
+
+
+class XiaoHongShuProvider(CommunityProvider):
+    name = "xiaohongshu"
+    status = "stub"
+    requires_auth = True
+    auth_env_vars = ["XIAOHONGSHU_MCP_URL"]
+    capabilities: set[str] = set()
+    max_search_calls = 0
+    recommended_max_details = 0
+
+    async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        return ProviderSearchResult(
+            suggested_queries=[
+                SuggestedQuery(
+                    platform="xiaohongshu", provider="xiaohongshu",
+                    query=f'site:xiaohongshu.com "{brand_name}"',
+                    reason="stub: requires xiaohongshu-mcp Docker container",
+                ),
+                SuggestedQuery(
+                    platform="xiaohongshu", provider="xiaohongshu",
+                    query=f'site:xiaohongshu.com {category}',
+                    reason="stub: requires xiaohongshu-mcp Docker container",
+                ),
+            ],
+        )
+
+
+# ---------------------------------------------------------------------------
+# WeChat Official Accounts — stub (requires browser automation)
+# ---------------------------------------------------------------------------
+
+
+class WeChatProvider(CommunityProvider):
+    name = "wechat"
+    status = "stub"
+    requires_auth = False
+    auth_env_vars: list[str] = []
+    capabilities: set[str] = set()
+    max_search_calls = 0
+    recommended_max_details = 0
+
+    async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        return ProviderSearchResult(
+            suggested_queries=[
+                SuggestedQuery(
+                    platform="wechat", provider="wechat",
+                    query=f'site:mp.weixin.qq.com "{brand_name}"',
+                    reason="stub: requires camoufox browser automation",
+                ),
+                SuggestedQuery(
+                    platform="wechat", provider="wechat",
+                    query=f'site:mp.weixin.qq.com {category}',
+                    reason="stub: requires camoufox browser automation",
+                ),
+            ],
+        )
+
+
+# ---------------------------------------------------------------------------
+# Douyin — stub (requires douyin-mcp-server)
+# ---------------------------------------------------------------------------
+
+
+class DouyinProvider(CommunityProvider):
+    name = "douyin"
+    status = "stub"
+    requires_auth = True
+    auth_env_vars = ["DOUYIN_MCP_URL"]
+    capabilities: set[str] = set()
+    max_search_calls = 0
+    recommended_max_details = 0
+
+    async def search(self, brand_name: str, category: str) -> ProviderSearchResult:
+        return ProviderSearchResult(
+            suggested_queries=[
+                SuggestedQuery(
+                    platform="douyin", provider="douyin",
+                    query=f'site:douyin.com "{brand_name}"',
+                    reason="stub: requires douyin-mcp-server",
+                ),
+                SuggestedQuery(
+                    platform="douyin", provider="douyin",
+                    query=f'site:douyin.com {category}',
+                    reason="stub: requires douyin-mcp-server",
+                ),
+            ],
+        )
+
+
+# ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
@@ -1413,4 +2042,12 @@ PROVIDER_REGISTRY: list[CommunityProvider] = [
     LinkedInProvider(),
     ProductHuntProvider(),
     BlogSearchProvider(),
+    # Chinese platforms
+    V2EXProvider(),
+    WeiboProvider(),
+    BilibiliProvider(),
+    XueQiuProvider(),
+    XiaoHongShuProvider(),
+    WeChatProvider(),
+    DouyinProvider(),
 ]

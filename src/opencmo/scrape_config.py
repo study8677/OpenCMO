@@ -48,6 +48,21 @@ class ScrapeProfile:
     bluesky_max_results: int           # max results per query
     bluesky_comments_per_post: int     # max comments per post in detail fetch
 
+    # V2EX
+    v2ex_max_results: int              # max topics to fetch per node/hot query
+    v2ex_comments_per_post: int        # max replies per topic in detail fetch
+
+    # Weibo
+    weibo_max_results: int             # max results per search query
+    weibo_comments_per_post: int       # max comments per post in detail fetch
+
+    # Bilibili
+    bilibili_max_results: int          # max results per search query
+    bilibili_comments_per_post: int    # max comments per video in detail fetch
+
+    # XueQiu
+    xueqiu_max_results: int            # max results per search query
+
     # GEO
     geo_query_templates: int           # number of query templates per provider
     geo_content_snippet_chars: int
@@ -91,6 +106,11 @@ LIGHT = ScrapeProfile(
 
     bluesky_max_results=10, bluesky_comments_per_post=5,
 
+    v2ex_max_results=10, v2ex_comments_per_post=5,
+    weibo_max_results=10, weibo_comments_per_post=5,
+    bilibili_max_results=5, bilibili_comments_per_post=5,
+    xueqiu_max_results=10,
+
     geo_query_templates=1, geo_content_snippet_chars=2000,
 
     serp_num_results=20,
@@ -122,6 +142,11 @@ NORMAL = ScrapeProfile(
 
     bluesky_max_results=25, bluesky_comments_per_post=10,
 
+    v2ex_max_results=25, v2ex_comments_per_post=15,
+    weibo_max_results=25, weibo_comments_per_post=10,
+    bilibili_max_results=15, bilibili_comments_per_post=10,
+    xueqiu_max_results=25,
+
     geo_query_templates=3, geo_content_snippet_chars=4000,
 
     serp_num_results=50,
@@ -152,6 +177,11 @@ DEEP = ScrapeProfile(
     twitter_max_results=50,
 
     bluesky_max_results=50, bluesky_comments_per_post=15,
+
+    v2ex_max_results=50, v2ex_comments_per_post=25,
+    weibo_max_results=50, weibo_comments_per_post=20,
+    bilibili_max_results=30, bilibili_comments_per_post=20,
+    xueqiu_max_results=50,
 
     geo_query_templates=5, geo_content_snippet_chars=5000,
 

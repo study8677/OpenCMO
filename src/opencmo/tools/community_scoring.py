@@ -28,6 +28,14 @@ SOURCE_AUTHORITY: dict[str, int] = {
     "devto": 55,
     "bluesky": 45,
     "twitter": 50,
+    # Chinese platforms
+    "xueqiu": 70,
+    "v2ex": 65,
+    "bilibili": 60,
+    "wechat": 60,
+    "xiaohongshu": 55,
+    "weibo": 50,
+    "douyin": 50,
 }
 
 # Composite score weights

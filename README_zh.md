@@ -79,7 +79,7 @@ OpenCMO 现在已经内置正式报告系统。你可以在项目内打开 **Rep
 - **SEO 审计**：Core Web Vitals、llms.txt、AI 爬虫检测、技术健康度。
 - **GEO 可见度**：追踪品牌在 ChatGPT、Claude、Gemini、Perplexity、You.com 等 AI 搜索场景中的表现。
 - **SERP 追踪**：长期监控关键词排名变化。
-- **社区监控**：扫描 Reddit、Hacker News、Dev.to、YouTube、Bluesky、Twitter/X。
+- **社区监控**：扫描 Reddit、Hacker News、Dev.to、YouTube、Bluesky、Twitter/X，以及中文平台（V2EX、微博、B站、雪球）。
 - **AI 对话**：与 25+ 专家智能体在项目上下文中协作。
 - **审批队列**：任何内容发布前先审再发。
 - **3D 知识图谱**：可视化探索竞品、关键词和社区关系。
@@ -121,7 +121,9 @@ npm run build
 | 能力 | 平台 | 认证 |
 | :--- | :--- | :--- |
 | 监控 | SEO、GEO、SERP、Community | 可选 provider key |
-| 社区来源 | Reddit、HN、Dev.to、Bluesky、YouTube、Twitter/X | 可选 |
+| 社区来源（英文） | Reddit、HN、Dev.to、Bluesky、YouTube、Twitter/X | 可选 |
+| 社区来源（中文） | V2EX、微博、B站、雪球 | 免费（雪球需 Cookie） |
+| 社区来源（预留） | 小红书、微信公众号、抖音 | 待实现（需 MCP/Docker） |
 | 发布 | Reddit、Twitter/X | 必需 |
 | 报告 | Web + 邮件 + PDF | 邮件需要 SMTP |
 | LLM | OpenAI 兼容 API | 必需 |
@@ -135,6 +137,7 @@ npm run build
 - [x] 带品牌标识的 PDF 导出
 - [x] 3D 知识图谱
 - [x] 审批流与受控发布
+- [x] 中文社区平台监控（V2EX、微博、B站、雪球）
 - [ ] 更多发布平台
 - [ ] 品牌声音控制
 - [ ] 更深度的企业级 SEO 爬取
@@ -149,3 +152,4 @@ npm run build
 
 - [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) by [@zubair-trabzada](https://github.com/zubair-trabzada)
 - [last30days-skill](https://github.com/mvanhorn/last30days-skill) by [@mvanhorn](https://github.com/mvanhorn)
+- [Agent-Reach](https://github.com/Panniantong/Agent-Reach) by [@Panniantong](https://github.com/Panniantong) — 中文平���集成灵感来源

@@ -79,7 +79,7 @@ Human-facing reports are generated through a **6-phase multi-agent pipeline** (~
 - **SEO Audit**: Core Web Vitals, llms.txt validation, AI crawler detection, technical site health.
 - **GEO Visibility**: track how your brand appears in AI-native search surfaces such as ChatGPT, Claude, Gemini, Perplexity, and You.com.
 - **SERP Tracking**: monitor rankings over time with crawler-based or DataForSEO-based checks.
-- **Community Monitoring**: watch Reddit, Hacker News, Dev.to, YouTube, Bluesky, and Twitter/X for relevant mentions and discussions.
+- **Community Monitoring**: watch Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X, and Chinese platforms (V2EX, Weibo, Bilibili, XueQiu) for relevant mentions and discussions.
 - **AI Chat**: talk to 25+ specialist agents with project-aware context.
 - **Approval Queue**: review exact publishing payloads before anything goes live.
 - **3D Knowledge Graph**: explore competitors, keywords, and communities in one visual map.
@@ -121,7 +121,9 @@ The dev app runs at `http://localhost:5173/app` and proxies API traffic to `:808
 | Capability | Platforms | Auth |
 | :--- | :--- | :--- |
 | Monitoring | SEO, GEO, SERP, Community | Optional provider keys |
-| Community sources | Reddit, HN, Dev.to, Bluesky, YouTube, Twitter/X | Optional |
+| Community sources (EN) | Reddit, HN, Dev.to, Bluesky, YouTube, Twitter/X | Optional |
+| Community sources (CN) | V2EX, Weibo, Bilibili, XueQiu | Free (XueQiu needs cookie) |
+| Community sources (stub) | XiaoHongShu, WeChat, Douyin | Pending (MCP/Docker) |
 | Publishing | Reddit, Twitter/X | Required |
 | Reports | Web + Email + PDF | SMTP for email |
 | LLM providers | OpenAI-compatible APIs | Required |
@@ -135,6 +137,7 @@ The dev app runs at `http://localhost:5173/app` and proxies API traffic to `:808
 - [x] PDF export with branded header/footer
 - [x] 3D knowledge graph
 - [x] Approval queue and controlled publishing
+- [x] Chinese platform community monitoring (V2EX, Weibo, Bilibili, XueQiu)
 - [ ] More publishing targets
 - [ ] Brand voice controls
 - [ ] Deeper enterprise SEO crawls
@@ -149,3 +152,4 @@ The dev app runs at `http://localhost:5173/app` and proxies API traffic to `:808
 
 - [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) by [@zubair-trabzada](https://github.com/zubair-trabzada)
 - [last30days-skill](https://github.com/mvanhorn/last30days-skill) by [@mvanhorn](https://github.com/mvanhorn)
+- [Agent-Reach](https://github.com/Panniantong/Agent-Reach) by [@Panniantong](https://github.com/Panniantong) — Chinese platform integration inspiration

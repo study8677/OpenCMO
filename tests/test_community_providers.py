@@ -10,10 +10,12 @@ import pytest
 
 from opencmo.tools.community_providers import (
     PROVIDER_REGISTRY,
+    BilibiliProvider,
     BlogSearchProvider,
     BlueskyProvider,
     DevtoProvider,
     DiscussionHit,
+    DouyinProvider,
     HackerNewsProvider,
     HttpResult,
     LinkedInProvider,
@@ -21,6 +23,11 @@ from opencmo.tools.community_providers import (
     ProviderSearchResult,
     RedditProvider,
     TwitterProvider,
+    V2EXProvider,
+    WeChatProvider,
+    WeiboProvider,
+    XiaoHongShuProvider,
+    XueQiuProvider,
     YouTubeProvider,
 )
 from opencmo.tools.community_scoring import (
@@ -51,7 +58,12 @@ def _use_light_profile(monkeypatch):
 
 def test_provider_registry_has_all_platforms():
     names = {p.name for p in PROVIDER_REGISTRY}
-    assert names == {"reddit", "hackernews", "devto", "youtube", "bluesky", "twitter", "linkedin", "producthunt", "blog"}
+    assert names == {
+        "reddit", "hackernews", "devto", "youtube", "bluesky", "twitter",
+        "linkedin", "producthunt", "blog",
+        "v2ex", "weibo", "bilibili", "xueqiu",
+        "xiaohongshu", "wechat", "douyin",
+    }
 
 
 def test_free_providers_enabled_by_default():
@@ -60,11 +72,29 @@ def test_free_providers_enabled_by_default():
             assert p.is_enabled, f"{p.name} should be enabled"
 
 
+def test_chinese_free_providers_enabled_by_default():
+    for p in PROVIDER_REGISTRY:
+        if p.name in ("v2ex", "weibo", "bilibili"):
+            assert p.is_enabled, f"{p.name} should be enabled (no auth required)"
+
+
 def test_stub_providers_disabled():
     for p in PROVIDER_REGISTRY:
         if p.name in ("linkedin", "producthunt", "blog"):
             assert not p.is_enabled, f"{p.name} should be disabled (stub)"
             assert p.status == "stub"
+
+
+def test_chinese_stub_providers_disabled():
+    for p in PROVIDER_REGISTRY:
+        if p.name in ("xiaohongshu", "wechat", "douyin"):
+            assert not p.is_enabled, f"{p.name} should be disabled (stub)"
+            assert p.status == "stub"
+
+
+def test_xueqiu_disabled_without_cookie():
+    provider = XueQiuProvider()
+    assert not provider.is_enabled
 
 
 def test_twitter_disabled_without_keys():
@@ -838,3 +868,265 @@ def test_rescore_hits_mutates_engagement_score():
 def test_rescore_hits_empty_list():
     result = rescore_hits([], "anything")
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# V2EX parse tests
+# ---------------------------------------------------------------------------
+
+
+def _make_v2ex_topics_json(count: int = 2) -> list:
+    return [
+        {
+            "id": 1000 + i,
+            "title": f"V2EX Topic {i}",
+            "content_rendered": f"<p>Body text for topic {i}</p>",
+            "replies": 5 + i,
+            "created": 1700000000 + i * 86400,
+            "member": {"username": f"v2user{i}"},
+            "node": {"name": "python"},
+        }
+        for i in range(count)
+    ]
+
+
+def test_v2ex_provider_parse_search():
+    data = _make_v2ex_topics_json(3)
+    hits = V2EXProvider.parse_topics_response(data, "hot_topics")
+    assert len(hits) == 3
+    h = hits[0]
+    assert h.platform == "v2ex"
+    assert h.title == "V2EX Topic 0"
+    assert h.detail_id == "1000"
+    assert h.extra_param_1 == "python"
+    assert h.source == "hot_topics"
+    assert h.raw_score == 5
+    assert h.comments_count == 5
+    assert "Body text for topic 0" in h.preview  # HTML stripped
+
+
+def test_v2ex_provider_parse_replies():
+    replies_data = [
+        {"member": {"username": "replier1"}, "content_rendered": "<b>Nice!</b>", "created": 1700000000},
+        {"member": {"username": "replier2"}, "content_rendered": "Thanks", "created": 1700000100},
+    ]
+    hit = DiscussionHit(
+        platform="v2ex", title="Test", url="https://www.v2ex.com/t/1000",
+        engagement_score=0, raw_score=2, comments_count=2, age_days=1,
+        author="op", detail_id="1000", extra_param_1="python", extra_param_2="",
+        preview="", source="test",
+    )
+    detail = V2EXProvider.parse_replies_response(replies_data, hit)
+    assert detail.platform == "v2ex"
+    assert len(detail.comments) == 2
+    assert detail.comments[0]["author"] == "replier1"
+    assert detail.comments[0]["body"] == "Nice!"  # HTML stripped
+
+
+def test_v2ex_search_mock():
+    """V2EX search filters hot topics by brand/category keywords."""
+
+    async def _mock_v2ex(url, params=None, headers=None):
+        if "hot.json" in url:
+            return HttpResult(
+                data=[
+                    {"id": 1, "title": "TestBrand is great", "content_rendered": "Using TestBrand",
+                     "replies": 10, "created": 1700000000, "member": {"username": "u1"}, "node": {"name": "python"}},
+                    {"id": 2, "title": "Unrelated topic", "content_rendered": "Something else",
+                     "replies": 5, "created": 1700000000, "member": {"username": "u2"}, "node": {"name": "python"}},
+                ],
+                error=None, status_code=200,
+            )
+        if "show.json" in url:
+            return HttpResult(data=[], error=None, status_code=200)
+        return HttpResult(data=[], error=None, status_code=200)
+
+    with patch("opencmo.tools.community_providers._http_get_json", side_effect=_mock_v2ex):
+        provider = V2EXProvider()
+        result = asyncio.run(provider.search("TestBrand", "devtools"))
+        # Only the hit containing "TestBrand" should match
+        assert len(result.hits) >= 1
+        assert result.hits[0].title == "TestBrand is great"
+        # Should always have suggested queries (V2EX has no search API)
+        assert len(result.suggested_queries) >= 1
+        assert "site:v2ex.com" in result.suggested_queries[0].query
+
+
+# ---------------------------------------------------------------------------
+# Weibo parse tests
+# ---------------------------------------------------------------------------
+
+
+def _make_weibo_cards(count: int = 2) -> list:
+    return [
+        {
+            "mblog": {
+                "mid": str(5000 + i),
+                "id": str(5000 + i),
+                "text": f"<a>微博内容 {i}</a> some text",
+                "reposts_count": 3 + i,
+                "comments_count": 10 + i,
+                "attitudes_count": 20 + i,
+                "created_at": "Mon Jan 15 12:00:00 +0800 2024",
+                "user": {"screen_name": f"weibo_user{i}"},
+            }
+        }
+        for i in range(count)
+    ]
+
+
+def test_weibo_provider_parse_search():
+    cards = _make_weibo_cards(3)
+    hits = WeiboProvider.parse_search_cards(cards, "brand")
+    assert len(hits) == 3
+    h = hits[0]
+    assert h.platform == "weibo"
+    assert h.detail_id == "5000"
+    assert h.author == "weibo_user0"
+    assert h.comments_count == 10
+    assert h.raw_score == 3 + 10 + 20  # reposts + comments + attitudes
+    assert "<a>" not in h.preview  # HTML stripped
+
+
+def test_weibo_provider_parse_comments():
+    comments_data = [
+        {"user": {"screen_name": "c1"}, "text": "<b>好评</b>", "created_at": "Mon Jan 15 13:00:00 +0800 2024"},
+        {"user": {"screen_name": "c2"}, "text": "不错", "created_at": "Mon Jan 15 14:00:00 +0800 2024"},
+    ]
+    hit = DiscussionHit(
+        platform="weibo", title="Test", url="https://m.weibo.cn/detail/5000",
+        engagement_score=0, raw_score=30, comments_count=2, age_days=1,
+        author="op", detail_id="5000", extra_param_1="", extra_param_2="",
+        preview="", source="test",
+    )
+    detail = WeiboProvider.parse_comments_response(comments_data, hit)
+    assert len(detail.comments) == 2
+    assert detail.comments[0]["body"] == "好评"  # HTML stripped
+
+
+# ---------------------------------------------------------------------------
+# Bilibili parse tests
+# ---------------------------------------------------------------------------
+
+
+def _make_bilibili_search_json(count: int = 2) -> dict:
+    videos = [
+        {
+            "title": f"<em class=\"keyword\">Bilibili</em> Video {i}",
+            "bvid": f"BV1abc{i}",
+            "aid": 10000 + i,
+            "play": 1000 + i * 100,
+            "review": 50 + i,
+            "like": 200 + i,
+            "danmaku": 30 + i,
+            "pubdate": 1700000000 + i * 86400,
+            "author": f"bili_up{i}",
+            "description": f"Video description {i}",
+        }
+        for i in range(count)
+    ]
+    return {"data": {"result": [{"result_type": "video", "data": videos}]}}
+
+
+def test_bilibili_provider_parse_search():
+    data = _make_bilibili_search_json(3)
+    hits = BilibiliProvider.parse_search_response(data, "brand")
+    assert len(hits) == 3
+    h = hits[0]
+    assert h.platform == "bilibili"
+    assert h.title == "Bilibili Video 0"  # <em> tags stripped
+    assert h.detail_id == "BV1abc0"
+    assert h.extra_param_1 == "10000"  # aid stored for comments
+    assert h.author == "bili_up0"
+    assert h.raw_score == 1000 + 200  # play + like
+    assert h.comments_count == 50
+
+
+def test_bilibili_provider_parse_comments():
+    data = {
+        "data": {
+            "replies": [
+                {"member": {"uname": "viewer1"}, "content": {"message": "很棒！"}, "like": 10},
+                {"member": {"uname": "viewer2"}, "content": {"message": "感谢分享"}, "like": 5},
+            ]
+        }
+    }
+    hit = DiscussionHit(
+        platform="bilibili", title="Test Video", url="https://www.bilibili.com/video/BV1abc0",
+        engagement_score=0, raw_score=1000, comments_count=50, age_days=1,
+        author="up", detail_id="BV1abc0", extra_param_1="10000", extra_param_2="",
+        preview="", source="test",
+    )
+    detail = BilibiliProvider.parse_comments_response(data, hit)
+    assert len(detail.comments) == 2
+    assert detail.comments[0]["author"] == "viewer1"
+    assert detail.comments[0]["body"] == "很棒！"
+
+
+# ---------------------------------------------------------------------------
+# XueQiu parse tests
+# ---------------------------------------------------------------------------
+
+
+def _make_xueqiu_search_json(count: int = 2) -> dict:
+    return {
+        "list": [
+            {
+                "id": 200000 + i,
+                "title": f"XueQiu Post {i}",
+                "text": f"<p>Stock discussion {i}</p>",
+                "reply_count": 8 + i,
+                "retweet_count": 3 + i,
+                "like_count": 15 + i,
+                "created_at": 1700000000000 + i * 86400000,  # milliseconds
+                "user": {"id": 9000 + i, "screen_name": f"investor{i}"},
+            }
+            for i in range(count)
+        ]
+    }
+
+
+def test_xueqiu_provider_parse_search():
+    data = _make_xueqiu_search_json(3)
+    hits = XueQiuProvider.parse_search_response(data, "brand")
+    assert len(hits) == 3
+    h = hits[0]
+    assert h.platform == "xueqiu"
+    assert h.title == "XueQiu Post 0"
+    assert h.detail_id == "200000"
+    assert h.author == "investor0"
+    assert h.comments_count == 8
+    assert h.raw_score == 8 + 3 + 15  # reply + retweet + like
+    assert "<p>" not in h.preview  # HTML stripped
+
+
+# ---------------------------------------------------------------------------
+# Stub providers tests — suggested queries
+# ---------------------------------------------------------------------------
+
+
+def test_xiaohongshu_stub_returns_suggested_queries():
+    provider = XiaoHongShuProvider()
+    result = asyncio.run(provider.search("TestBrand", "devtools"))
+    assert len(result.hits) == 0
+    assert len(result.suggested_queries) >= 1
+    assert result.suggested_queries[0].platform == "xiaohongshu"
+    assert "site:xiaohongshu.com" in result.suggested_queries[0].query
+
+
+def test_wechat_stub_returns_suggested_queries():
+    provider = WeChatProvider()
+    result = asyncio.run(provider.search("TestBrand", "devtools"))
+    assert len(result.hits) == 0
+    assert len(result.suggested_queries) >= 1
+    assert result.suggested_queries[0].platform == "wechat"
+    assert "site:mp.weixin.qq.com" in result.suggested_queries[0].query
+
+
+def test_douyin_stub_returns_suggested_queries():
+    provider = DouyinProvider()
+    result = asyncio.run(provider.search("TestBrand", "devtools"))
+    assert len(result.hits) == 0
+    assert len(result.suggested_queries) >= 1
+    assert result.suggested_queries[0].platform == "douyin"
+    assert "site:douyin.com" in result.suggested_queries[0].query
