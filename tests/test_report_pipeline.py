@@ -171,39 +171,59 @@ GEO 评分 72/100 意味着...
 
 @pytest.mark.asyncio
 async def test_pipeline_phases_called_in_order():
-    """Verify that all 6 phases run in the correct sequence."""
+    """Verify that all 6 phases run in the correct sequence with multi-agent sub-calls."""
     project_id = await _seed_project()
 
     from opencmo.reports import _build_strategic_facts
 
     facts, meta = await _build_strategic_facts(project_id)
 
-    call_order = []
+    call_phases = []  # Track phase names, not individual calls
 
     async def mock_text_call(system, user):
-        if "总编辑" in system:
-            call_order.append("synthesize")
-            return MOCK_FINAL_REPORT
+        if "编辑助手" in system:
+            # Phase 6 section summarizer
+            call_phases.append("summarize")
+            return "Section summary text"
+        if "面向高管" in system:
+            call_phases.append("exec_summary")
+            return "## 执行摘要\n\nTestBrand 表现出色..."
+        if "战略报告编辑" in system:
+            call_phases.append("intro")
+            return "## 引言\n\n在 AI 搜索日益重要的今天..."
+        if "CMO 级战略顾问" in system:
+            call_phases.append("strategy")
+            return "## 战略建议与行动路线图\n\n1. P0: 提升..."
         if "撰稿人" in system:
-            call_order.append("write")
+            call_phases.append("write")
             if "修订" in system or "审稿人" in system:
-                call_order[-1] = "revise"
+                call_phases[-1] = "revise"
                 return MOCK_REVISED_SECTION
             return MOCK_SECTION_1 if "sec-1" in user else MOCK_SECTION_2
         return ""
 
     async def mock_json_call(system, user):
-        if "质检" in system:
-            call_order.append("reflect")
+        # Match more specific prompts FIRST (aggregator/cross-cutter include
+        # sub-strings from dimension prompts, so they must be checked earlier)
+        if "总负责人" in system:
+            call_phases.append("reflect_agg")
             return json.loads(MOCK_REFLECTION)
-        if "分析师" in system or "营销分析" in system:
-            call_order.append("distill")
+        if "质检" in system:
+            call_phases.append("reflect")
+            result = json.loads(MOCK_REFLECTION)
+            result["dimension"] = "mock"
+            return result
+        if "跨维度" in system:
+            call_phases.append("distill_cross")
             return json.loads(MOCK_DISTILLED)
+        if "分析师" in system or "营销分析" in system:
+            call_phases.append("distill")
+            return {"dimension": "mock", "insights": json.loads(MOCK_DISTILLED)["insights"][:1]}
         if "主编" in system:
-            call_order.append("plan")
+            call_phases.append("plan")
             return json.loads(MOCK_OUTLINE)
         if "审稿人" in system:
-            call_order.append("grade")
+            call_phases.append("grade")
             return json.loads(MOCK_GRADE_PASS)
         return {}
 
@@ -213,13 +233,33 @@ async def test_pipeline_phases_called_in_order():
 
         result = await run_deep_report_pipeline(facts, meta, False, kind="strategic")
 
-    # Check ordering: reflect → distill → plan → write(s) → grade(s) → synthesize
-    assert call_order[0] == "reflect"
-    assert call_order[1] == "distill"
-    assert call_order[2] == "plan"
-    assert "write" in call_order
-    assert "grade" in call_order
-    assert call_order[-1] == "synthesize"
+    # Phase 1: multiple reflects + 1 aggregation
+    assert "reflect" in call_phases
+    assert "reflect_agg" in call_phases
+
+    # Phase 2: multiple distills + 1 cross-cutting
+    assert "distill" in call_phases
+    assert "distill_cross" in call_phases
+
+    # Phase 3: plan
+    assert "plan" in call_phases
+
+    # Phase 4+5: write + grade
+    assert "write" in call_phases
+    assert "grade" in call_phases
+
+    # Phase 6: summarize + exec_summary/intro/strategy (parallel)
+    assert "summarize" in call_phases
+
+    # Verify ordering: all reflects before any distill, all distills before plan, etc.
+    first_reflect = call_phases.index("reflect")
+    first_distill = call_phases.index("distill")
+    first_plan = call_phases.index("plan")
+    first_write = call_phases.index("write")
+    assert first_reflect < first_distill
+    assert first_distill < first_plan
+    assert first_plan < first_write
+
     assert "TestBrand" in result
 
 

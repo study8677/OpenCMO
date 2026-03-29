@@ -1,12 +1,16 @@
 """Multi-agent deep report pipeline.
 
 Replaces the single-LLM-call report generation with a 6-phase pipeline:
-  Phase 1  Reflection Agent    — data quality audit & cross-validation
-  Phase 2  Insight Distiller   — raw facts → analytical insights
+  Phase 1  Reflection Agent    — per-dimension quality auditors (parallel) + aggregator
+  Phase 2  Insight Distiller   — per-dimension insight agents (parallel) + cross-cutter
   Phase 3  Outline Planner     — narrative structure with per-section briefs
   Phase 4  Section Writers     — parallel per-section authoring
   Phase 5  Section Grader      — review loop (max 2 retries)
-  Phase 6  Report Synthesizer  — intro + conclusion + unified editing
+  Phase 6  Report Synthesizer  — per-section summarizers (parallel) + intro/exec/strategy writers
+
+KEY DESIGN: Phases 1, 2, and 6 use MULTIPLE sub-agents per dimension/section
+instead of a single monolithic LLM call.  This prevents context overflow when
+data is large (e.g. 1000+ keywords, 28 competitors).
 
 Only used for ``audience="human"`` reports.  Agent briefs stay single-call.
 """
@@ -25,8 +29,6 @@ logger = logging.getLogger(__name__)
 _MAX_GRADER_RETRIES = 2
 # Minimum average score to pass the grader
 _GRADER_PASS_THRESHOLD = 3.8
-# Maximum number of rescan attempts in reflection (Phase 1)
-_MAX_RESCAN_ROUNDS = 1
 
 
 def _json_dump(data: object) -> str:
@@ -36,12 +38,24 @@ def _json_dump(data: object) -> str:
 def _extract_json(text: str) -> dict | list:
     """Best-effort JSON extraction from LLM output that may contain markdown fences."""
     cleaned = text.strip()
-    # Strip markdown code fences
     if cleaned.startswith("```"):
         cleaned = re.sub(r"^```\w*\n?", "", cleaned)
         cleaned = re.sub(r"\n?```$", "", cleaned)
         cleaned = cleaned.strip()
     return json.loads(cleaned)
+
+
+def _truncate_list(data: list | None, max_items: int, sort_key: str | None = None) -> list:
+    """Truncate a list to max_items, optionally sorting first."""
+    if not data:
+        return []
+    items = list(data)
+    if sort_key:
+        try:
+            items.sort(key=lambda x: x.get(sort_key, 0), reverse=True)
+        except Exception:
+            pass
+    return items[:max_items]
 
 
 # ---------------------------------------------------------------------------
@@ -60,137 +74,325 @@ async def _llm_json_call(system: str, user: str) -> dict | list:
     return _extract_json(raw)
 
 
+# ---------------------------------------------------------------------------
+# Data dimension slicing — split facts into per-dimension chunks
+# ---------------------------------------------------------------------------
+
+_DIMENSIONS = [
+    {
+        "id": "seo_tech",
+        "name": "SEO & 技术健康度",
+        "keys": ["seo_latest", "ai_crawler_history"],
+        "description": "网站 SEO 审计数据和 AI 爬虫可达性数据",
+    },
+    {
+        "id": "search_visibility",
+        "name": "搜索可见性 & 排名",
+        "keys": ["serp_snapshots", "keywords"],
+        "description": "SERP 关键词排名和搜索可见性数据",
+        "truncate": {"keywords": 30, "serp_snapshots": 25},
+    },
+    {
+        "id": "ai_visibility",
+        "name": "AI 可见性 & 品牌引用",
+        "keys": ["geo_latest", "citability_history", "brand_presence_history"],
+        "description": "GEO 评分、AI 平台引文可信度和品牌存在感",
+    },
+    {
+        "id": "community_market",
+        "name": "社区 & 市场信号",
+        "keys": ["community_latest", "discussions", "insights_history"],
+        "description": "社区讨论、市场趋势和 AI 洞察告警",
+        "truncate": {"discussions": 15, "insights_history": 10},
+    },
+    {
+        "id": "competitive",
+        "name": "竞品 & 生态定位",
+        "keys": ["competitors", "graph_data", "approvals"],
+        "description": "竞品信息、知识图谱关系和内容审批队列",
+        "truncate": {"competitors": 20},
+    },
+]
+
+
+def _slice_dimension(facts: dict, dimension: dict) -> dict:
+    """Extract facts for one dimension, applying truncation rules."""
+    sliced = {}
+    truncate_rules = dimension.get("truncate", {})
+    for key in dimension["keys"]:
+        data = facts.get(key)
+        if data is None:
+            sliced[key] = None
+            continue
+        max_items = truncate_rules.get(key)
+        if max_items and isinstance(data, list):
+            sliced[key] = _truncate_list(data, max_items)
+        else:
+            sliced[key] = data
+    return sliced
+
+
 # ===================================================================
-# Phase 1 — Reflection Agent (data quality audit)
+# Phase 1 — Reflection Agent (MULTI-AGENT: per-dimension auditors)
 # ===================================================================
 
-_REFLECT_SYSTEM = """\
-你是一位资深的商业分析质检专家。你的任务是审计以下来自 9 个数据采集 Agent 的产出汇总。
+_REFLECT_DIM_SYSTEM = """\
+你是一位专注于 {dim_name} 维度的数据质检专家。
 
-请执行以下分析：
+请审计以下 {dim_name} 维度的数据：
 
-1. **数据完整性检查**：
-   - 哪些维度的数据缺失或样本量不足？
-   - 有没有 Agent 返回了空结果或错误？
+1. **数据完整性**：数据是否完整？有无缺失字段或空值？样本量是否足够？
+2. **数据质量**：数据是否有异常值？是否前后一致？
+3. **可用性**：这些数据能否支撑高质量的分析？有哪些局限？
 
-2. **交叉验证**：
-   - SEO 审计结果与 SERP 排名数据是否一致？（如 SEO 分高但排名低，说明内容质量可能有问题）
+返回 JSON：
+{{
+  "dimension": "{dim_id}",
+  "quality_score": 0到100的整数,
+  "issues": ["问题描述"],
+  "anomalies": ["异常描述"],
+  "summary": "一句话总结本维度数据质量",
+  "data_available": true/false
+}}
+
+必须返回合法 JSON，不要加 markdown 代码块。"""
+
+
+_REFLECT_AGG_SYSTEM = """\
+你是数据质量审计的总负责人。以下是 5 个维度质检专家各自的审计结果。
+
+请汇总各维度的审计结论，完成交叉验证：
+
+1. **交叉验证**：
+   - SEO 审计结果与 SERP 排名数据是否一致？
    - GEO 评分趋势与 Brand Presence 数据是否矛盾？
    - Community 舆情与 Insights 告警是否存在信号冲突？
    - AI Crawler 放行状态与 Citability 评分是否协调？
 
-3. **异常检测**：
-   - 标记任何看起来异常的数据点（如排名突然跳变、评分与历史偏差 >30%）
-   - 判断这些异常是真实变化还是数据采集问题
+2. **综合判断**：数据整体是否充足到能生成高质量报告？
 
-4. **缺口判断**：
-   - 基于以上分析，数据是否充足到能生成高质量报告？
-
-返回 JSON 格式：
+返回 JSON：
 {
-  "data_quality_score": 0到100的整数,
-  "issues": ["问题描述1", "问题描述2"],
-  "anomalies": ["异常描述1"],
-  "cross_validation_notes": ["交叉验证发现1"],
-  "validated_summary": "一段话总结数据质量状况",
-  "confidence_level": "high/medium/low"
+  "data_quality_score": 加权平均后的0到100整数,
+  "issues": ["汇总后的关键问题"],
+  "anomalies": ["跨维度异常"],
+  "cross_validation_notes": ["交叉验证发现"],
+  "validated_summary": "一段话总结整体数据质量",
+  "confidence_level": "high/medium/low",
+  "dimension_scores": {"seo_tech": 80, "search_visibility": 60, ...}
 }
 
 必须返回合法 JSON，不要加 markdown 代码块。"""
 
 
-async def _phase_reflect(facts: dict, meta: dict) -> dict:
-    """Phase 1: Audit data quality across all agent outputs."""
-    logger.info("[Pipeline Phase 1] Reflection Agent — data quality audit")
+async def _reflect_one_dimension(facts: dict, dim: dict, meta: dict) -> dict:
+    """Run one dimension-specific quality auditor."""
+    dim_data = _slice_dimension(facts, dim)
+    project = facts.get("project", {})
+    system = _REFLECT_DIM_SYSTEM.format(dim_name=dim["name"], dim_id=dim["id"])
     user = (
-        f"项目：{facts['project']['brand_name']} ({facts['project']['category']})\n"
-        f"数据覆盖度：{meta.get('sample_count', 0)}/{meta.get('total_data_sources', 0)} 个数据源有数据\n\n"
-        f"=== 全部 Agent 数据汇总 ===\n{_json_dump(facts)}"
+        f"项目：{project.get('brand_name', '?')} ({project.get('category', '?')})\n"
+        f"维度：{dim['name']} — {dim['description']}\n\n"
+        f"=== {dim['name']} 维度数据 ===\n{_json_dump(dim_data)}"
     )
     try:
-        result = await _llm_json_call(_REFLECT_SYSTEM, user)
+        result = await _llm_json_call(system, user)
         if not isinstance(result, dict):
-            result = {"data_quality_score": 50, "issues": [], "validated_summary": str(result), "confidence_level": "medium"}
-        logger.info(
-            "[Pipeline Phase 1] Quality score: %s, confidence: %s",
-            result.get("data_quality_score", "?"),
-            result.get("confidence_level", "?"),
-        )
+            result = {"dimension": dim["id"], "quality_score": 50, "issues": [], "summary": str(result), "data_available": True}
+        result["dimension"] = dim["id"]
         return result
     except Exception as exc:
-        logger.warning("[Pipeline Phase 1] Reflection failed, continuing: %s", exc)
+        logger.warning("[Phase 1] Dimension %s audit failed: %s", dim["id"], exc)
+        return {"dimension": dim["id"], "quality_score": 50, "issues": [str(exc)], "summary": "审计失败", "data_available": True}
+
+
+async def _phase_reflect(facts: dict, meta: dict) -> dict:
+    """Phase 1: Run per-dimension auditors in parallel, then aggregate."""
+    logger.info("[Pipeline Phase 1] Reflection — %d dimension auditors in parallel", len(_DIMENSIONS))
+
+    # Run all dimension auditors in parallel
+    dim_results = await asyncio.gather(
+        *[_reflect_one_dimension(facts, dim, meta) for dim in _DIMENSIONS],
+        return_exceptions=True,
+    )
+
+    # Collect results
+    dim_reports = []
+    for i, result in enumerate(dim_results):
+        if isinstance(result, Exception):
+            logger.warning("[Phase 1] Dimension %s failed: %s", _DIMENSIONS[i]["id"], result)
+            dim_reports.append({"dimension": _DIMENSIONS[i]["id"], "quality_score": 50, "issues": [str(result)], "summary": "审计异常"})
+        else:
+            dim_reports.append(result)
+            logger.info("[Phase 1] Dimension %s — score: %s", result.get("dimension", "?"), result.get("quality_score", "?"))
+
+    # Aggregate with a separate agent
+    logger.info("[Pipeline Phase 1] Aggregating %d dimension audits", len(dim_reports))
+    project = facts.get("project", {})
+    user = (
+        f"项目：{project.get('brand_name', '?')} ({project.get('category', '?')})\n"
+        f"数据覆盖度：{meta.get('sample_count', 0)}/{meta.get('total_data_sources', 0)} 个数据源有数据\n\n"
+        f"=== 各维度审计结果 ===\n{_json_dump(dim_reports)}"
+    )
+    try:
+        aggregated = await _llm_json_call(_REFLECT_AGG_SYSTEM, user)
+        if not isinstance(aggregated, dict):
+            aggregated = {"data_quality_score": 50, "validated_summary": str(aggregated), "confidence_level": "medium"}
+        logger.info(
+            "[Pipeline Phase 1] Aggregated quality: %s, confidence: %s",
+            aggregated.get("data_quality_score", "?"), aggregated.get("confidence_level", "?"),
+        )
+        return aggregated
+    except Exception as exc:
+        logger.warning("[Pipeline Phase 1] Aggregation failed: %s — using simple average", exc)
+        scores = [r.get("quality_score", 50) for r in dim_reports]
+        avg = sum(scores) // max(len(scores), 1)
         return {
-            "data_quality_score": 50,
-            "issues": [f"Reflection phase error: {exc}"],
-            "validated_summary": "数据质量审计未完成，以原始数据继续。",
+            "data_quality_score": avg,
+            "issues": [iss for r in dim_reports for iss in r.get("issues", [])],
+            "validated_summary": f"各维度平均质量 {avg}/100（聚合失败，使用简单平均）",
             "confidence_level": "low",
         }
 
 
 # ===================================================================
-# Phase 2 — Insight Distiller (raw data → analytical insights)
+# Phase 2 — Insight Distiller (MULTI-AGENT: per-dimension analysts)
 # ===================================================================
 
-_DISTILL_SYSTEM = """\
-你是一位资深的数字营销分析师。以下是经过质量验证的多维度数据。
+_DISTILL_DIM_SYSTEM = """\
+你是一位专注于 {dim_name} 的数字营销分析师。
 
-请将原始数据转化为**分析性发现**，遵循以下规则：
+基于以下 {dim_name} 维度的数据，提炼分析性发现（insights）。
 
-1. **关联分析**：找出跨维度的相关性
-   - 例：页面加载速度 → SERP 排名 → 转化率 的连锁影响
-   - 例：AI 引文出现频率 → GEO 评分 → 品牌权威度
-   - 例：社区讨论热度 → Brand Presence 提升 → GEO 可见性
+规则：
+1. **解读数据**：不要罗列数据，要回答"so what?"
+2. **趋势判断**：如有历史数据，判断上升/下降/稳定 + 变化幅度
+3. **量化表达**：用具体数字，避免模糊表述
+4. **优先级排序**：按业务影响力排序
 
-2. **趋势判断**：对比历史数据，给出趋势方向
-   - 上升/下降/稳定 + 变化幅度 + 可能原因
-
-3. **竞争定位**：如有竞品数据，进行相对定位
-   - 在哪些维度领先/落后？差距多大？
-
-4. **优先级排序**：按业务影响力排序发现
-   - 每条发现标注 impact_level: critical/high/medium/low
-
-输出 JSON 格式：
-{
+输出 JSON：
+{{
+  "dimension": "{dim_id}",
   "insights": [
-    {
-      "id": "INS-001",
+    {{
+      "id": "{dim_id}-INS-001",
       "title": "简短标题",
       "finding": "详细发现描述，包含具体数字...",
-      "evidence": ["数据来源1", "数据来源2"],
+      "evidence": ["{dim_name}"],
       "impact_level": "critical/high/medium/low",
-      "recommended_section": "建议放入报告的哪个章节"
-    }
-  ],
-  "cross_cutting_themes": ["贯穿多个维度的主题1", "主题2"],
-  "executive_summary_points": ["核心发现1（一句话）", "核心发现2"]
-}
+      "recommended_section": "建议放入报告的章节主题"
+    }}
+  ]
+}}
 
-要求：至少产出 5 条 insights，涵盖 SEO/GEO/社区/品牌/竞品等多个维度。
+要求：产出 2-4 条高质量 insights。
 必须返回合法 JSON，不要加 markdown 代码块。"""
 
 
-async def _phase_distill(facts: dict, meta: dict, reflection: dict) -> dict:
-    """Phase 2: Distill raw facts into analytical insights."""
-    logger.info("[Pipeline Phase 2] Insight Distiller — extracting insights")
+_DISTILL_CROSS_SYSTEM = """\
+你是一位资深的跨维度商业分析师。以下是 5 个维度分析师各自提炼的 insights。
+
+你的任务：
+
+1. **发现跨维度关联**：
+   - 例：SEO 分数高但 SERP 排名低 → 内容质量问题
+   - 例：GEO 评分上升但 Brand Presence 无变化 → AI 引文为一次性
+   - 例：社区热度高但 SERP 不变 → 社交信号未转化为搜索权重
+
+2. **提炼贯穿主题**：识别 2-3 个跨多维度的战略主题
+
+3. **生成执行摘要要点**：基于所有 insights 提炼 3-5 个一句话核心发现
+
+4. **重新编号**：将所有 insights 统一编号为 INS-001, INS-002, ...
+
+输出 JSON：
+{
+  "insights": [合并后的所有 insights，统一编号 INS-001...],
+  "cross_cutting_themes": ["主题1", "主题2"],
+  "executive_summary_points": ["核心发现1", "核心发现2"]
+}
+
+必须返回合法 JSON，不要加 markdown 代码块。"""
+
+
+async def _distill_one_dimension(facts: dict, dim: dict, reflection: dict) -> dict:
+    """Run one dimension-specific insight analyst."""
+    dim_data = _slice_dimension(facts, dim)
+    project = facts.get("project", {})
+    dim_score = reflection.get("dimension_scores", {}).get(dim["id"], "?")
+
+    system = _DISTILL_DIM_SYSTEM.format(dim_name=dim["name"], dim_id=dim["id"])
     user = (
-        f"项目：{facts['project']['brand_name']} ({facts['project']['category']})\n"
-        f"数据质量评分：{reflection.get('data_quality_score', '未知')}/100\n"
-        f"置信度：{reflection.get('confidence_level', '未知')}\n"
-        f"质量审计摘要：{reflection.get('validated_summary', '无')}\n"
-        f"已识别问题：{_json_dump(reflection.get('issues', []))}\n\n"
-        f"=== 验证后的完整数据 ===\n{_json_dump(facts)}"
+        f"项目：{project.get('brand_name', '?')} ({project.get('category', '?')})\n"
+        f"本维度质量评分：{dim_score}/100\n\n"
+        f"=== {dim['name']} 维度数据 ===\n{_json_dump(dim_data)}"
     )
     try:
-        result = await _llm_json_call(_DISTILL_SYSTEM, user)
+        result = await _llm_json_call(system, user)
         if not isinstance(result, dict):
-            raise ValueError("Distiller did not return a dict")
-        insights = result.get("insights", [])
-        logger.info("[Pipeline Phase 2] Extracted %d insights", len(insights))
+            result = {"dimension": dim["id"], "insights": []}
+        result["dimension"] = dim["id"]
+        logger.info("[Phase 2] Dimension %s — %d insights", dim["id"], len(result.get("insights", [])))
         return result
     except Exception as exc:
-        logger.warning("[Pipeline Phase 2] Distill failed: %s", exc)
-        raise
+        logger.warning("[Phase 2] Dimension %s distill failed: %s", dim["id"], exc)
+        return {"dimension": dim["id"], "insights": []}
+
+
+async def _phase_distill(facts: dict, meta: dict, reflection: dict) -> dict:
+    """Phase 2: Run per-dimension insight analysts in parallel, then cross-cut."""
+    logger.info("[Pipeline Phase 2] Insight Distiller — %d dimension analysts in parallel", len(_DIMENSIONS))
+
+    dim_results = await asyncio.gather(
+        *[_distill_one_dimension(facts, dim, reflection) for dim in _DIMENSIONS],
+        return_exceptions=True,
+    )
+
+    # Collect all dimension insights
+    all_dim_insights = []
+    for i, result in enumerate(dim_results):
+        if isinstance(result, Exception):
+            logger.warning("[Phase 2] Dimension %s failed: %s", _DIMENSIONS[i]["id"], result)
+            continue
+        all_dim_insights.append(result)
+
+    total_insights = sum(len(r.get("insights", [])) for r in all_dim_insights)
+    logger.info("[Pipeline Phase 2] Collected %d insights from %d dimensions", total_insights, len(all_dim_insights))
+
+    if total_insights == 0:
+        raise RuntimeError("All dimension distillers produced 0 insights")
+
+    # Cross-cutting synthesis
+    logger.info("[Pipeline Phase 2] Cross-cutting synthesis")
+    project = facts.get("project", {})
+    user = (
+        f"项目：{project.get('brand_name', '?')} ({project.get('category', '?')})\n"
+        f"数据整体质量：{reflection.get('data_quality_score', '?')}/100\n\n"
+        f"=== 各维度分析师的 Insights ===\n{_json_dump(all_dim_insights)}"
+    )
+    try:
+        result = await _llm_json_call(_DISTILL_CROSS_SYSTEM, user)
+        if not isinstance(result, dict):
+            raise ValueError("Cross-cutter did not return a dict")
+        insights = result.get("insights", [])
+        logger.info("[Pipeline Phase 2] Final: %d insights, %d themes",
+                     len(insights), len(result.get("cross_cutting_themes", [])))
+        return result
+    except Exception as exc:
+        logger.warning("[Pipeline Phase 2] Cross-cutting failed: %s — using raw dimension insights", exc)
+        # Fallback: merge all dimension insights with sequential numbering
+        merged = []
+        idx = 1
+        for dim_result in all_dim_insights:
+            for ins in dim_result.get("insights", []):
+                ins["id"] = f"INS-{idx:03d}"
+                merged.append(ins)
+                idx += 1
+        return {
+            "insights": merged,
+            "cross_cutting_themes": [],
+            "executive_summary_points": [ins["title"] for ins in merged[:5]],
+        }
 
 
 # ===================================================================
@@ -292,7 +494,6 @@ async def _phase_write_section(
     section_id = section.get("id", "?")
     logger.info("[Pipeline Phase 4] Writing section: %s", section.get("title", section_id))
 
-    # Gather only the insights relevant to this section
     relevant_insights = [
         insights_map[iid]
         for iid in section.get("insight_ids", [])
@@ -361,7 +562,6 @@ async def _phase_grade_section(section: dict, content: str) -> dict:
         result = await _llm_json_call(_GRADE_SECTION_SYSTEM, user)
         if not isinstance(result, dict):
             result = {"average_score": 4.0, "pass": True, "revision_instructions": ""}
-        # Ensure pass field is correctly set
         avg = result.get("average_score", 4.0)
         result["pass"] = avg >= _GRADER_PASS_THRESHOLD
         logger.info(
@@ -403,43 +603,67 @@ async def _phase_revise_section(
 
 
 # ===================================================================
-# Phase 6 — Report Synthesizer (final assembly)
+# Phase 6 — Report Synthesizer (MULTI-AGENT: summarizers + writers)
 # ===================================================================
 
-_SYNTHESIZE_SYSTEM = """\
-你是一位资深的报告总编辑。以下是已通过评审的各章节内容。请完成最终合成。
+_SUMMARIZE_SECTION_SYSTEM = """\
+你是一位报告编辑助手。请为以下报告章节生成一段精炼摘要。
 
-你的任务：
+要求：
+1. 3-5 句话概括章节核心内容
+2. 保留最关键的数据点
+3. 提炼主要结论
 
-1. **撰写执行摘要**（200-300字）：
-   - 写在报告最前面
-   - 3-5 句话概括最关键的发现和建议
-   - 面向高管，30 秒内让人抓住核心
-   - 用一个引人注目的数据点或判断作为开头
+输出纯文本摘要（不要 JSON，不要 Markdown 标题）。"""
 
-2. **撰写引言**（200-300字）：
-   - 不要用"本报告旨在"这类废话
-   - 快速建立上下文：我们是谁、面对什么市场环境、为什么现在需要关注
+_WRITE_EXEC_SUMMARY_SYSTEM = """\
+你是一位面向高管的报告编辑。基于以下各章节摘要和核心发现，撰写执行摘要。
 
-3. **撰写战略建议**（400-600字）：
-   - 基于所有章节的发现，提出 3-5 条优先行动建议
-   - 每条建议标注优先级(P0/P1/P2)和预期影响
-   - 建议之间有逻辑关系（先做什么、后做什么）
-   - 标明可由 Agent 自动执行的动作 vs 需要人工决策的动作
+要求：
+1. 200-300 字
+2. 3-5 句话概括最关键的发现和建议
+3. 面向高管，30 秒内让人抓住核心
+4. 用一个引人注目的数据点或判断作为开头
 
-4. **统一编辑**：
-   - 确保跨章节叙事流畅，没有重复或矛盾
-   - 统一术语和数据引用格式
-   - 添加必要的章节过渡语
+输出纯 Markdown（以 ## 执行摘要 开头）。"""
 
-输出完整的 Markdown 报告，包含：
-# 报告标题
-## 执行摘要
-## 引言
-## [各主体章节 — 直接使用已写好的内容，必要时微调过渡]
-## 战略建议与行动路线图
+_WRITE_INTRO_SYSTEM = """\
+你是一位战略报告编辑。基于以下上下文信息，撰写报告引言。
 
-输出纯 Markdown，不要代码块包裹。"""
+要求：
+1. 200-300 字
+2. 不要用"本报告旨在"这类废话
+3. 快速建立上下文：品牌定位、面对什么市场环境、为什么现在需要关注
+4. 语调专业且有紧迫感
+
+输出纯 Markdown（以 ## 引言 开头）。"""
+
+_WRITE_STRATEGY_SYSTEM = """\
+你是一位 CMO 级战略顾问。基于以下各章节分析摘要，提出战略建议。
+
+要求：
+1. 400-600 字
+2. 基于所有章节的发现，提出 3-5 条优先行动建议
+3. 每条建议标注优先级(P0/P1/P2)和预期影响
+4. 建议之间有逻辑关系（先做什么、后做什么）
+5. 标明可由 Agent 自动执行的动作 vs 需要人工决策的动作
+
+输出纯 Markdown（以 ## 战略建议与行动路线图 开头）。"""
+
+
+async def _summarize_one_section(section: dict, content: str) -> str:
+    """Summarize one section into 3-5 sentences."""
+    user = (
+        f"章节标题：{section.get('title', '?')}\n"
+        f"核心论点：{section.get('thesis', '?')}\n\n"
+        f"== 章节内容 ==\n{content}"
+    )
+    try:
+        return await _llm_text_call(_SUMMARIZE_SECTION_SYSTEM, user)
+    except Exception as exc:
+        logger.warning("[Phase 6] Summarize failed for %s: %s", section.get("id", "?"), exc)
+        # Return first 200 chars as fallback summary
+        return content[:200] + "..."
 
 
 async def _phase_synthesize(
@@ -448,23 +672,74 @@ async def _phase_synthesize(
     distilled: dict,
     facts: dict,
 ) -> str:
-    """Phase 6: Final synthesis — intro, conclusion, unified editing."""
-    logger.info("[Pipeline Phase 6] Report Synthesizer — final assembly")
-    sections_md = "\n\n---\n\n".join(
-        f"### 章节：{sec.get('title', '?')}\n\n{content}"
-        for sec, content in section_contents
+    """Phase 6: Multi-agent synthesis — parallel summarizers, then 3 specialist writers."""
+    logger.info("[Pipeline Phase 6] Report Synthesizer — %d sub-agents", len(section_contents) + 3)
+
+    project = facts["project"]
+
+    # Step 1: Parallel per-section summarizers
+    logger.info("[Pipeline Phase 6.1] Summarizing %d sections in parallel", len(section_contents))
+    summary_tasks = [_summarize_one_section(sec, content) for sec, content in section_contents]
+    summaries = await asyncio.gather(*summary_tasks, return_exceptions=True)
+
+    section_summaries = []
+    for i, (sec, _) in enumerate(section_contents):
+        summary = summaries[i] if not isinstance(summaries[i], Exception) else f"(摘要失败: {sec.get('title', '?')})"
+        section_summaries.append({"title": sec.get("title", "?"), "summary": summary})
+
+    summaries_text = "\n\n".join(
+        f"### {s['title']}\n{s['summary']}" for s in section_summaries
     )
-    user = (
+
+    # Context for all synthesis writers (small — just summaries, not full content)
+    synthesis_context = (
+        f"品牌：{project['brand_name']} ({project['category']})\n"
+        f"网址：{project['url']}\n"
         f"报告标题：{outline.get('report_title', '深度分析报告')}\n"
-        f"叙事线索：{outline.get('narrative_arc', '无')}\n"
+        f"叙事线索：{outline.get('narrative_arc', '无')}\n\n"
         f"核心发现要点：\n"
         + "\n".join(f"- {p}" for p in distilled.get("executive_summary_points", []))
         + f"\n\n贯穿主题：{', '.join(distilled.get('cross_cutting_themes', []))}\n\n"
-        f"品牌：{facts['project']['brand_name']} ({facts['project']['category']})\n"
-        f"网址：{facts['project']['url']}\n\n"
-        f"=== 已通过评审的各章节内容 ===\n\n{sections_md}"
+        f"=== 各章节摘要 ===\n{summaries_text}"
     )
-    return await _llm_text_call(_SYNTHESIZE_SYSTEM, user)
+
+    # Step 2: Run exec summary + intro + strategy writers in parallel
+    logger.info("[Pipeline Phase 6.2] Running 3 synthesis writers in parallel")
+
+    exec_task = _llm_text_call(_WRITE_EXEC_SUMMARY_SYSTEM, synthesis_context)
+    intro_task = _llm_text_call(_WRITE_INTRO_SYSTEM, synthesis_context)
+    strategy_task = _llm_text_call(_WRITE_STRATEGY_SYSTEM, synthesis_context)
+
+    exec_summary, intro, strategy = await asyncio.gather(
+        exec_task, intro_task, strategy_task,
+        return_exceptions=True,
+    )
+
+    # Handle failures gracefully
+    if isinstance(exec_summary, Exception):
+        logger.warning("[Phase 6] Exec summary failed: %s", exec_summary)
+        exec_summary = "## 执行摘要\n\n（执行摘要生成失败，请查看各章节内容。）\n"
+    if isinstance(intro, Exception):
+        logger.warning("[Phase 6] Intro failed: %s", intro)
+        intro = "## 引言\n\n（引言生成失败。）\n"
+    if isinstance(strategy, Exception):
+        logger.warning("[Phase 6] Strategy failed: %s", strategy)
+        strategy = "## 战略建议与行动路线图\n\n（战略建议生成失败，请参考各章节分析。）\n"
+
+    # Step 3: Assemble final report (no LLM needed — just concatenation)
+    logger.info("[Pipeline Phase 6.3] Assembling final report")
+    report_title = outline.get("report_title", f"{project['brand_name']} 深度战略分析")
+    sections_md = "\n\n".join(content for _, content in section_contents)
+
+    final_report = (
+        f"# {report_title}\n\n"
+        f"{exec_summary}\n\n"
+        f"{intro}\n\n"
+        f"{sections_md}\n\n"
+        f"{strategy}"
+    )
+
+    return final_report
 
 
 # ===================================================================
@@ -488,10 +763,10 @@ async def run_deep_report_pipeline(
         kind, facts["project"]["brand_name"],
     )
 
-    # ── Phase 1: Reflection ──
+    # ── Phase 1: Reflection (parallel per-dimension) ──
     reflection = await _phase_reflect(facts, meta)
 
-    # ── Phase 2: Distill insights ──
+    # ── Phase 2: Distill insights (parallel per-dimension) ──
     distilled = await _phase_distill(facts, meta, reflection)
 
     # ── Phase 3: Plan outline ──
@@ -504,7 +779,6 @@ async def run_deep_report_pipeline(
     # Separate main sections from final sections (intro/conclusion)
     sections = outline.get("sections", [])
     main_sections = [s for s in sections if not s.get("is_final_section", False)]
-    # final_sections are handled by the synthesizer
 
     if not main_sections:
         raise RuntimeError("Outline planner returned no main sections")
@@ -543,17 +817,14 @@ async def run_deep_report_pipeline(
     completed_sections: list[tuple[dict, str]] = []
     for i, result in enumerate(section_results):
         if isinstance(result, Exception):
-            logger.error(
-                "[Pipeline] Section %d failed: %s — skipping",
-                i, result,
-            )
+            logger.error("[Pipeline] Section %d failed: %s — skipping", i, result)
             continue
         completed_sections.append(result)
 
     if not completed_sections:
         raise RuntimeError("All section writers failed")
 
-    # ── Phase 6: Synthesize ──
+    # ── Phase 6: Synthesize (parallel summarizers + parallel writers) ──
     final_report = await _phase_synthesize(outline, completed_sections, distilled, facts)
 
     logger.info(
