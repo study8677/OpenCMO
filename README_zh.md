@@ -5,8 +5,8 @@
 <h1 align="center">OpenCMO</h1>
 
 <p align="center">
-  <strong>粘贴你的网址 → 直接拿到 AI CMO 战略判断、持续监控和可执行 Agent Brief。</strong><br/>
-  <sub>面向创始人和精简团队的开源 AI CMO。统一管理 SEO、GEO、SERP、社区信号、竞品上下文、报告、审批和发布。</sub>
+  <strong>OpenCMO 是把 SEO、GEO、SERP 和社区监控整合在一起的开源增长系统。</strong><br/>
+  <sub>面向开源项目和开发者产品。让你看清项目在哪里被发现、被讨论、被比较，然后把这些信号转成报告、Brief、审批和行动。</sub>
 </p>
 
 <div align="center">
@@ -24,77 +24,69 @@
   <h3>
     <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">观看演示视频</a>
   </h3>
-  <sub>BYOK（自带 Key）模式，无需注册，API 密钥仅保存在你的浏览器中。</sub>
+  <sub>BYOK（自带 Key）模式，无需注册，API 密钥只保存在你的浏览器里。如果你认同开源项目值得拥有更好的增长栈，欢迎给 OpenCMO 一个 star。</sub>
 </div>
 
 ---
 
 <div align="center">
   <img src="assets/screenshots/knowledge-graph-demo.gif" alt="OpenCMO 实战演示" width="850" />
-  <p><i>一个工作区看完监控、报告、审批和竞品关系。</i></p>
+  <p><i>在一个开源工作区里，把可见性信号变成增长决策。</i></p>
 </div>
 
 ---
 
 ## 实战展示：真实案例
 
-通过一次**对 [Cursor.com](https://cursor.com) 的真实扫描**，体验 OpenCMO 的实际效果 — 在 Reddit、Hacker News、Bilibili、Dev.to 和 V2EX 上发现了 176 条社区讨论，并生成了 177 节点的知识图谱。
+通过一次**对 [Cursor.com](https://cursor.com) 的真实扫描**，体验 OpenCMO 的实际效果：在 Reddit、Hacker News、Bilibili、Dev.to 和 V2EX 上发现了 176 条社区讨论，并生成了 177 节点的知识图谱。
 
 **[查看 Cursor 完整数据展示](docs/showcase/cursor/)**
 
 ---
 
-## 为什么是 OpenCMO
+## OpenCMO 有什么不一样
 
-- **从网址直接开始**：一次完整扫描后，先拿到 CMO 级项目定位和市场判断，而不是先做一堆配置。
-- **把信号放在一个闭环里**：SEO、GEO、SERP、社区动态统一监控。
-- **把判断直接交给执行系统**：报告、Agent Brief、审批队列、发布草稿连成一体。
+- **它把增长当成系统，而不是零散任务**：SEO、GEO、SERP、社区讨论、竞品、报告和审批都在同一个闭环里。
+- **它是为开源项目的现实处境设计的**：在你拥有营销团队之前，你已经需要被发现、被讨论、被建立信任。
+- **它不只展示数据，还帮你行动**：把信号变成下一步动作、Brief、草稿和 human-in-the-loop 审批。
 
-## 你实际会得到什么
+## OpenCMO 实际帮你做什么
 
-- **战略判断**：项目定位、优势、短板、竞品格局、CMO 建议。
-- **持续监控**：SEO 健康度、AI 搜索可见度、关键词排名、社区提及。
-- **竞品上下文**：3D 知识图谱连接竞品、关键词、社区。
-- **执行界面**：AI 对话、审批流、可发布内容草稿。
+- **看清项目的可见性**：监控搜索排名、AI 搜索表现、社区提及和爬虫可达性。
+- **理解竞争格局**：在知识图谱里查看竞品、关键词重叠和社区上下文。
+- **判断下一步该做什么**：找到最值得参与的讨论、最值得打的关键词和最该补的内容空白。
+- **让执行建立在真实上下文之上**：从同一套项目上下文生成报告、Agent Brief 和待审批草稿。
 
-## AI CMO 报告系统
+## 增长闭环
 
-OpenCMO 现在已经内置正式报告系统。你可以在项目内打开 **Reports** 标签页，或直接访问 `/app/projects/<id>/reports`。
+1. **扫描项目 URL**，提取品牌、类别、关键词和初始竞品上下文。
+2. **持续监控 SEO、GEO、SERP 和社区信号**。
+3. **把原始信号转成上下文**，通过报告、知识图谱和项目感知 AI 对话理解发生了什么。
+4. **进入执行环节**，产出草稿、审批项和优先级明确的下一步动作。
 
-### 多智能体深度报告管线
+## 核心能力
 
-面向人类读者的报告通过 **6 阶段多智能体管线**（约 14 次 LLM 调用）生成，而非单次 prompt。这会产出具有交叉验证、证据推理和迭代质控的深度商业分析。
+- **SEO 审计**：Core Web Vitals、`llms.txt`、AI 爬虫检测、技术健康度。
+- **GEO 可见度**：监控品牌在 ChatGPT、Claude、Gemini、Perplexity、You.com 等 AI 搜索场景中的表现。
+- **SERP 追踪**：持续追踪关键词排名变化。
+- **社区监控**：覆盖 Reddit、Hacker News、Dev.to、YouTube、Bluesky、Twitter/X，以及 V2EX、微博、B 站、雪球等中文平台。
+- **知识图谱**：在一个可视化界面里探索竞品、关键词和社区连接关系。
+- **报告系统**：生成版本化战略报告和周报，支持 Human Readout、Agent Brief、PDF 导出和邮件发送。
+- **审批与 AI 对话**：在保持人工审核的前提下，使用项目上下文驱动的 AI agent 做分析、总结和起草。
 
-| 阶段 | 角色 | 职责 |
-| :--- | :--- | :--- |
-| 1. Reflection Agent | 质检官 | 交叉验证所有 Agent 数据，标记异常和缺口 |
-| 2. Insight Distiller | 分析师 | 提炼跨维度关联洞察 |
-| 3. Outline Planner | 主编 | 规划叙事弧线，为每节分配论点和证据 |
-| 4. Section Writers | 撰稿人（并行） | 并行写作各章节，上下文聚焦 |
-| 5. Section Grader | 审稿人 | 1-5 分评审，低于阈值打回重写 |
-| 6. Report Synthesizer | 总编 | 撰写执行摘要、引言和战略建议 |
+## 深度报告
 
-- **战略报告**：完整扫描后生成——深度竞品分析、风险评估、CMO 级战略建议。
-- **周报**：基于最近 7 天监控窗口——趋势分析、风险/亮点、下周行动计划。
-- **双版本输出**：每份报告同时保存为 **Human Readout**（深度分析）和 **Agent Brief**（简明行动项）。
-- **PDF 导出**：下载带有品牌 Logo 页眉和页脚的专业 PDF 报告。
-- **版本历史**：所有报告保留历史版本，支持查看 latest 和历史记录。
-- **邮件投递**：周报邮件直接复用系统内看到的那份周期报告内容。
-- **优雅降级**：管线失败自动降级为单次调用 → 模板生成，确保报告永远可用。
+OpenCMO 已经内置正式报告系统。你可以在项目中打开 **Reports** 标签页，或直接访问 `/app/projects/<id>/reports`。
 
-## 核心产品面
-
-- **SEO 审计**：Core Web Vitals、llms.txt、AI 爬虫检测、技术健康度。
-- **GEO 可见度**：追踪品牌在 ChatGPT、Claude、Gemini、Perplexity、You.com 等 AI 搜索场景中的表现。
-- **SERP 追踪**：长期监控关键词排名变化。
-- **社区监控**：扫描 Reddit、Hacker News、Dev.to、YouTube、Bluesky、Twitter/X，以及中文平台（V2EX、微博、B站、雪球）。
-- **AI 对话**：与 25+ 专家智能体在项目上下文中协作。
-- **审批队列**：任何内容发布前先审再发。
-- **3D 知识图谱**：可视化探索竞品、关键词和社区关系。
+- **战略报告**：完整扫描后的定位、竞品格局、风险和建议。
+- **周报**：最近 7 天的监控变化、风险、亮点和下一步动作。
+- **双版本输出**：每份报告同时保存为 **Human Readout** 和 **Agent Brief**。
+- **多智能体管线**：面向人的报告使用 6 阶段管线，而不是单次 prompt。
+- **优雅降级**：深度管线失败时，会自动回退到更简单的生成路径，确保报告始终可用。
 
 ## 快速开始
 
-兼容 OpenAI 协议 API，包括 OpenAI、DeepSeek、NVIDIA NIM、Kimi 兼容网关、Ollama 等。
+OpenCMO 兼容 OpenAI 协议 API，包括 OpenAI、DeepSeek、NVIDIA NIM、Kimi 兼容网关、Ollama 等。
 
 ```bash
 git clone https://github.com/study8677/OpenCMO.git
@@ -108,7 +100,7 @@ opencmo-web
 
 然后打开 `http://localhost:8080/app`。
 
-> 提示：也可以在 Web 仪表盘的 **Settings** 面板里直接配置 API Key。
+> 提示：也可以直接在 Web 仪表盘的 **Settings** 面板里配置 API Key。
 
 <details>
 <summary>前端开发（可选）</summary>
@@ -130,7 +122,7 @@ npm run build
 | :--- | :--- | :--- |
 | 监控 | SEO、GEO、SERP、Community | 可选 provider key |
 | 社区来源（英文） | Reddit、HN、Dev.to、Bluesky、YouTube、Twitter/X | 可选 |
-| 社区来源（中文） | V2EX、微博、B站、雪球 | 免费（雪球需 Cookie） |
+| 社区来源（中文） | V2EX、微博、B 站、雪球 | 免费（雪球需 Cookie） |
 | 社区来源（预留） | 小红书、微信公众号、抖音 | 待实现（需 MCP/Docker） |
 | 发布 | Reddit、Twitter/X | 必需 |
 | 报告 | Web + 邮件 + PDF | 邮件需要 SMTP |
@@ -145,7 +137,7 @@ npm run build
 - [x] 带品牌标识的 PDF 导出
 - [x] 3D 知识图谱
 - [x] 审批流与受控发布
-- [x] 中文社区平台监控（V2EX、微博、B站、雪球）
+- [x] 中文社区平台监控（V2EX、微博、B 站、雪球）
 - [x] 完整国际化支持（英语、中文、日语、韩语、西班牙语）
 - [x] 语言感知 AI 响应（LLM 跟随 UI 语言设置）
 - [x] LLM 指数退避重试（适配不稳定 provider）
@@ -163,4 +155,4 @@ npm run build
 
 - [geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) by [@zubair-trabzada](https://github.com/zubair-trabzada)
 - [last30days-skill](https://github.com/mvanhorn/last30days-skill) by [@mvanhorn](https://github.com/mvanhorn)
-- [Agent-Reach](https://github.com/Panniantong/Agent-Reach) by [@Panniantong](https://github.com/Panniantong) — 中文平���集成灵感来源
+- [Agent-Reach](https://github.com/Panniantong/Agent-Reach) by [@Panniantong](https://github.com/Panniantong) — 中文平台集成灵感来源

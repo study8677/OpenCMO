@@ -5,8 +5,8 @@
 <h1 align="center">OpenCMO</h1>
 
 <p align="center">
-  <strong>Paste your URL → get an AI CMO brief, continuous monitoring, and agent-ready marketing actions.</strong><br/>
-  <sub>Open-source AI CMO for founders and lean teams. Monitor SEO, GEO, SERP, and community signals, understand competitors, brief your agents, and publish with approval.</sub>
+  <strong>OpenCMO is an open-source growth system that unifies SEO, GEO, SERP, and community monitoring.</strong><br/>
+  <sub>Built for open-source projects and developer products. See where your project is discovered, discussed, and compared — then turn those signals into reports, briefs, approvals, and actions.</sub>
 </p>
 
 <div align="center">
@@ -24,14 +24,14 @@
   <h3>
     <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">Watch Demo Video</a>
   </h3>
-  <sub>BYOK (Bring Your Own Key) — no login, and your API keys stay in your browser.</sub>
+  <sub>BYOK (Bring Your Own Key), no login, and your API keys stay in your browser. If you believe open-source projects deserve a better growth stack, give OpenCMO a star.</sub>
 </div>
 
 ---
 
 <div align="center">
   <img src="assets/screenshots/knowledge-graph-demo.gif" alt="OpenCMO in action" width="850" />
-  <p><i>One workspace for monitoring, reporting, approvals, and competitive context.</i></p>
+  <p><i>Turn visibility signals into growth decisions from one open-source workspace.</i></p>
 </div>
 
 ---
@@ -44,53 +44,45 @@ See OpenCMO in action with a **real scan of [Cursor.com](https://cursor.com)** �
 
 ---
 
-## Why OpenCMO
+## What Makes OpenCMO Different
 
-- **Start with a URL, not a setup project**: scan a site and get a CMO-level read on positioning, strengths, weaknesses, and competitive context.
-- **Keep the signal loop running**: monitor SEO, GEO, SERP, and community changes in one place.
-- **Turn insight into execution**: generate agent briefs, approval-ready content drafts, and weekly summaries without switching tools.
+- **It treats growth as a system, not a checklist**: SEO, GEO, SERP, community discussion, competitors, reports, and approvals live in one loop.
+- **It is built for open-source reality**: before you have a marketing team, you still need discovery, discussion, and credibility.
+- **It helps you act on signals**: not just dashboards, but next actions, briefs, drafts, and human-in-the-loop approvals grounded in project context.
 
-## What You Get
+## What OpenCMO Helps You Do
 
-- **AI CMO strategy**: an initial strategic read after a full scan.
-- **Continuous monitoring**: SEO health, AI-search visibility, keyword rankings, and community mentions.
-- **Competitive context**: a live 3D knowledge graph connecting competitors, keywords, and communities.
-- **Execution surface**: AI chat, approval queue, and publishable drafts for multiple platforms.
+- **See where your project is visible**: monitor search rankings, AI-search presence, community mentions, and crawler accessibility.
+- **Understand who you are competing with**: map competitors, keyword overlap, and community context in the knowledge graph.
+- **Prioritize what to do next**: identify the discussions to join, the keywords to push, and the content gaps worth closing.
+- **Keep execution grounded**: generate reports, agent briefs, and approval-ready drafts from the same project context.
 
-## AI CMO Reports
+## The Growth Loop
 
-OpenCMO now includes a formal report system inside each project workspace. Open the **Reports** tab or visit `/app/projects/<id>/reports`.
+1. **Scan a project URL** to extract brand, category, keywords, and early competitive context.
+2. **Monitor SEO, GEO, SERP, and community signals** in one workspace.
+3. **Turn raw signals into context** with reports, graph exploration, and AI chat grounded in project data.
+4. **Move to execution** with drafts, approvals, and prioritized next actions.
 
-### Multi-Agent Deep Report Pipeline
+## Core Capabilities
 
-Human-facing reports are generated through a **6-phase multi-agent pipeline** (~14 LLM calls) instead of a single prompt. This produces McKinsey-grade analysis with cross-validated data, evidence-based reasoning, and iterative quality control.
+- **SEO Audit**: Core Web Vitals, `llms.txt`, AI crawler detection, and technical site health.
+- **GEO Visibility**: monitor how your brand appears in AI-native search surfaces such as ChatGPT, Claude, Gemini, Perplexity, and You.com.
+- **SERP Tracking**: track keyword rankings over time with crawl-based or provider-based checks.
+- **Community Monitoring**: watch Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X, plus Chinese platforms such as V2EX, Weibo, Bilibili, and XueQiu.
+- **Knowledge Graph**: explore competitors, keywords, and community connections in one visual map.
+- **Reports**: generate versioned strategic and weekly reports, with human readouts, agent briefs, PDF export, and email delivery.
+- **Approvals and AI Chat**: keep humans in the loop while using project-aware AI agents to reason, summarize, and draft.
 
-| Phase | Role | What it does |
-| :--- | :--- | :--- |
-| 1. Reflection Agent | Quality Auditor | Cross-validates all agent data, flags anomalies and gaps |
-| 2. Insight Distiller | Analyst | Extracts analytical insights with cross-dimensional correlations |
-| 3. Outline Planner | Editor-in-Chief | Plans narrative arc with per-section thesis and evidence mapping |
-| 4. Section Writers | Authors (parallel) | Write each section concurrently with focused context |
-| 5. Section Grader | Reviewer | Scores each section 1-5, rejects and retries below threshold |
-| 6. Report Synthesizer | Managing Editor | Writes executive summary, intro, strategic recommendations |
+## Deep Reports
 
-- **Strategic Report**: generated after a full scan — deep competitive analysis, risk assessment, and CMO-level strategic recommendations.
-- **Weekly Report**: generated from the latest 7-day monitoring window — trend analysis, risk/win highlights, and next-week action plan.
-- **Dual outputs**: every report is stored as both a **Human Readout** (deep analysis) and an **Agent Brief** (concise action items).
-- **PDF export**: download branded PDF reports with logo header and footer.
-- **Version history**: reports are retained and viewable as historical versions.
-- **Email delivery**: weekly email uses the same persisted report content you see in the product.
-- **Graceful fallback**: pipeline failures automatically fall back to single-call → template generation.
+OpenCMO includes a report system inside each project workspace. Open the **Reports** tab or visit `/app/projects/<id>/reports`.
 
-## Core Product Surface
-
-- **SEO Audit**: Core Web Vitals, llms.txt validation, AI crawler detection, technical site health.
-- **GEO Visibility**: track how your brand appears in AI-native search surfaces such as ChatGPT, Claude, Gemini, Perplexity, and You.com.
-- **SERP Tracking**: monitor rankings over time with crawler-based or DataForSEO-based checks.
-- **Community Monitoring**: watch Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X, and Chinese platforms (V2EX, Weibo, Bilibili, XueQiu) for relevant mentions and discussions.
-- **AI Chat**: talk to 25+ specialist agents with project-aware context.
-- **Approval Queue**: review exact publishing payloads before anything goes live.
-- **3D Knowledge Graph**: explore competitors, keywords, and communities in one visual map.
+- **Strategic reports**: full-scan analysis with positioning, competitor context, risks, and recommendations.
+- **Weekly reports**: 7-day monitoring summaries with trend changes, risks, wins, and next actions.
+- **Dual outputs**: every report is stored as both a **Human Readout** and an **Agent Brief**.
+- **Multi-agent pipeline**: human-facing reports use a 6-phase pipeline instead of a single prompt.
+- **Graceful fallback**: if the deep pipeline fails, OpenCMO falls back to simpler generation paths so reports stay available.
 
 ## Quick Start
 
