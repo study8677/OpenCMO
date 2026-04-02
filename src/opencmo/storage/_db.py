@@ -386,6 +386,49 @@ CREATE TABLE IF NOT EXISTS report_tasks (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     completed_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS background_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id TEXT NOT NULL UNIQUE,
+    kind TEXT NOT NULL,
+    project_id INTEGER REFERENCES projects(id),
+    status TEXT NOT NULL DEFAULT 'queued',
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    result_json TEXT NOT NULL DEFAULT '{}',
+    error_json TEXT NOT NULL DEFAULT '{}',
+    dedupe_key TEXT,
+    priority INTEGER NOT NULL DEFAULT 50,
+    run_after TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 3,
+    worker_id TEXT,
+    claimed_at TEXT,
+    heartbeat_at TEXT,
+    started_at TEXT,
+    completed_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS background_task_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id TEXT NOT NULL REFERENCES background_tasks(task_id),
+    event_type TEXT NOT NULL,
+    phase TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT '',
+    summary TEXT NOT NULL DEFAULT '',
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_background_tasks_status_priority
+ON background_tasks(status, priority, run_after, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_background_tasks_project_created
+ON background_tasks(project_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_background_task_events_task_id
+ON background_task_events(task_id, id);
 """
 
 
