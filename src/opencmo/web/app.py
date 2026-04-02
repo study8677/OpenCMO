@@ -182,7 +182,8 @@ app.include_router(quick_actions_router)
 @app.get("/app")
 @app.get("/app/{full_path:path}")
 async def spa_catchall(request: Request, full_path: str = ""):
-    index = _SPA_DIR / "index.html"
+    spa_root = _SPA_DIR.resolve()
+    index = spa_root / "index.html"
     if not index.exists():
         return HTMLResponse(
             "<h1>Frontend not built</h1><p>Run <code>cd frontend && npm run build</code> to build the SPA.</p>",
@@ -190,8 +191,8 @@ async def spa_catchall(request: Request, full_path: str = ""):
         )
     # Serve static assets from dist
     if full_path and not full_path.startswith("index.html"):
-        asset = _SPA_DIR / full_path
-        if asset.exists() and asset.is_file():
+        asset = (spa_root / full_path).resolve()
+        if spa_root in asset.parents and asset.exists() and asset.is_file():
             import mimetypes
             ct = mimetypes.guess_type(str(asset))[0] or "application/octet-stream"
             return StreamingResponse(open(asset, "rb"), media_type=ct)

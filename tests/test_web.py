@@ -829,6 +829,21 @@ def test_spa_catchall_no_dist(client, tmp_path):
         assert "not built" in resp.text.lower()
 
 
+def test_spa_catchall_blocks_directory_traversal(client, tmp_path):
+    """Traversal paths do not escape SPA dist directory."""
+    spa_dir = tmp_path / "spa_dist"
+    spa_dir.mkdir()
+    (spa_dir / "index.html").write_text("<html>SPA</html>")
+    secret = tmp_path / "secret.txt"
+    secret.write_text("TOPSECRET")
+
+    with patch.object(app_module, "_SPA_DIR", spa_dir):
+        resp = client.get("/app/../secret.txt")
+        assert resp.status_code == 200
+        assert "SPA" in resp.text
+        assert "TOPSECRET" not in resp.text
+
+
 # ---------------------------------------------------------------------------
 # Scan data endpoints (v1)
 # ---------------------------------------------------------------------------
