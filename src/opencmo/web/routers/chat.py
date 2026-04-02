@@ -198,7 +198,8 @@ async def api_v1_chat(request: Request):
         "role": "system",
         "content": f"[Language Preference]\nThe user's interface language is {lang_name}. You MUST respond in {lang_name}. All your output — analysis, recommendations, content drafts, and explanations — should be written in {lang_name}.",
     }
-    input_items.insert(0, locale_prompt)
+    insert_index = 1 if context_item is not None else 0
+    input_items.insert(insert_index, locale_prompt)
 
     input_items.append({"role": "user", "content": message})
 

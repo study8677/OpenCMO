@@ -389,11 +389,6 @@ def _build_report(parser: _SEOParser, result, url: str, *, cwv: dict | None = No
     else:
         lines.append(_warn("Crawlability", "Could not check robots.txt / sitemap.xml"))
 
-    # --- Backlinks (placeholder) ---
-    lines.append("")
-    lines.append("## Backlink Profile")
-    lines.append("[INFO] Backlink data: not yet available — a future update will integrate third-party backlink APIs")
-
     return "\n".join(lines)
 
 

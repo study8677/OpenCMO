@@ -220,5 +220,16 @@ def test_report_includes_all_sections():
     assert "Structured Data" in report
     assert "Core Web Vitals" in report
     assert "Crawlability" in report
-    assert "Backlink" in report
     assert "LCP" in report
+
+
+def test_report_omits_backlink_placeholder_without_real_backlink_data():
+    html = '<html><head><title>Test Page</title></head><body><h1>Hello</h1></body></html>'
+    parser = _SEOParser()
+    parser.feed(html)
+    mock_result = type("R", (), {"media": None, "links": None, "markdown": " ".join(["word"] * 400)})()
+
+    report = _build_report(parser, mock_result, "https://example.com")
+
+    assert "Backlink Profile" not in report
+    assert "future update will integrate third-party backlink APIs" not in report
