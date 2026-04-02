@@ -375,18 +375,6 @@ CREATE TABLE IF NOT EXISTS manual_tracking (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS report_tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id TEXT NOT NULL UNIQUE,
-    project_id INTEGER NOT NULL REFERENCES projects(id),
-    kind TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    progress_json TEXT NOT NULL DEFAULT '[]',
-    error TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    completed_at TEXT
-);
-
 CREATE TABLE IF NOT EXISTS background_tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id TEXT NOT NULL UNIQUE,

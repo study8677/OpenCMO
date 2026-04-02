@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
-
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from opencmo import storage
+from opencmo.background import service as bg_service
 
 router = APIRouter(prefix="/api/v1")
 
@@ -114,13 +113,15 @@ async def api_v1_expansion_status(project_id: int):
 @router.post("/projects/{project_id}/expansion/start")
 async def api_v1_expansion_start(project_id: int):
     """Start or resume graph expansion."""
-    from opencmo.web.app import _expansion_tasks, _expansion_progress
 
     project = await storage.get_project(project_id)
     if not project:
         return JSONResponse({"error": "Not found"}, status_code=404)
 
     expansion = await storage.get_or_create_expansion(project_id)
+    active_task = await bg_service.find_active_task_by_dedupe_key(f"graph:project:{project_id}")
+    if active_task is not None:
+        return JSONResponse({"error": "Expansion already running"}, status_code=409)
 
     # If running with fresh heartbeat, reject
     if expansion["runtime_state"] == "running" and expansion.get("heartbeat_at"):
@@ -134,8 +135,6 @@ async def api_v1_expansion_start(project_id: int):
         # Stale heartbeat — mark interrupted, allow restart
         await storage.update_expansion(project_id, runtime_state="interrupted")
 
-    from opencmo.graph_expansion import run_expansion
-
     # Seed frontier on first start
     if expansion["current_wave"] == 0:
         await storage.seed_expansion_nodes(project_id)
@@ -143,33 +142,13 @@ async def api_v1_expansion_start(project_id: int):
     # Set desired state
     await storage.update_expansion(project_id, desired_state="running")
 
-    # Clear progress, launch task
-    _expansion_progress[project_id] = []
-
-    def on_progress(event: dict):
-        events = _expansion_progress.setdefault(project_id, [])
-        events.append(event)
-        # Keep last 100 events
-        if len(events) > 100:
-            _expansion_progress[project_id] = events[-50:]
-
-    async def _run():
-        try:
-            await run_expansion(project_id, on_progress=on_progress)
-        except Exception:
-            import logging
-            logging.getLogger(__name__).exception("Expansion failed for project %d", project_id)
-            await storage.update_expansion(project_id, runtime_state="interrupted")
-        finally:
-            _expansion_tasks.pop(project_id, None)
-
-    # Cancel any lingering task
-    old_task = _expansion_tasks.pop(project_id, None)
-    if old_task and not old_task.done():
-        old_task.cancel()
-
-    _expansion_tasks[project_id] = asyncio.get_event_loop().create_task(_run())
-    return JSONResponse({"status": "running"}, status_code=202)
+    task = await bg_service.enqueue_task(
+        kind="graph_expansion",
+        project_id=project_id,
+        payload={"project_id": project_id},
+        dedupe_key=f"graph:project:{project_id}",
+    )
+    return JSONResponse({"status": "running", "task_id": task["task_id"]}, status_code=202)
 
 
 @router.post("/projects/{project_id}/expansion/pause")
@@ -185,20 +164,31 @@ async def api_v1_expansion_pause(project_id: int):
 @router.post("/projects/{project_id}/expansion/reset")
 async def api_v1_expansion_reset(project_id: int):
     """Reset expansion state. Must not be running."""
-    from opencmo.web.app import _expansion_progress
-
+    active_task = await bg_service.find_active_task_by_dedupe_key(f"graph:project:{project_id}")
     expansion = await storage.get_expansion(project_id)
-    if expansion and expansion["runtime_state"] == "running":
+    if active_task is not None or (expansion and expansion["runtime_state"] == "running"):
         return JSONResponse({"error": "Cannot reset while running"}, status_code=400)
     await storage.reset_expansion(project_id)
-    _expansion_progress.pop(project_id, None)
     return JSONResponse({"ok": True})
 
 
 @router.get("/projects/{project_id}/expansion/progress")
 async def api_v1_expansion_progress(project_id: int):
     """Get live expansion progress events."""
-    from opencmo.web.app import _expansion_progress
+    tasks = await bg_service.list_tasks(kind="graph_expansion", limit=200)
+    latest = next((task for task in tasks if task["project_id"] == project_id), None)
+    if latest is None:
+        return JSONResponse({"progress": []})
 
-    events = _expansion_progress.get(project_id, [])
-    return JSONResponse({"progress": events})
+    events = await bg_service.list_task_events(latest["task_id"])
+    progress = []
+    for event in events:
+        if event["event_type"] != "progress":
+            continue
+        payload = event["payload"] or {
+            "stage": event["phase"],
+            "status": event["status"],
+            "summary": event["summary"],
+        }
+        progress.append(payload)
+    return JSONResponse({"progress": progress})

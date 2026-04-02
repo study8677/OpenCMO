@@ -7,7 +7,6 @@ server entry point.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 from pathlib import Path
@@ -26,11 +25,6 @@ _SPA_DIR = _HERE.parent.parent.parent / "frontend" / "dist"  # <repo>/frontend/d
 app = FastAPI(title="OpenCMO Dashboard")
 app.mount("/static", StaticFiles(directory=str(_HERE / "static")), name="static")
 logger = logging.getLogger(__name__)
-
-
-# In-memory expansion tracking (lightweight, no third task model)
-_expansion_progress: dict[int, list[dict]] = {}   # project_id -> progress events
-_expansion_tasks: dict[int, asyncio.Task] = {}     # project_id -> running asyncio.Task
 
 
 # ---------------------------------------------------------------------------
@@ -53,13 +47,18 @@ async def _startup_fix_stale_expansions():
 @app.on_event("startup")
 async def _startup_runtime_services():
     """Start optional runtime services after DB bootstrap."""
-    from opencmo.background.executors import run_report_executor, run_scan_executor
+    from opencmo.background.executors import (
+        run_graph_expansion_executor,
+        run_report_executor,
+        run_scan_executor,
+    )
     from opencmo.background.worker import get_background_worker
     from opencmo import scheduler
 
     worker = get_background_worker()
     worker.register_executor("scan", run_scan_executor)
     worker.register_executor("report", run_report_executor)
+    worker.register_executor("graph_expansion", run_graph_expansion_executor)
     await worker.start()
 
     if not scheduler.is_scheduler_available():

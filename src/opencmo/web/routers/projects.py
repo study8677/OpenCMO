@@ -26,14 +26,8 @@ async def api_v1_project(project_id: int):
 
 @router.delete("/projects/{project_id}")
 async def api_v1_delete_project(project_id: int):
-    from opencmo.web.app import _expansion_tasks, _expansion_progress
-
-    # Cancel running expansion if any
+    # Stop graph expansion if any
     await storage.update_expansion(project_id, desired_state="idle")
-    old_task = _expansion_tasks.pop(project_id, None)
-    if old_task and not old_task.done():
-        old_task.cancel()
-    _expansion_progress.pop(project_id, None)
     ok = await storage.delete_project(project_id)
     if not ok:
         return JSONResponse({"error": "Not found"}, status_code=404)

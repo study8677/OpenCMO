@@ -47,6 +47,7 @@ async def _serialize_scan_task(task: dict) -> dict:
     error = task["error"] or {}
     return {
         "task_id": task["task_id"],
+        "task_kind": "scan",
         "monitor_id": payload["monitor_id"],
         "project_id": task["project_id"],
         "job_type": payload["job_type"],
@@ -62,24 +63,71 @@ async def _serialize_scan_task(task: dict) -> dict:
     }
 
 
+async def _serialize_report_task(task: dict) -> dict:
+    events = await bg_service.list_task_events(task["task_id"])
+    payload = task["payload"]
+    result = task["result"] or {}
+    error = task["error"] or {}
+    return {
+        "task_id": task["task_id"],
+        "task_kind": "report",
+        "report_kind": payload["kind"],
+        "project_id": task["project_id"],
+        "status": _compat_status(task["status"]),
+        "created_at": task["created_at"],
+        "completed_at": task["completed_at"],
+        "error": error.get("message"),
+        "progress": _progress_from_events(events),
+        "summary": result.get("summary") or error.get("message") or "",
+    }
+
+
+async def _serialize_graph_task(task: dict) -> dict:
+    events = await bg_service.list_task_events(task["task_id"])
+    payload = task["payload"]
+    result = task["result"] or {}
+    error = task["error"] or {}
+    return {
+        "task_id": task["task_id"],
+        "task_kind": "graph_expansion",
+        "project_id": task["project_id"],
+        "status": _compat_status(task["status"]),
+        "created_at": task["created_at"],
+        "completed_at": task["completed_at"],
+        "error": error.get("message"),
+        "progress": _progress_from_events(events),
+        "summary": result.get("summary") or error.get("message") or "",
+        "runtime_state": result.get("runtime_state"),
+        "current_wave": result.get("current_wave"),
+        "nodes_discovered": result.get("nodes_discovered"),
+        "nodes_explored": result.get("nodes_explored"),
+        "graph_project_id": payload["project_id"],
+    }
+
+
+async def serialize_background_task(task: dict) -> dict:
+    kind = task["kind"]
+    if kind == "scan":
+        return await _serialize_scan_task(task)
+    if kind == "report":
+        return await _serialize_report_task(task)
+    if kind == "graph_expansion":
+        return await _serialize_graph_task(task)
+    raise ValueError(f"Unsupported background task kind: {kind}")
+
+
 @router.get("/tasks")
 async def api_v1_tasks():
-    tasks = await bg_service.list_tasks(kind="scan")
-    return JSONResponse([await _serialize_scan_task(task) for task in tasks])
+    tasks = await bg_service.list_tasks(limit=200)
+    return JSONResponse([await serialize_background_task(task) for task in tasks])
 
 
 @router.get("/tasks/{task_id}")
 async def api_v1_task(task_id: str):
     record = await bg_service.get_task(task_id)
-    if record and record["kind"] == "scan":
-        return JSONResponse(await _serialize_scan_task(record))
-
-    from opencmo.web import task_registry
-
-    legacy = task_registry.get_task(task_id)
-    if not legacy:
+    if record is None:
         return JSONResponse({"error": "Not found"}, status_code=404)
-    return JSONResponse(legacy.to_dict())
+    return JSONResponse(await serialize_background_task(record))
 
 
 @router.get("/tasks/{task_id}/findings")

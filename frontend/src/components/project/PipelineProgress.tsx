@@ -2,27 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import {
   CheckCircle, Circle, Loader2, XCircle, ChevronDown,
 } from "lucide-react";
-import { apiJson } from "../../api/client";
+import { useTaskPoll } from "../../hooks/useTasks";
 import { useI18n } from "../../i18n";
 import type { TranslationKey } from "../../i18n";
-
-interface ProgressEvent {
-  phase: string;
-  status: string;
-  summary: string;
-  detail?: string;
-}
-
-interface ReportTask {
-  task_id: string;
-  project_id: number;
-  kind: string;
-  status: "pending" | "running" | "completed" | "failed";
-  progress: ProgressEvent[];
-  error: string | null;
-  created_at: string;
-  completed_at: string | null;
-}
+import type { TaskProgressEntry } from "../../types";
 
 const PHASE_LABEL_KEYS: Record<string, TranslationKey> = {
   reflection: "pipeline.phaseReflection",
@@ -49,35 +32,22 @@ export function PipelineProgress({
   taskId: string;
   onComplete?: () => void;
 }) {
-  const [task, setTask] = useState<ReportTask | null>(null);
   const [expandedPhaseIdx, setExpandedPhaseIdx] = useState<number | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const { t } = useI18n();
   const completedRef = useRef(false);
+  const { data: task, isLoading } = useTaskPoll(taskId);
 
   useEffect(() => {
-    const poll = async () => {
-      try {
-        const data = await apiJson<ReportTask>(`/reports/tasks/${taskId}`);
-        setTask(data);
-        if ((data.status === "completed" || data.status === "failed") && !completedRef.current) {
-          completedRef.current = true;
-          clearInterval(intervalRef.current);
-          if (data.status === "completed" && onComplete) {
-            setTimeout(onComplete, 1500);
-          }
-        }
-      } catch {
-        // ignore
+    if (!task) return;
+    if ((task.status === "completed" || task.status === "failed") && !completedRef.current) {
+      completedRef.current = true;
+      if (task.status === "completed" && onComplete) {
+        setTimeout(onComplete, 1500);
       }
-    };
+    }
+  }, [task, onComplete]);
 
-    poll();
-    intervalRef.current = setInterval(poll, 2000);
-    return () => clearInterval(intervalRef.current);
-  }, [taskId, onComplete]);
-
-  if (!task) {
+  if (isLoading || !task) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 size={20} className="animate-spin text-slate-400" />
@@ -87,13 +57,14 @@ export function PipelineProgress({
   }
 
   // Build phase status map from progress events
-  const phaseStatus: Record<string, { status: string; events: ProgressEvent[] }> = {};
+  const phaseStatus: Record<string, { status: string; events: TaskProgressEntry[] }> = {};
   for (const event of task.progress) {
     const phase = event.phase;
+    if (!phase) continue;
     if (!phaseStatus[phase]) {
-      phaseStatus[phase] = { status: event.status, events: [] };
+      phaseStatus[phase] = { status: event.status ?? "running", events: [] };
     }
-    phaseStatus[phase].status = event.status;
+    phaseStatus[phase].status = event.status ?? phaseStatus[phase].status;
     phaseStatus[phase].events.push(event);
   }
 

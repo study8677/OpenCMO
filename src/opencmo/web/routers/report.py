@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from opencmo import storage
 from opencmo.background import service as bg_service
 from opencmo.background.types import ACTIVE_STATUSES
+from opencmo.web.routers.tasks import serialize_background_task
 
 router = APIRouter(prefix="/api/v1")
 
@@ -41,22 +42,6 @@ def _progress_from_events(events: list[dict]) -> list[dict]:
             }
         )
     return progress
-
-
-async def _serialize_report_task(task: dict) -> dict:
-    events = await bg_service.list_task_events(task["task_id"])
-    payload = task["payload"]
-    error = task["error"] or {}
-    return {
-        "task_id": task["task_id"],
-        "project_id": task["project_id"],
-        "kind": payload["kind"],
-        "status": _compat_status(task["status"]),
-        "progress": _progress_from_events(events),
-        "error": error.get("message"),
-        "created_at": task["created_at"],
-        "completed_at": task["completed_at"],
-    }
 
 
 async def _wait_for_project_report_tasks(project_id: int, timeout_seconds: float = 30.0) -> None:
@@ -123,7 +108,19 @@ async def api_v1_report_task(task_id: str):
     """Get the status and progress of a report generation task."""
     task = await bg_service.get_task(task_id)
     if task and task["kind"] == "report":
-        return JSONResponse(await _serialize_report_task(task))
+        detail = await serialize_background_task(task)
+        return JSONResponse(
+            {
+                "task_id": detail["task_id"],
+                "project_id": detail["project_id"],
+                "kind": detail["report_kind"],
+                "status": detail["status"],
+                "progress": detail["progress"],
+                "error": detail["error"],
+                "created_at": detail["created_at"],
+                "completed_at": detail["completed_at"],
+            }
+        )
     if not task:
         return JSONResponse({"error": "Task not found"}, status_code=404)
     return JSONResponse({"error": "Task not found"}, status_code=404)

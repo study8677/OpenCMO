@@ -49,18 +49,24 @@ export interface MonitorRun {
 
 export interface TaskRecord {
   task_id: string;
-  monitor_id: number;
+  task_kind?: "scan" | "report" | "graph_expansion";
+  monitor_id?: number;
   project_id: number;
-  job_type: string;
+  job_type?: string;
+  report_kind?: string;
   status: "pending" | "running" | "completed" | "failed";
   created_at: string;
   completed_at: string | null;
   error: string | null;
-  progress: AnalysisProgress[];
+  progress: TaskProgressEntry[];
   run_id?: number | null;
   summary?: string;
   findings_count?: number;
   recommendations_count?: number;
+  runtime_state?: string;
+  current_wave?: number;
+  nodes_discovered?: number;
+  nodes_explored?: number;
 }
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "failed";
@@ -96,6 +102,10 @@ export interface AnalysisProgress {
   agent?: string;
   summary?: string;
   detail?: string;
+}
+
+export interface TaskProgressEntry extends AnalysisProgress {
+  phase?: string;
 }
 
 export interface Finding {

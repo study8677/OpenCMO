@@ -455,18 +455,6 @@ def test_api_v1_task_artifacts_endpoints(client):
         }],
     ))
 
-    task_registry._tasks["task_artifacts_1"] = task_registry.TaskRecord(
-        task_id="task_artifacts_1",
-        monitor_id=1,
-        project_id=pid,
-        job_type="full",
-        status="completed",
-        run_id=run_id,
-        summary="done",
-        findings_count=1,
-        recommendations_count=1,
-    )
-
     resp = client.get("/api/v1/tasks/task_artifacts_1/findings")
     assert resp.status_code == 200
     assert resp.json()[0]["title"] == "Weak SEO baseline"
@@ -706,6 +694,10 @@ def test_api_v1_reports_lifecycle(client):
         assert strategic.json()["kind"] == "strategic"
         strategic_task = _wait_for_report_task(client, strategic.json()["task_id"])
         assert strategic_task["status"] == "completed"
+        task_detail = client.get(f"/api/v1/tasks/{strategic.json()['task_id']}")
+        assert task_detail.status_code == 200
+        assert task_detail.json()["task_kind"] == "report"
+        assert task_detail.json()["report_kind"] == "strategic"
 
         periodic = client.post(f"/api/v1/projects/{pid}/reports/periodic/regenerate")
         assert periodic.status_code == 200
@@ -731,6 +723,54 @@ def test_api_v1_reports_lifecycle(client):
         summary = client.get(f"/api/v1/projects/{pid}/summary")
         assert summary.status_code == 200
         assert summary.json()["latest_reports"]["strategic"]["human"]["id"] == report_id
+
+
+def test_api_v1_graph_expansion_progress_uses_background_runtime(client):
+    pid = _seed_project("Graphy", "https://graphy.test")
+
+    with patch("opencmo.graph_expansion.run_expansion", new_callable=AsyncMock) as mock_run:
+        async def _fake_run(project_id: int, on_progress=None):
+            await storage.update_expansion(
+                project_id,
+                runtime_state="running",
+                current_wave=1,
+                heartbeat_at="2026-04-02 00:00:00",
+            )
+            if on_progress:
+                on_progress(
+                    {
+                        "stage": "wave_start",
+                        "status": "running",
+                        "summary": "Wave 1: 1 nodes to explore.",
+                    }
+                )
+            await storage.update_expansion(
+                project_id,
+                desired_state="idle",
+                runtime_state="idle",
+            )
+
+        mock_run.side_effect = _fake_run
+
+        start = client.post(f"/api/v1/projects/{pid}/expansion/start")
+        assert start.status_code == 202
+        assert start.json()["status"] == "running"
+
+        deadline = time.time() + 5.0
+        progress_payload = {"progress": []}
+        while time.time() < deadline:
+            progress = client.get(f"/api/v1/projects/{pid}/expansion/progress")
+            assert progress.status_code == 200
+            progress_payload = progress.json()
+            if progress_payload["progress"]:
+                break
+            time.sleep(0.1)
+
+        assert progress_payload["progress"][0]["stage"] == "wave_start"
+
+        status = client.get(f"/api/v1/projects/{pid}/expansion")
+        assert status.status_code == 200
+        assert status.json()["runtime_state"] == "idle"
 
 
 # ---------------------------------------------------------------------------
