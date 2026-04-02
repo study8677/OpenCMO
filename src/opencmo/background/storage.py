@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from datetime import datetime, timedelta, timezone
 
@@ -56,14 +57,15 @@ async def insert_task(
     dedupe_key: str | None,
     priority: int,
     max_attempts: int,
+    run_after: str | None = None,
 ) -> None:
     db = await get_db()
     try:
         await db.execute(
             """INSERT INTO background_tasks
-               (task_id, kind, project_id, payload_json, dedupe_key, priority, max_attempts)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (task_id, kind, project_id, json.dumps(payload), dedupe_key, priority, max_attempts),
+               (task_id, kind, project_id, payload_json, dedupe_key, priority, max_attempts, run_after)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (task_id, kind, project_id, json.dumps(payload), dedupe_key, priority, max_attempts, run_after),
         )
         await db.commit()
     finally:
@@ -271,6 +273,9 @@ async def list_stale_tasks(*, stale_after_seconds: int) -> list[dict]:
 async def claim_next_queued_task(*, worker_id: str) -> dict | None:
     db = await get_db()
     try:
+        # Use BEGIN IMMEDIATE for atomic SELECT+UPDATE — prevents concurrent
+        # workers from claiming the same task (SQLite serialises IMMEDIATE txns).
+        await db.execute("BEGIN IMMEDIATE")
         cursor = await db.execute(
             """SELECT id, task_id, kind, project_id, status, payload_json, result_json,
                       error_json, dedupe_key, priority, run_after, attempt_count,
@@ -278,28 +283,32 @@ async def claim_next_queued_task(*, worker_id: str) -> dict | None:
                       completed_at, created_at, updated_at
                FROM background_tasks
                WHERE status = 'queued'
+                 AND (run_after IS NULL OR run_after <= datetime('now'))
                ORDER BY priority DESC, created_at ASC
                LIMIT 1""",
         )
         row = await cursor.fetchone()
         if row is None:
+            await db.execute("COMMIT")
             return None
 
         task = _task_row_to_dict(row)
-        update = await db.execute(
+        await db.execute(
             """UPDATE background_tasks
                SET status = 'claimed',
                    worker_id = ?,
                    claimed_at = datetime('now'),
                    heartbeat_at = datetime('now'),
                    updated_at = datetime('now')
-               WHERE task_id = ? AND status = 'queued'""",
+               WHERE task_id = ?""",
             (worker_id, task["task_id"]),
         )
-        await db.commit()
-        if update.rowcount == 0:
-            return None
+        await db.execute("COMMIT")
         return await get_task(task["task_id"])
+    except Exception:
+        with contextlib.suppress(Exception):
+            await db.execute("ROLLBACK")
+        raise
     finally:
         await db.close()
 

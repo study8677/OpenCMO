@@ -103,8 +103,7 @@ async def resolve_project(id_or_brand: str) -> tuple[int | None, str]:
     except ValueError:
         pass
 
-    projects = await storage.list_projects()
-    matches = [p for p in projects if p["brand_name"].lower() == id_or_brand.lower()]
+    matches = await storage.find_projects_by_brand(id_or_brand)
     if len(matches) == 1:
         return matches[0]["id"], ""
     elif len(matches) > 1:

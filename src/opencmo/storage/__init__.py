@@ -20,6 +20,7 @@ from opencmo.storage.projects import (
     update_project,
     get_project,
     list_projects,
+    find_projects_by_brand,
     delete_project,
 )
 
@@ -223,7 +224,8 @@ __all__ = [
     # _db
     "_DB_PATH", "_SCHEMA", "_SCHEMA_READY_FOR", "ensure_db", "get_db",
     # projects
-    "ensure_project", "update_project", "get_project", "list_projects", "delete_project",
+    "ensure_project", "update_project", "get_project", "list_projects",
+    "find_projects_by_brand", "delete_project",
     # scans
     "save_seo_scan", "save_geo_scan", "save_community_scan",
     "get_seo_history", "get_geo_history", "get_community_history",

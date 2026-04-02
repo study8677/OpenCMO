@@ -11,3 +11,4 @@ venv/
 .crawl4ai/
 frontend/node_modules/
 frontend/dist/
+*.tsbuildinfo

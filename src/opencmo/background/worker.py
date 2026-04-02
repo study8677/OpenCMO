@@ -1,15 +1,23 @@
-"""In-process worker for unified background tasks."""
+"""In-process worker for unified background tasks.
+
+Concurrency is bounded by *max_concurrency* (total in-flight tasks) and
+optional per-kind limits via *kind_concurrency*.  Claim uses an atomic
+``BEGIN IMMEDIATE`` transaction in storage so multi-process deployments
+remain safe.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 from collections.abc import Awaitable, Callable
 
 from opencmo.background import service as bg_service
 from opencmo.background.types import make_worker_id
 
 Executor = Callable[["ExecutorContext"], Awaitable[None]]
+logger = logging.getLogger(__name__)
 
 
 class ExecutorContext:
@@ -42,14 +50,44 @@ class ExecutorContext:
 
 
 class BackgroundWorker:
-    def __init__(self, *, poll_interval: float = 0.5, stale_after_seconds: int = 90):
+    """Polls for queued tasks and dispatches them to registered executors.
+
+    Parameters
+    ----------
+    max_concurrency:
+        Global upper bound on in-flight tasks across all kinds.
+    kind_concurrency:
+        Per-kind upper bound (e.g. ``{"scan": 2, "report": 1}``).
+        Kinds not listed fall back to *max_concurrency*.
+    """
+
+    def __init__(
+        self,
+        *,
+        poll_interval: float = 0.5,
+        stale_after_seconds: int = 90,
+        max_concurrency: int = 4,
+        kind_concurrency: dict[str, int] | None = None,
+    ):
         self.poll_interval = poll_interval
         self.stale_after_seconds = stale_after_seconds
         self.worker_id = make_worker_id()
+        self.max_concurrency = max_concurrency
         self._loop_task: asyncio.Task | None = None
         self._stop = asyncio.Event()
         self._executors: dict[str, Executor] = {}
         self._running_tasks: set[asyncio.Task] = set()
+        # Concurrency gates — created lazily on first start()
+        self._global_sem: asyncio.Semaphore | None = None
+        self._kind_limits = kind_concurrency or {}
+        self._kind_sems: dict[str, asyncio.Semaphore] = {}
+
+    def _get_kind_sem(self, kind: str) -> asyncio.Semaphore | None:
+        if kind not in self._kind_limits:
+            return None
+        if kind not in self._kind_sems:
+            self._kind_sems[kind] = asyncio.Semaphore(self._kind_limits[kind])
+        return self._kind_sems[kind]
 
     def register_executor(self, kind: str, executor: Executor) -> None:
         self._executors[kind] = executor
@@ -58,6 +96,8 @@ class BackgroundWorker:
         if self._loop_task is not None:
             return
         self._stop.clear()
+        self._global_sem = asyncio.Semaphore(self.max_concurrency)
+        self._kind_sems.clear()
         self._loop_task = asyncio.create_task(self._run_loop())
 
     async def stop(self) -> None:
@@ -74,6 +114,13 @@ class BackgroundWorker:
     async def _run_loop(self) -> None:
         while not self._stop.is_set():
             await bg_service.recover_stale_tasks(stale_after_seconds=self.stale_after_seconds)
+
+            # Back-pressure: wait until at least one concurrency slot is free
+            # before attempting to claim, to avoid unnecessary DB round-trips.
+            if self._global_sem is not None and self._global_sem._value == 0:
+                await asyncio.sleep(self.poll_interval)
+                continue
+
             task = await bg_service.claim_next_task(worker_id=self.worker_id)
             if task is None:
                 await asyncio.sleep(self.poll_interval)
@@ -84,6 +131,20 @@ class BackgroundWorker:
             execution.add_done_callback(self._running_tasks.discard)
 
     async def _run_claimed_task(self, task: dict) -> None:
+        kind = task["kind"]
+        kind_sem = self._get_kind_sem(kind)
+
+        # Acquire global + per-kind semaphores before executing
+        async with self._global_sem:
+            if kind_sem is not None:
+                await kind_sem.acquire()
+            try:
+                await self._execute_task(task)
+            finally:
+                if kind_sem is not None:
+                    kind_sem.release()
+
+    async def _execute_task(self, task: dict) -> None:
         heartbeat_task = asyncio.create_task(self._heartbeat_loop(task["task_id"]))
         try:
             executor = self._executors[task["kind"]]
@@ -109,5 +170,8 @@ _default_worker: BackgroundWorker | None = None
 def get_background_worker() -> BackgroundWorker:
     global _default_worker
     if _default_worker is None:
-        _default_worker = BackgroundWorker()
+        _default_worker = BackgroundWorker(
+            max_concurrency=4,
+            kind_concurrency={"scan": 2, "report": 1, "graph_expansion": 1},
+        )
     return _default_worker

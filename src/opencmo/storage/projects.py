@@ -75,6 +75,20 @@ async def list_projects() -> list[dict]:
         await db.close()
 
 
+async def find_projects_by_brand(brand_name: str) -> list[dict]:
+    """Find projects whose brand_name matches (case-insensitive)."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT id, brand_name, url, category FROM projects WHERE brand_name = ? COLLATE NOCASE",
+            (brand_name,),
+        )
+        rows = await cursor.fetchall()
+        return [{"id": r[0], "brand_name": r[1], "url": r[2], "category": r[3]} for r in rows]
+    finally:
+        await db.close()
+
+
 async def delete_project(project_id: int) -> bool:
     """Delete a project and all its related data. Returns True if deleted."""
     db = await get_db()

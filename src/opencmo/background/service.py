@@ -15,6 +15,7 @@ async def enqueue_task(
     dedupe_key: str | None,
     priority: int = 50,
     max_attempts: int = 3,
+    run_after: str | None = None,
 ) -> dict:
     if dedupe_key:
         existing = await bg_storage.find_active_task_by_dedupe_key(dedupe_key)
@@ -30,6 +31,7 @@ async def enqueue_task(
         dedupe_key=dedupe_key,
         priority=priority,
         max_attempts=max_attempts,
+        run_after=run_after,
     )
     await bg_storage.append_task_event(
         task_id,
