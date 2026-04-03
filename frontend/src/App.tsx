@@ -7,7 +7,6 @@ import { SeoPage } from "./pages/SeoPage";
 import { GeoPage } from "./pages/GeoPage";
 import { SerpPage } from "./pages/SerpPage";
 import { CommunityPage } from "./pages/CommunityPage";
-import { MonitorsPage } from "./pages/MonitorsPage";
 import { ApprovalsPage } from "./pages/ApprovalsPage";
 import { BrandKitPage } from "./pages/BrandKitPage";
 
@@ -54,8 +53,7 @@ function AppRoutes() {
           <Route path="/projects/:id/serp" element={<SerpPage />} />
           <Route path="/projects/:id/community" element={<CommunityPage />} />
           <Route path="/projects/:id/graph" element={<GraphPage />} />
-          <Route path="/monitors" element={<MonitorsPage />} />
-          <Route path="/chat" element={<ChatPage />} />
+<Route path="/chat" element={<ChatPage />} />
         </Routes>
       </Suspense>
     </AppShell>

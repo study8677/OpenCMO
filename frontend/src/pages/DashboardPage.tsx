@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useProjects, useDeleteProject } from "../hooks/useProjects";
-import { useCreateMonitor } from "../hooks/useMonitors";
+import { useCreateMonitor, useMonitors, useDeleteMonitor } from "../hooks/useMonitors";
+import { MonitorList } from "../components/monitors/MonitorList";
 import { useTaskPoll } from "../hooks/useTasks";
 import { ErrorAlert } from "../components/common/ErrorAlert";
 import { AnimatedPage } from "../components/common/AnimatedPage";
@@ -34,6 +35,8 @@ export function DashboardPage() {
   const { data: projects, isLoading, error } = useProjects();
   const deleteProject = useDeleteProject();
   const createMonitor = useCreateMonitor();
+  const { data: monitors } = useMonitors();
+  const deleteMonitor = useDeleteMonitor();
   const { t, locale } = useI18n();
   const [showSettings, setShowSettings] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -140,6 +143,20 @@ export function DashboardPage() {
           ))}
         </div>
       ) : null}
+
+      {monitors && monitors.length > 0 && (
+        <div className="mt-8">
+          <MonitorList
+            monitors={monitors}
+            onDelete={(id) => deleteMonitor.mutate(id)}
+            onSelectRun={(taskId, url) => {
+              setSelectedTaskId(taskId);
+              setSelectedTaskUrl(url);
+              setDialogOpen(true);
+            }}
+          />
+        </div>
+      )}
 
       {selectedTaskId && dialogOpen && (
         <AnalysisDialog
