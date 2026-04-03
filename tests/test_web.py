@@ -58,7 +58,7 @@ def _wait_for_report_task(client: TestClient, task_id: str, *, timeout_seconds: 
 
 
 def test_dashboard_empty(client):
-    resp = client.get("/")
+    resp = client.get("/legacy/")
     assert resp.status_code == 200
     assert "OpenCMO" in resp.text
 
@@ -68,13 +68,13 @@ def test_dashboard_with_project(tmp_path):
     with patch.object(storage, "_DB_PATH", db_path):
         asyncio.run(storage.ensure_project("Test", "https://test.com", "testing"))
         client = TestClient(app)
-        resp = client.get("/")
+        resp = client.get("/legacy/")
         assert resp.status_code == 200
         assert "Test" in resp.text
 
 
 def test_project_not_found(client):
-    resp = client.get("/project/99999")
+    resp = client.get("/legacy/project/99999")
     assert resp.status_code == 404
 
 
@@ -83,7 +83,7 @@ def test_project_pages(tmp_path):
     with patch.object(storage, "_DB_PATH", db_path):
         pid = asyncio.run(storage.ensure_project("Test", "https://test.com", "testing"))
         client = TestClient(app)
-        for path in [f"/project/{pid}", f"/project/{pid}/seo", f"/project/{pid}/geo", f"/project/{pid}/community"]:
+        for path in [f"/legacy/project/{pid}", f"/legacy/project/{pid}/seo", f"/legacy/project/{pid}/geo", f"/legacy/project/{pid}/community"]:
             resp = client.get(path)
             assert resp.status_code == 200, f"Failed for {path}"
 
@@ -93,7 +93,7 @@ def test_api_endpoints(tmp_path):
     with patch.object(storage, "_DB_PATH", db_path):
         pid = asyncio.run(storage.ensure_project("Test", "https://test.com", "testing"))
         client = TestClient(app)
-        for path in [f"/api/project/{pid}/seo-data", f"/api/project/{pid}/geo-data", f"/api/project/{pid}/community-data"]:
+        for path in [f"/legacy/api/project/{pid}/seo-data", f"/legacy/api/project/{pid}/geo-data", f"/legacy/api/project/{pid}/community-data"]:
             resp = client.get(path)
             assert resp.status_code == 200
             data = resp.json()
@@ -921,15 +921,15 @@ def test_spa_catchall(client, tmp_path):
     (assets_dir / "main.js").write_text("console.log('hi')")
 
     with patch.object(app_module, "_SPA_DIR", spa_dir):
-        resp = client.get("/app")
+        resp = client.get("/")
         assert resp.status_code == 200
         assert "SPA" in resp.text
 
-        resp = client.get("/app/projects/1")
+        resp = client.get("/projects/1")
         assert resp.status_code == 200
         assert "SPA" in resp.text
 
-        resp = client.get("/app/assets/main.js")
+        resp = client.get("/assets/main.js")
         assert resp.status_code == 200
         assert "console" in resp.text
 
@@ -938,7 +938,7 @@ def test_spa_catchall_no_dist(client, tmp_path):
     """SPA routes return 404 message when dist doesn't exist."""
     fake_dir = tmp_path / "nonexistent_dist"
     with patch.object(app_module, "_SPA_DIR", fake_dir):
-        resp = client.get("/app")
+        resp = client.get("/")
         assert resp.status_code == 404
         assert "not built" in resp.text.lower()
 
@@ -952,7 +952,7 @@ def test_spa_catchall_blocks_directory_traversal(client, tmp_path):
     secret.write_text("TOPSECRET")
 
     with patch.object(app_module, "_SPA_DIR", spa_dir):
-        resp = client.get("/app/../secret.txt")
+        resp = client.get("/some/../secret.txt")
         assert resp.status_code == 200
         assert "SPA" in resp.text
         assert "TOPSECRET" not in resp.text
