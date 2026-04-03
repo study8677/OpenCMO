@@ -159,7 +159,7 @@ async def delete_project(project_id: int) -> bool:
         )
         await db.execute("DELETE FROM background_tasks WHERE project_id = ?", (project_id,))
         # Delete remaining tables with project_id
-        await db.execute("DELETE FROM chat_sessions WHERE project_id = ?", (project_id,))
+        await db.execute("UPDATE chat_sessions SET project_id = NULL WHERE project_id = ?", (project_id,))
         await db.execute("DELETE FROM approvals WHERE project_id = ?", (project_id,))
         await db.execute("DELETE FROM graph_expansion_edges WHERE project_id = ?", (project_id,))
         await db.execute("DELETE FROM citability_scans WHERE project_id = ?", (project_id,))

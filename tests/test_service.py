@@ -168,7 +168,7 @@ async def test_analyze_url_uses_shared_fetch_helper():
          patch("opencmo.tools.crawl.fetch_url_content", fetch_mock, create=True), \
          patch("crawl4ai.AsyncWebCrawler", return_value=crawl_mock), \
          patch("openai.AsyncOpenAI", return_value=MagicMock()), \
-         patch("opencmo.service._llm_call", llm_mock):
+         patch("opencmo.services.intelligence_service._llm_call", llm_mock):
         result = await service.analyze_url_with_ai("https://supabase.com")
 
     assert result["brand_name"] == "Supabase"
@@ -201,7 +201,7 @@ async def test_analyze_url_helper_fallback_still_returns_result():
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=False), \
          patch("opencmo.tools.crawl.fetch_url_content", fetch_mock, create=True), \
          patch("openai.AsyncOpenAI", return_value=MagicMock()), \
-         patch("opencmo.service._llm_call", llm_mock):
+         patch("opencmo.services.intelligence_service._llm_call", llm_mock):
         result = await service.analyze_url_with_ai("https://example.com")
 
     assert result["brand_name"] == "Example"
