@@ -524,6 +524,8 @@ export const ja: Record<TranslationKey, string> = {
   "analysis.stages": "ステージ",
   "analysis.close": "閉じる",
   "analysis.runBackground": "バックグラウンドで実行",
+  "analysis.backgroundHint": "分析はバックグラウンドで実行されます。いつでも閉じられます。",
+  "analysis.closeBackground": "閉じる（バックグラウンドで継続）",
   "analysis.stageContextBuild": "コンテキスト構築",
   "analysis.stageSignalCollect": "シグナル収集",
   "analysis.stageSignalNormalize": "正規化",

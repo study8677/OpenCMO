@@ -459,6 +459,8 @@ export const ko: Record<TranslationKey, string> = {
   "analysis.stages": "스테이지",
   "analysis.close": "닫기",
   "analysis.runBackground": "백그라운드에서 실행",
+  "analysis.backgroundHint": "분석은 백그라운드에서 실행됩니다. 언제든지 닫을 수 있습니다.",
+  "analysis.closeBackground": "닫기 — 백그라운드에서 계속",
   "analysis.stageContextBuild": "컨텍스트 구축",
   "analysis.stageSignalCollect": "시그널 수집",
   "analysis.stageSignalNormalize": "정규화",

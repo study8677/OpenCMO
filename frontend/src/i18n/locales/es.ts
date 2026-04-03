@@ -459,6 +459,8 @@ export const es: Record<TranslationKey, string> = {
   "analysis.stages": "etapas",
   "analysis.close": "Cerrar",
   "analysis.runBackground": "Ejecutar en segundo plano",
+  "analysis.backgroundHint": "El análisis se ejecuta en segundo plano. Puedes cerrar esta ventana.",
+  "analysis.closeBackground": "Cerrar — continúa en segundo plano",
   "analysis.stageContextBuild": "Construcción de Contexto",
   "analysis.stageSignalCollect": "Recolección de Señales",
   "analysis.stageSignalNormalize": "Normalización",

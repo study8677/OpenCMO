@@ -172,6 +172,6 @@ def get_background_worker() -> BackgroundWorker:
     if _default_worker is None:
         _default_worker = BackgroundWorker(
             max_concurrency=4,
-            kind_concurrency={"scan": 2, "report": 1, "graph_expansion": 1},
+            kind_concurrency={"scan": 1, "report": 1, "graph_expansion": 1},
         )
     return _default_worker

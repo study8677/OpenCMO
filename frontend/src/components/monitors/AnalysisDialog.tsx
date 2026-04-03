@@ -80,6 +80,9 @@ export function AnalysisDialog({
               {t("analysis.title")}
             </h2>
             <p className="mt-0.5 max-w-xl truncate text-xs text-slate-400">{url}</p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {t("analysis.backgroundHint")}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -244,9 +247,9 @@ export function AnalysisDialog({
           </div>
           <button
             onClick={onClose}
-            className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+            className="rounded-xl bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
           >
-            {isDone ? t("analysis.close") : t("analysis.runBackground")}
+            {isDone ? t("analysis.close") : t("analysis.closeBackground")}
           </button>
         </div>
       </div>

@@ -544,6 +544,8 @@ export const en = {
   "analysis.stages": "stages",
   "analysis.close": "Close",
   "analysis.runBackground": "Run in background",
+  "analysis.backgroundHint": "Analysis runs in the background — you can close this window anytime.",
+  "analysis.closeBackground": "Close — continues in background",
   "analysis.stageContextBuild": "Context Build",
   "analysis.stageSignalCollect": "Signal Collection",
   "analysis.stageSignalNormalize": "Normalization",

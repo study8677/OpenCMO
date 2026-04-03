@@ -1,0 +1,13 @@
+services:
+  opencmo:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - opencmo_data:/data
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  opencmo_data:
