@@ -21,16 +21,9 @@
 </p>
 
 <div align="center">
-  <h3>
-    <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">デモ動画を視聴</a>
-  </h3>
-  <sub>現在は OpenRouter の無料 qwen3.5free モデルを使用しています。</sub>
-</div>
-
----
-
-<div align="center">
-  <img src="assets/screenshots/knowledge-graph-demo.gif" alt="OpenCMO 実演" width="850" />
+  <video src="https://github.com/study8677/OpenCMO/raw/main/assets/demo.mp4" width="850" autoplay loop muted playsinline>
+    Your browser does not support the video tag.
+  </video>
   <p><i>監視、レポート、承認、競合文脈を1つの画面で確認できます。</i></p>
 </div>
 

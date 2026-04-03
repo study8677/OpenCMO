@@ -21,16 +21,9 @@
 </p>
 
 <div align="center">
-  <h3>
-    <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">Watch Demo Video</a>
-  </h3>
-  <sub>Currently using OpenRouter's free qwen3.5free model.</sub>
-</div>
-
----
-
-<div align="center">
-  <img src="assets/screenshots/knowledge-graph-demo.gif" alt="OpenCMO in action" width="850" />
+  <video src="https://github.com/study8677/OpenCMO/raw/main/assets/demo.mp4" width="850" autoplay loop muted playsinline>
+    Your browser does not support the video tag.
+  </video>
   <p><i>Turn visibility signals into growth decisions from one open-source workspace.</i></p>
 </div>
 

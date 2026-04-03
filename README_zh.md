@@ -21,16 +21,9 @@
 </p>
 
 <div align="center">
-  <h3>
-    <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">观看演示视频</a>
-  </h3>
-  <sub>当前使用的是 OpenRouter 免费的 qwen3.5free 模型。</sub>
-</div>
-
----
-
-<div align="center">
-  <img src="assets/screenshots/knowledge-graph-demo.gif" alt="OpenCMO 实战演示" width="850" />
+  <video src="https://github.com/study8677/OpenCMO/raw/main/assets/demo.mp4" width="850" autoplay loop muted playsinline>
+    Your browser does not support the video tag.
+  </video>
   <p><i>在一个开源工作区里，把可见性信号变成增长决策。</i></p>
 </div>
 

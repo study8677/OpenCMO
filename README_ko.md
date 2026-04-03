@@ -21,16 +21,9 @@
 </p>
 
 <div align="center">
-  <h3>
-    <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">데모 영상 시청</a>
-  </h3>
-  <sub>현재 OpenRouter의 무료 qwen3.5free 모델을 사용하고 있습니다.</sub>
-</div>
-
----
-
-<div align="center">
-  <img src="assets/screenshots/knowledge-graph-demo.gif" alt="OpenCMO 실행 화면" width="850" />
+  <video src="https://github.com/study8677/OpenCMO/raw/main/assets/demo.mp4" width="850" autoplay loop muted playsinline>
+    Your browser does not support the video tag.
+  </video>
   <p><i>모니터링, 리포트, 승인, 경쟁 맥락을 하나의 화면에서 봅니다.</i></p>
 </div>
 

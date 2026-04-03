@@ -21,16 +21,9 @@
 </p>
 
 <div align="center">
-  <h3>
-    <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">Ver Video Demo</a>
-  </h3>
-  <sub>Actualmente se utiliza el modelo gratuito qwen3.5free de OpenRouter.</sub>
-</div>
-
----
-
-<div align="center">
-  <img src="assets/screenshots/knowledge-graph-demo.gif" alt="OpenCMO en acción" width="850" />
+  <video src="https://github.com/study8677/OpenCMO/raw/main/assets/demo.mp4" width="850" autoplay loop muted playsinline>
+    Your browser does not support the video tag.
+  </video>
   <p><i>Un solo workspace para monitoreo, reportes, aprobaciones y contexto competitivo.</i></p>
 </div>
 
