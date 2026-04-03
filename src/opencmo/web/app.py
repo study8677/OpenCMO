@@ -164,7 +164,7 @@ from opencmo.web.routers.brand_kit import router as brand_kit_router
 from opencmo.web.routers.performance import router as performance_router
 from opencmo.web.routers.quick_actions import router as quick_actions_router
 
-app.include_router(legacy_router)
+app.include_router(legacy_router, prefix="/legacy")
 app.include_router(projects_router)
 app.include_router(graph_router)
 app.include_router(insights_router)
@@ -187,8 +187,8 @@ app.include_router(quick_actions_router)
 # ---------------------------------------------------------------------------
 
 
-@app.get("/app")
-@app.get("/app/{full_path:path}")
+@app.get("/")
+@app.get("/{full_path:path}")
 async def spa_catchall(request: Request, full_path: str = ""):
     spa_root = _SPA_DIR.resolve()
     index = spa_root / "index.html"

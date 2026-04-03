@@ -64,7 +64,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter basename="/app">
+    <BrowserRouter basename="/">
       <AppRoutes />
     </BrowserRouter>
   );
