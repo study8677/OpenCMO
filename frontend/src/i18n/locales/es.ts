@@ -121,6 +121,7 @@ export const es: Record<TranslationKey, string> = {
   "keywords.lastChecked": "Última Verificación",
   "projectCard.hits": "{{count}} menciones",
   "projectCard.kw": "{{count}} palabras clave",
+  "projectCard.noScans": "Sin escaneos",
   "chat.title": "Chat IA",
   "chat.agent": "Agente: {{name}}",
   "chat.newChat": "Nuevo Chat",

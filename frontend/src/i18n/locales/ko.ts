@@ -121,6 +121,7 @@ export const ko: Record<TranslationKey, string> = {
   "keywords.lastChecked": "마지막 확인",
   "projectCard.hits": "{{count}}건 히트",
   "projectCard.kw": "{{count}}개 키워드",
+  "projectCard.noScans": "스캔 없음",
   "chat.title": "AI 채팅",
   "chat.agent": "에이전트: {{name}}",
   "chat.newChat": "새 채팅",

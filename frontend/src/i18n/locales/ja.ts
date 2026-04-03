@@ -157,6 +157,7 @@ export const ja: Record<TranslationKey, string> = {
   // Project Card
   "projectCard.hits": "{{count}} 件ヒット",
   "projectCard.kw": "{{count}} キーワード",
+  "projectCard.noScans": "スキャンなし",
 
   // Chat
   "chat.title": "AI チャット",

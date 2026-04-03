@@ -158,6 +158,7 @@ export const en = {
   // Project Card
   "projectCard.hits": "{{count}} hits",
   "projectCard.kw": "{{count}} kw",
+  "projectCard.noScans": "No scans yet",
 
   // Chat
   "chat.title": "AI Chat",

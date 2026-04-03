@@ -160,6 +160,7 @@ export const zh: Record<TranslationKey, string> = {
   // Project Card
   "projectCard.hits": "{{count}} 次命中",
   "projectCard.kw": "{{count}} 个关键词",
+  "projectCard.noScans": "暂无扫描",
 
   // Chat
   "chat.title": "AI 对话",
