@@ -24,7 +24,7 @@
   <h3>
     <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">Ver Video Demo</a>
   </h3>
-  <sub>BYOK (Trae Tu Propia Clave): sin login y con claves API guardadas solo en tu navegador.</sub>
+  <sub>Actualmente se utiliza el modelo gratuito qwen3.5free de OpenRouter.</sub>
 </div>
 
 ---

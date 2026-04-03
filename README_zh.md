@@ -24,7 +24,7 @@
   <h3>
     <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">观看演示视频</a>
   </h3>
-  <sub>BYOK（自带 Key）模式，无需注册，API 密钥只保存在你的浏览器里。如果你认同开源项目值得拥有更好的增长栈，欢迎给 OpenCMO 一个 star。</sub>
+  <sub>当前使用的是 OpenRouter 免费的 qwen3.5free 模型。</sub>
 </div>
 
 ---

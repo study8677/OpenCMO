@@ -24,7 +24,7 @@
   <h3>
     <a href="https://www.bilibili.com/video/BV1T5AMzoEKV/">Watch Demo Video</a>
   </h3>
-  <sub>BYOK (Bring Your Own Key), no login, and your API keys stay in your browser. If you believe open-source projects deserve a better growth stack, give OpenCMO a star.</sub>
+  <sub>Currently using OpenRouter's free qwen3.5free model.</sub>
 </div>
 
 ---
