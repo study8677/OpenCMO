@@ -1,9 +1,8 @@
 """Tests for auto-publish tools — Reddit + Twitter with safety gates."""
 
-import sys
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Reddit

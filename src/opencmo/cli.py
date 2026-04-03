@@ -1,8 +1,8 @@
 import asyncio
 import shlex
 
-from dotenv import load_dotenv
 from agents import Runner
+from dotenv import load_dotenv
 
 from opencmo.agents.cmo import cmo_agent
 

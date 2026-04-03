@@ -1,19 +1,17 @@
 """Tests for the Proactive Insight Engine — detectors, dedup, storage CRUD, and API."""
 
 import asyncio
-import os
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from opencmo import storage
 from opencmo.insights import (
-    Insight,
-    _detect_serp_drops,
-    _detect_geo_decline,
     _detect_community_buzz,
-    _detect_seo_regress,
     _detect_competitor_gaps,
+    _detect_geo_decline,
+    _detect_seo_regress,
+    _detect_serp_drops,
     detect_insights,
 )
 
@@ -24,7 +22,6 @@ from fastapi.testclient import TestClient
 
 from opencmo.web import chat_sessions, task_registry
 from opencmo.web.app import app
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 async def fetch_reddit_post_metrics(post_url: str) -> dict | None:
     """Fetch engagement metrics from a Reddit post URL using PRAW."""
     try:
-        import praw
         import os
+
+        import praw
 
         reddit = praw.Reddit(
             client_id=os.environ.get("REDDIT_CLIENT_ID", ""),
@@ -40,6 +41,7 @@ async def fetch_tweet_metrics(tweet_id: str) -> dict | None:
     """Fetch engagement metrics from Twitter API v2."""
     try:
         import os
+
         import httpx
 
         bearer_token = os.environ.get("TWITTER_BEARER_TOKEN", "")

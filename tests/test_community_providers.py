@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -20,8 +19,6 @@ from opencmo.tools.community_providers import (
     DouyinProvider,
     HackerNewsProvider,
     HttpResult,
-    LinkedInProvider,
-    ProductHuntProvider,
     ProviderSearchResult,
     RedditProvider,
     TwitterProvider,
@@ -42,7 +39,6 @@ from opencmo.tools.community_scoring import (
     trigram_jaccard,
     velocity_score,
 )
-
 
 # ---------------------------------------------------------------------------
 # Force "light" profile for tests (fast, predictable)
@@ -719,7 +715,7 @@ def test_scan_partial_failure():
 
 
 def test_scrape_profiles():
-    from opencmo.scrape_config import DEEP, LIGHT, NORMAL, get_scrape_profile
+    from opencmo.scrape_config import DEEP, LIGHT, get_scrape_profile
 
     # Default is "deep" but we set "light" in fixture
     profile = get_scrape_profile()
@@ -1166,7 +1162,7 @@ def test_scan_community_sorts_direct_mentions_before_platform_groups():
     import json
 
     from opencmo.tools.community import _scan_community_impl
-    from opencmo.tools.community_providers import CommunityProvider, ProviderSearchResult
+    from opencmo.tools.community_providers import CommunityProvider
 
     class _OpportunityProvider(CommunityProvider):
         name = "reddit"

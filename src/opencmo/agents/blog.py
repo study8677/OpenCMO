@@ -1,9 +1,9 @@
 from agents import Agent
 
 from opencmo.config import get_model
-from opencmo.tools.search import web_search
-from opencmo.tools.crawl import crawl_website
 from opencmo.tools.blog_writer import research_blog_topic
+from opencmo.tools.crawl import crawl_website
+from opencmo.tools.search import web_search
 
 blog_expert = Agent(
     name="Blog/SEO Expert",

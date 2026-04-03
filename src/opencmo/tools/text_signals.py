@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -20,8 +19,9 @@ class SentimentSignal:
 
 
 def _get_llm_client():
-    from opencmo import llm
     from openai import AsyncOpenAI
+
+    from opencmo import llm
 
     return AsyncOpenAI(
         api_key=llm.get_key("OPENAI_API_KEY"),

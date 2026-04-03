@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Callable
 from urllib.parse import urlparse
@@ -54,6 +53,7 @@ async def _web_search_direct(query: str) -> str:
     # Fallback: crawl4ai Google scrape
     try:
         from crawl4ai import AsyncWebCrawler
+
         from opencmo.tools.crawl import _extract_markdown
 
         url = f"https://www.google.com/search?q={query.replace(' ', '+')}&num=5"
@@ -77,8 +77,9 @@ def _get_llm_client():
     Note: This is sync because it's called in contexts where we need
     the client immediately. The client is created with ContextVar-aware keys.
     """
-    from opencmo import llm
     from openai import AsyncOpenAI
+
+    from opencmo import llm
 
     return AsyncOpenAI(
         api_key=llm.get_key("OPENAI_API_KEY"),

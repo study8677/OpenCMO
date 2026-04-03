@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from crawl4ai import AsyncWebCrawler
 
 from opencmo.tools.crawl import _extract_markdown
-
 
 # ---------------------------------------------------------------------------
 # Conditional imports for API-based providers
@@ -331,6 +329,7 @@ class ChatGPTProvider(GeoProvider):
         snippet_chars = _get_snippet_chars()
         try:
             from openai import AsyncOpenAI
+
             from opencmo import llm
 
             client = AsyncOpenAI(

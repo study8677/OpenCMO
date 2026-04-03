@@ -5,30 +5,11 @@ def test_imports():
     """All modules can be imported without error."""
     from opencmo.agents import (
         cmo_agent,
-        twitter_expert,
-        reddit_expert,
-        linkedin_expert,
-        producthunt_expert,
-        hackernews_expert,
-        blog_expert,
-        seo_agent,
-        geo_agent,
-        community_agent,
     )
     from opencmo.tools import (
-        crawl_website,
-        web_search,
-        audit_page_seo,
-        analyze_competitor,
-        scan_geo_visibility,
-        scan_community,
-        fetch_discussion_detail,
         check_keyword_ranking,
-        get_serp_trends,
-        research_blog_topic,
-        send_email_report,
+        crawl_website,
         publish_to_reddit,
-        publish_to_twitter,
     )
     # Just verify they exist
     assert cmo_agent is not None
@@ -65,15 +46,15 @@ def test_cmo_handoffs_have_descriptions():
 
 def test_all_experts_have_instructions():
     from opencmo.agents import (
-        twitter_expert,
-        reddit_expert,
+        blog_expert,
+        community_agent,
+        geo_agent,
+        hackernews_expert,
         linkedin_expert,
         producthunt_expert,
-        hackernews_expert,
-        blog_expert,
+        reddit_expert,
         seo_agent,
-        geo_agent,
-        community_agent,
+        twitter_expert,
     )
 
     for agent in [

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 
 from opencmo import storage
@@ -73,13 +72,14 @@ async def run_scheduled_scan(
 
     if job_type in ("seo", "full"):
         try:
+            from crawl4ai import AsyncWebCrawler
+
             from opencmo.tools.seo_audit import (
-                _SEOParser,
                 _build_report,
                 _check_robots_and_sitemap,
                 _fetch_core_web_vitals,
+                _SEOParser,
             )
-            from crawl4ai import AsyncWebCrawler
 
             async with AsyncWebCrawler() as crawler:
                 result = await crawler.arun(url=url)
@@ -115,6 +115,7 @@ async def run_scheduled_scan(
         # AI crawler access check (independent)
         try:
             import json as _json
+
             from opencmo.tools.ai_crawler_check import _ai_crawler_impl
 
             data = await _ai_crawler_impl(url)
@@ -131,6 +132,7 @@ async def run_scheduled_scan(
     if job_type in ("geo", "full"):
         try:
             import json
+
             from opencmo.tools.geo_providers import GEO_PROVIDER_REGISTRY
             from opencmo.tools.text_signals import analyze_geo_sentiment
 
@@ -189,6 +191,7 @@ async def run_scheduled_scan(
         # Citability scan (independent)
         try:
             import json as _json
+
             from opencmo.tools.citability import _citability_impl
 
             data = await _citability_impl(url)
@@ -207,6 +210,7 @@ async def run_scheduled_scan(
         # Brand presence scan (independent)
         try:
             import json as _json
+
             from opencmo.tools.brand_presence import _brand_presence_impl
 
             data = await _brand_presence_impl(brand, url)
@@ -221,6 +225,7 @@ async def run_scheduled_scan(
     if job_type in ("community", "full"):
         try:
             import json
+
             from opencmo.tools.community import _scan_community_impl
 
             tracked_keywords = [

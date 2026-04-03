@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from functools import partial
 
 from agents import function_tool
@@ -167,7 +166,7 @@ async def publish_reddit_reply_impl(
             user_agent="OpenCMO/1.0",
         )
         loop = asyncio.get_event_loop()
-        
+
         # Determine if parent is a submission (t3_) or comment (t1_) or just an ID
         # PRAW handles fullnames (e.g. t3_...) naturally in info()
         parent_item = None
@@ -176,7 +175,7 @@ async def publish_reddit_reply_impl(
         elif parent_id.startswith("t3_"):
             parent_item = await loop.run_in_executor(None, reddit.submission, parent_id)
         else:
-            # Attempt to fetch as submission first; if we need to be more robust, 
+            # Attempt to fetch as submission first; if we need to be more robust,
             # we could try both, but typically scan_community returns submission IDs
             parent_item = await loop.run_in_executor(None, reddit.submission, parent_id)
 

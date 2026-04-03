@@ -16,8 +16,9 @@ async def _research_topic_impl(topic: str, keywords: str) -> str:
     Uses httpx + crawl4ai directly (not function_tools) to avoid circular deps.
     Returns JSON with competing_articles and data_points.
     """
-    import httpx
     from urllib.parse import quote_plus
+
+    import httpx
 
     keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
     query = f"{topic} {keyword_list[0]}" if keyword_list else topic

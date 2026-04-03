@@ -7,7 +7,6 @@ self-contained, fact-rich, and structurally clear.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 
@@ -329,7 +328,7 @@ def _format_report(data: dict) -> str:
 
     # Grade distribution
     gd = data["grade_distribution"]
-    lines.append(f"\n### Grade Distribution\n")
+    lines.append("\n### Grade Distribution\n")
     lines.append("| Grade | Count |")
     lines.append("|-------|-------|")
     for grade in ("A", "B", "C", "D", "F"):

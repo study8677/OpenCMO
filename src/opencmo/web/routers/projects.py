@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from opencmo import storage
@@ -44,12 +44,12 @@ async def api_v1_pause_project(project_id: int):
             await storage.update_scheduled_job(job["id"], enabled=False)
             job["enabled"] = False
             sync_job_record(job)
-            
+
     # 2. Pause graph expansion
     expansion = await storage.get_expansion(project_id)
     if expansion and expansion["desired_state"] == "running":
         await storage.update_expansion(project_id, desired_state="paused")
-        
+
     return JSONResponse({"ok": True, "status": "paused"})
 
 
@@ -63,11 +63,11 @@ async def api_v1_resume_project(project_id: int):
             await storage.update_scheduled_job(job["id"], enabled=True)
             job["enabled"] = True
             sync_job_record(job)
-            
+
     # 2. Resume graph expansion
     from opencmo.web.routers.graph import api_v1_expansion_start
     await api_v1_expansion_start(project_id)
-    
+
     return JSONResponse({"ok": True, "status": "running"})
 
 
@@ -122,11 +122,11 @@ async def api_v1_project_summary(project_id: int):
     project = await storage.get_project(project_id)
     if not project:
         return JSONResponse({"error": "Not found"}, status_code=404)
-        
+
     jobs = await storage.list_scheduled_jobs()
     project_jobs = [j for j in jobs if j["project_id"] == project_id]
     is_paused = len(project_jobs) > 0 and all(not j["enabled"] for j in project_jobs)
-    
+
     latest = await storage.get_latest_scans(project_id)
     previous = await storage.get_previous_scans(project_id)
     monitoring = await storage.get_latest_monitoring_summary(project_id)

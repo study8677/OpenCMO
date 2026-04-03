@@ -5,13 +5,12 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from opencmo.tools.seo_audit import (
-    _SEOParser,
     _build_report,
     _check_robots_and_sitemap,
     _cwv_status,
     _fetch_core_web_vitals,
+    _SEOParser,
 )
-
 
 # ---------------------------------------------------------------------------
 # JSON-LD / Schema.org detection

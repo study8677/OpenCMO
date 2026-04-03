@@ -7,7 +7,6 @@ AI visibility than backlinks. YouTube (0.737), Reddit, Wikipedia are top signals
 
 from __future__ import annotations
 
-import json
 import logging
 from urllib.parse import quote_plus
 
@@ -200,7 +199,7 @@ def _format_report(data: dict) -> str:
     # LinkedIn
     li = p.get("linkedin", {})
     if li.get("found"):
-        lines.append(f"| LinkedIn | ✅ Found | Key signal for Bing Copilot |")
+        lines.append("| LinkedIn | ✅ Found | Key signal for Bing Copilot |")
     else:
         lines.append("| LinkedIn | ❌ Not found | Create a LinkedIn company page |")
 

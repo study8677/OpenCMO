@@ -1,34 +1,33 @@
 from agents import Agent, handoff
 
-from opencmo.config import get_model
-
-from opencmo.agents.twitter import twitter_expert
-from opencmo.agents.reddit import reddit_expert
-from opencmo.agents.linkedin import linkedin_expert
-from opencmo.agents.producthunt import producthunt_expert
-from opencmo.agents.hackernews import hackernews_expert
 from opencmo.agents.blog import blog_expert
-from opencmo.agents.seo import seo_agent
-from opencmo.agents.geo import geo_agent
 from opencmo.agents.community import community_agent
-from opencmo.agents.ruanyifeng import ruanyifeng_expert
-from opencmo.agents.zhihu import zhihu_expert
-from opencmo.agents.xiaohongshu import xiaohongshu_expert
-from opencmo.agents.v2ex import v2ex_expert
-from opencmo.agents.juejin import juejin_expert
-from opencmo.agents.jike import jike_expert
-from opencmo.agents.wechat import wechat_expert
-from opencmo.agents.oschina import oschina_expert
-from opencmo.agents.gitcode import gitcode_expert
-from opencmo.agents.sspai import sspai_expert
-from opencmo.agents.infoq import infoq_expert
 from opencmo.agents.devto import devto_expert
+from opencmo.agents.geo import geo_agent
+from opencmo.agents.gitcode import gitcode_expert
+from opencmo.agents.hackernews import hackernews_expert
+from opencmo.agents.infoq import infoq_expert
+from opencmo.agents.jike import jike_expert
+from opencmo.agents.juejin import juejin_expert
+from opencmo.agents.linkedin import linkedin_expert
+from opencmo.agents.oschina import oschina_expert
+from opencmo.agents.producthunt import producthunt_expert
+from opencmo.agents.reddit import reddit_expert
+from opencmo.agents.ruanyifeng import ruanyifeng_expert
+from opencmo.agents.seo import seo_agent
+from opencmo.agents.sspai import sspai_expert
 from opencmo.agents.trend import trend_agent
-from opencmo.tools.crawl import crawl_website
-from opencmo.tools.search import web_search
+from opencmo.agents.twitter import twitter_expert
+from opencmo.agents.v2ex import v2ex_expert
+from opencmo.agents.wechat import wechat_expert
+from opencmo.agents.xiaohongshu import xiaohongshu_expert
+from opencmo.agents.zhihu import zhihu_expert
+from opencmo.config import get_model
 from opencmo.tools.competitor import analyze_competitor
-from opencmo.tools.research_brief import generate_research_brief
+from opencmo.tools.crawl import crawl_website
 from opencmo.tools.graph_intel import get_competitive_landscape
+from opencmo.tools.research_brief import generate_research_brief
+from opencmo.tools.search import web_search
 
 # as_tool wrappers — CMO calls these in multi-channel mode to retain control
 twitter_tool = twitter_expert.as_tool(

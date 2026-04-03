@@ -7,6 +7,15 @@ existing code using ``from opencmo import storage`` followed by
 
 from __future__ import annotations
 
+# ---------------------------------------------------------------------------
+# Patch propagation: tests use ``patch.object(storage, "_DB_PATH", ...)``
+# which sets the attribute on *this* module.  We need that change to land
+# on ``_db._DB_PATH`` so that ``get_db()`` picks up the patched path.
+# ---------------------------------------------------------------------------
+import sys as _sys
+
+from opencmo.storage import _db as _db_module
+
 # Expose internal DB helpers (tests patch _DB_PATH and _SCHEMA_READY_FOR)
 from opencmo.storage._db import (
     _SCHEMA,
@@ -14,179 +23,170 @@ from opencmo.storage._db import (
     get_db,
 )
 
-# --- Projects ---
-from opencmo.storage.projects import (
-    ensure_project,
-    update_project,
-    get_project,
-    list_projects,
-    find_projects_by_brand,
-    delete_project,
+# --- Approvals ---
+from opencmo.storage.approvals import (
+    create_approval,
+    create_approval_with_source,
+    get_approval,
+    list_approvals,
+    update_approval_status,
 )
 
-# --- Scans (SEO / GEO / Community) ---
-from opencmo.storage.scans import (
-    save_seo_scan,
-    save_geo_scan,
-    save_community_scan,
-    get_seo_history,
-    get_geo_history,
-    get_community_history,
-    get_latest_scans,
-    get_previous_scans,
+# --- Brand Kit ---
+from opencmo.storage.brand_kit import (
+    build_brand_kit_prompt,
+    get_brand_kit,
+    upsert_brand_kit,
 )
 
-# --- Discussions ---
-from opencmo.storage.discussions import (
-    upsert_tracked_discussion,
-    save_discussion_snapshot,
-    get_tracked_discussions,
-    get_discussion_snapshots,
-)
-
-# --- Scheduled jobs ---
-from opencmo.storage.jobs import (
-    add_scheduled_job,
-    list_scheduled_jobs,
-    get_scheduled_job,
-    remove_scheduled_job,
-    update_scheduled_job,
-    update_job_last_run,
-)
-
-# --- SERP tracking ---
-from opencmo.storage.serp import (
-    add_tracked_keyword,
-    list_tracked_keywords,
-    remove_tracked_keyword,
-    save_serp_snapshot,
-    get_serp_history,
-    get_all_serp_latest,
-)
-
-# --- Scan runs / findings / recommendations ---
-from opencmo.storage.scan_runs import (
-    create_scan_run,
-    list_scan_runs_by_monitor,
-    update_scan_run,
-    add_scan_run_step,
-    replace_scan_artifacts,
-    get_task_findings,
-    get_task_findings_by_project,
-    get_task_recommendations,
-    get_latest_monitoring_summary,
+# --- Campaigns ---
+from opencmo.storage.campaigns import (
+    add_campaign_artifact,
+    create_campaign_run,
+    get_campaign_run,
+    list_campaign_runs,
+    update_campaign_status,
 )
 
 # --- Chat sessions ---
 from opencmo.storage.chat import (
-    create_chat_session,
-    list_chat_sessions,
-    get_chat_session,
-    update_chat_session,
-    delete_chat_session,
     clear_chat_sessions,
-)
-
-# --- Settings ---
-from opencmo.storage.settings import (
-    get_setting,
-    set_setting,
-    delete_setting,
-)
-
-# --- Approvals ---
-from opencmo.storage.approvals import (
-    create_approval,
-    get_approval,
-    list_approvals,
-    update_approval_status,
-    create_approval_with_source,
+    create_chat_session,
+    delete_chat_session,
+    get_chat_session,
+    list_chat_sessions,
+    update_chat_session,
 )
 
 # --- Competitors ---
 from opencmo.storage.competitors import (
     add_competitor,
-    list_competitors,
-    get_competitor,
-    remove_competitor,
     add_competitor_keyword,
+    get_competitor,
     list_competitor_keywords,
+    list_competitors,
+    remove_competitor,
 )
 
-# --- Graph expansion ---
-from opencmo.storage.graph import (
-    get_or_create_expansion,
-    get_expansion,
-    update_expansion,
-    seed_expansion_nodes,
-    get_min_unexplored_wave,
-    get_frontier_nodes,
-    mark_node_explored,
-    add_expansion_node,
-    add_expansion_edge,
-    reset_expansion,
-    seed_node_if_expansion_exists,
-    fix_stale_expansions,
-    get_graph_data,
-)
-
-# --- Campaigns ---
-from opencmo.storage.campaigns import (
-    create_campaign_run,
-    add_campaign_artifact,
-    update_campaign_status,
-    get_campaign_run,
-    list_campaign_runs,
-)
-
-# --- Insights + autopilot ---
-from opencmo.storage.insights import (
-    save_insight,
-    is_insight_duplicate,
-    list_insights,
-    mark_insight_read,
-    get_insights_summary,
-    get_pending_actionable_insights,
-    update_insight_execution,
-    snapshot_project_metrics,
-    is_project_autopilot_enabled,
-    count_recent_autopilot_approvals,
+# --- Discussions ---
+from opencmo.storage.discussions import (
+    get_discussion_snapshots,
+    get_tracked_discussions,
+    save_discussion_snapshot,
+    upsert_tracked_discussion,
 )
 
 # --- GEO tools (citability / crawler / brand presence) ---
 from opencmo.storage.geo_tools import (
-    save_citability_scan,
+    get_ai_crawler_history,
+    get_brand_presence_history,
     get_citability_history,
     save_ai_crawler_scan,
-    get_ai_crawler_history,
     save_brand_presence_scan,
-    get_brand_presence_history,
+    save_citability_scan,
+)
+
+# --- Graph expansion ---
+from opencmo.storage.graph import (
+    add_expansion_edge,
+    add_expansion_node,
+    fix_stale_expansions,
+    get_expansion,
+    get_frontier_nodes,
+    get_graph_data,
+    get_min_unexplored_wave,
+    get_or_create_expansion,
+    mark_node_explored,
+    reset_expansion,
+    seed_expansion_nodes,
+    seed_node_if_expansion_exists,
+    update_expansion,
+)
+
+# --- Insights + autopilot ---
+from opencmo.storage.insights import (
+    count_recent_autopilot_approvals,
+    get_insights_summary,
+    get_pending_actionable_insights,
+    is_insight_duplicate,
+    is_project_autopilot_enabled,
+    list_insights,
+    mark_insight_read,
+    save_insight,
+    snapshot_project_metrics,
+    update_insight_execution,
+)
+
+# --- Scheduled jobs ---
+from opencmo.storage.jobs import (
+    add_scheduled_job,
+    get_scheduled_job,
+    list_scheduled_jobs,
+    remove_scheduled_job,
+    update_job_last_run,
+    update_scheduled_job,
+)
+
+# --- Projects ---
+from opencmo.storage.projects import (
+    delete_project,
+    ensure_project,
+    find_projects_by_brand,
+    get_project,
+    list_projects,
+    update_project,
 )
 
 # --- Reports ---
 from opencmo.storage.reports import (
     create_report_bundle,
-    list_reports,
-    get_report,
     get_latest_report,
     get_latest_reports,
+    get_report,
+    list_reports,
 )
 
-# --- Brand Kit ---
-from opencmo.storage.brand_kit import (
-    get_brand_kit,
-    upsert_brand_kit,
-    build_brand_kit_prompt,
+# --- Scan runs / findings / recommendations ---
+from opencmo.storage.scan_runs import (
+    add_scan_run_step,
+    create_scan_run,
+    get_latest_monitoring_summary,
+    get_task_findings,
+    get_task_findings_by_project,
+    get_task_recommendations,
+    list_scan_runs_by_monitor,
+    replace_scan_artifacts,
+    update_scan_run,
 )
 
+# --- Scans (SEO / GEO / Community) ---
+from opencmo.storage.scans import (
+    get_community_history,
+    get_geo_history,
+    get_latest_scans,
+    get_previous_scans,
+    get_seo_history,
+    save_community_scan,
+    save_geo_scan,
+    save_seo_scan,
+)
 
-# ---------------------------------------------------------------------------
-# Patch propagation: tests use ``patch.object(storage, "_DB_PATH", ...)``
-# which sets the attribute on *this* module.  We need that change to land
-# on ``_db._DB_PATH`` so that ``get_db()`` picks up the patched path.
-# ---------------------------------------------------------------------------
-import sys as _sys
-from opencmo.storage import _db as _db_module
+# --- SERP tracking ---
+from opencmo.storage.serp import (
+    add_tracked_keyword,
+    get_all_serp_latest,
+    get_serp_history,
+    list_tracked_keywords,
+    remove_tracked_keyword,
+    save_serp_snapshot,
+)
+
+# --- Settings ---
+from opencmo.storage.settings import (
+    delete_setting,
+    get_setting,
+    set_setting,
+)
 
 
 def __getattr__(name: str):
