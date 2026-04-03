@@ -411,6 +411,8 @@ export const ja: Record<TranslationKey, string> = {
   // Brand Kit Page
   "brandKit.title": "ブランドキット",
   "brandKit.subtitle": "ブランドの DNA を定義します。すべての AI エージェントがコンテンツ生成時にこのガイドラインに従います。",
+  "brandKit.backToDashboard": "ダッシュボードへ戻る",
+  "brandKit.backToProject": "プロジェクト概要へ戻る",
   "brandKit.saving": "保存中...",
   "brandKit.saved": "保存済み",
   "brandKit.toneLabel": "ブランドの語調",

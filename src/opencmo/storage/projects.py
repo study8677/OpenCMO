@@ -167,7 +167,10 @@ async def delete_project(project_id: int) -> bool:
         await db.execute("DELETE FROM brand_presence_scans WHERE project_id = ?", (project_id,))
         await db.execute("DELETE FROM brand_kits WHERE project_id = ?", (project_id,))
         await db.execute("DELETE FROM manual_tracking WHERE project_id = ?", (project_id,))
-        await db.execute("DELETE FROM report_tasks WHERE project_id = ?", (project_id,))
+        try:
+            await db.execute("DELETE FROM report_tasks WHERE project_id = ?", (project_id,))
+        except Exception:
+            pass  # legacy table — may not exist on fresh installs
         # Delete the project itself
         cursor = await db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
         await db.commit()

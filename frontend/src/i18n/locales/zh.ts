@@ -433,6 +433,8 @@ export const zh: Record<TranslationKey, string> = {
   // Brand Kit Page
   "brandKit.title": "品牌套件",
   "brandKit.subtitle": "定义品牌 DNA。每个 AI 代理生成内容时都将遵循这些准则。",
+  "brandKit.backToDashboard": "返回仪表盘",
+  "brandKit.backToProject": "返回项目总览",
   "brandKit.saving": "保存中...",
   "brandKit.saved": "已保存",
   "brandKit.toneLabel": "品牌语调",

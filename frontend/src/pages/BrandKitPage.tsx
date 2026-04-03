@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import {
   Palette, Users, Shield, Ban, Sparkles, FileText,
-  Check, Loader2, X,
+  Check, Loader2, X, ArrowLeft,
 } from "lucide-react";
 import { useBrandKit, useSaveBrandKit } from "../hooks/useBrandKit";
+import { useProjectSummary } from "../hooks/useProject";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { ErrorAlert } from "../components/common/ErrorAlert";
+import { ProjectHeader } from "../components/project/ProjectHeader";
+import { ProjectTabs } from "../components/project/ProjectTabs";
 import { useI18n } from "../i18n";
 import type { TranslationKey } from "../i18n";
 
@@ -135,6 +138,7 @@ const FIELDS: FieldConfig[] = [
 export function BrandKitPage() {
   const { id } = useParams();
   const projectId = Number(id);
+  const { data: summary, isLoading: isLoadingSummary } = useProjectSummary(projectId);
   const { data: kit, isLoading, error } = useBrandKit(projectId);
   const saveMutation = useSaveBrandKit(projectId);
   const [form, setForm] = useState<Record<string, unknown>>({});
@@ -176,78 +180,100 @@ export function BrandKitPage() {
     debouncedSave(next);
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading || isLoadingSummary) return <LoadingSpinner />;
   if (error) return <ErrorAlert message={error.message} />;
+  if (!summary) return <ErrorAlert message={t("common.projectNotFound")} />;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out max-w-3xl mx-auto">
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-              {t("brandKit.title")}
-            </h1>
-            <p className="text-sm text-zinc-500 mt-1">
-              {t("brandKit.subtitle")}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {saveMutation.isPending && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                <Loader2 size={14} className="animate-spin" />
-                {t("brandKit.saving")}
-              </span>
-            )}
-            {saved && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 shadow-sm animate-in fade-in zoom-in-95 duration-300">
-                <Check size={14} />
-                {t("brandKit.saved")}
-              </span>
-            )}
-          </div>
-        </div>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
+        >
+          <ArrowLeft size={16} />
+          {t("brandKit.backToDashboard")}
+        </Link>
+        <Link
+          to={`/projects/${projectId}`}
+          className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+        >
+          {t("brandKit.backToProject")}
+        </Link>
       </div>
 
-      <div className="space-y-5">
-        {FIELDS.map((field) => {
-          const Icon = field.icon;
-          return (
-            <div
-              key={field.key}
-              className={`rounded-2xl border border-slate-200/70 bg-gradient-to-br ${field.gradient} p-5 shadow-sm transition-all hover:shadow-md`}
-            >
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
-                  <Icon size={16} className="text-slate-600" />
-                </div>
-                <h3 className="text-sm font-semibold text-slate-800">
-                  {t(field.labelKey)}
-                </h3>
-              </div>
-              <p className="text-xs text-slate-500 mb-3 ml-[42px]">
-                {t(field.descKey)}
+      <ProjectHeader project={summary.project} isPaused={summary.is_paused} />
+      <ProjectTabs projectId={projectId} />
+
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+                {t("brandKit.title")}
+              </h1>
+              <p className="mt-1 text-sm text-zinc-500">
+                {t("brandKit.subtitle")}
               </p>
-              <div className="ml-[42px]">
-                {field.type === "tags" ? (
-                  <TagInput
-                    tags={(form[field.key] as string[]) || []}
-                    onChange={(tags) => updateField(field.key, tags)}
-                    placeholder={t(field.placeholderKey)}
-                    morePlaceholder={t("brandKit.tagMore")}
-                  />
-                ) : (
-                  <textarea
-                    value={(form[field.key] as string) || ""}
-                    onChange={(e) => updateField(field.key, e.target.value)}
-                    placeholder={t(field.placeholderKey)}
-                    rows={3}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 placeholder:text-slate-400 transition-all focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-100 resize-none"
-                  />
-                )}
-              </div>
             </div>
-          );
-        })}
+            <div className="flex items-center gap-2">
+              {saveMutation.isPending && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                  <Loader2 size={14} className="animate-spin" />
+                  {t("brandKit.saving")}
+                </span>
+              )}
+              {saved && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+                  <Check size={14} />
+                  {t("brandKit.saved")}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {FIELDS.map((field) => {
+            const Icon = field.icon;
+            return (
+              <div
+                key={field.key}
+                className={`rounded-2xl border border-slate-200/70 bg-gradient-to-br ${field.gradient} p-5 shadow-sm transition-all hover:shadow-md`}
+              >
+                <div className="mb-2 flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm">
+                    <Icon size={16} className="text-slate-600" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-slate-800">
+                    {t(field.labelKey)}
+                  </h3>
+                </div>
+                <p className="mb-3 ml-[42px] text-xs text-slate-500">
+                  {t(field.descKey)}
+                </p>
+                <div className="ml-[42px]">
+                  {field.type === "tags" ? (
+                    <TagInput
+                      tags={(form[field.key] as string[]) || []}
+                      onChange={(tags) => updateField(field.key, tags)}
+                      placeholder={t(field.placeholderKey)}
+                      morePlaceholder={t("brandKit.tagMore")}
+                    />
+                  ) : (
+                    <textarea
+                      value={(form[field.key] as string) || ""}
+                      onChange={(e) => updateField(field.key, e.target.value)}
+                      placeholder={t(field.placeholderKey)}
+                      rows={3}
+                      className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 placeholder:text-slate-400 transition-all focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

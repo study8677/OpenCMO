@@ -346,6 +346,8 @@ export const ko: Record<TranslationKey, string> = {
   // Brand Kit Page
   "brandKit.title": "브랜드 키트",
   "brandKit.subtitle": "브랜드의 DNA를 정의하세요. 모든 AI 에이전트가 콘텐츠 생성 시 이 가이드라인을 따릅니다.",
+  "brandKit.backToDashboard": "대시보드로 돌아가기",
+  "brandKit.backToProject": "프로젝트 개요로 돌아가기",
   "brandKit.saving": "저장 중...",
   "brandKit.saved": "저장됨",
   "brandKit.toneLabel": "브랜드 어조",

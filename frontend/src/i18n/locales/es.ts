@@ -346,6 +346,8 @@ export const es: Record<TranslationKey, string> = {
   // Brand Kit Page
   "brandKit.title": "Kit de Marca",
   "brandKit.subtitle": "Define el ADN de tu marca. Cada agente IA seguirá estas directrices al generar contenido.",
+  "brandKit.backToDashboard": "Volver al panel",
+  "brandKit.backToProject": "Volver al resumen del proyecto",
   "brandKit.saving": "Guardando...",
   "brandKit.saved": "Guardado",
   "brandKit.toneLabel": "Tono de Voz de la Marca",

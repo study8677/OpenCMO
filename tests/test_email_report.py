@@ -69,7 +69,7 @@ async def test_send_report_success(tmp_path, monkeypatch):
     fake_bundle = {"human": fake_report, "agent": fake_report}
 
     with patch("smtplib.SMTP") as mock_smtp, \
-         patch("opencmo.tools.email_report.generate_periodic_report_bundle", AsyncMock(return_value=fake_bundle)):
+         patch("opencmo.reports.generate_periodic_report_bundle", AsyncMock(return_value=fake_bundle)):
         mock_server = MagicMock()
         mock_smtp.return_value.__enter__ = MagicMock(return_value=mock_server)
         mock_smtp.return_value.__exit__ = MagicMock(return_value=False)
@@ -104,7 +104,7 @@ async def test_send_report_smtp_error(tmp_path, monkeypatch):
     fake_bundle = {"human": fake_report, "agent": fake_report}
 
     with patch("smtplib.SMTP", side_effect=Exception("Connection refused")), \
-         patch("opencmo.tools.email_report.generate_periodic_report_bundle", AsyncMock(return_value=fake_bundle)):
+         patch("opencmo.reports.generate_periodic_report_bundle", AsyncMock(return_value=fake_bundle)):
         result = await send_report_impl(pid)
 
     assert not result["ok"]

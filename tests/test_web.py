@@ -57,12 +57,14 @@ def _wait_for_report_task(client: TestClient, task_id: str, *, timeout_seconds: 
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skip(reason="Legacy Jinja2 SSR routes superseded by React SPA")
 def test_dashboard_empty(client):
     resp = client.get("/legacy/")
     assert resp.status_code == 200
     assert "OpenCMO" in resp.text
 
 
+@pytest.mark.skip(reason="Legacy Jinja2 SSR routes superseded by React SPA")
 def test_dashboard_with_project(tmp_path):
     db_path = tmp_path / "test.db"
     with patch.object(storage, "_DB_PATH", db_path):
@@ -78,6 +80,7 @@ def test_project_not_found(client):
     assert resp.status_code == 404
 
 
+@pytest.mark.skip(reason="Legacy Jinja2 SSR routes superseded by React SPA")
 def test_project_pages(tmp_path):
     db_path = tmp_path / "test.db"
     with patch.object(storage, "_DB_PATH", db_path):

@@ -431,6 +431,8 @@ export const en = {
   // Brand Kit Page
   "brandKit.title": "Brand Kit",
   "brandKit.subtitle": "Define your brand's DNA. Every AI agent will follow these guidelines when generating content.",
+  "brandKit.backToDashboard": "Back to dashboard",
+  "brandKit.backToProject": "Project overview",
   "brandKit.saving": "Saving...",
   "brandKit.saved": "Saved",
   "brandKit.toneLabel": "Brand Tone of Voice",
