@@ -1,8 +1,8 @@
 """Tests for SERP tracker — provider, storage, trends."""
 
-import os
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 
 @pytest.fixture
@@ -112,7 +112,7 @@ async def test_tracked_keywords_crud(tmp_db):
     assert keywords[0]["keyword"] == "python web scraping"
 
     # Duplicate should be ignored
-    kw_id2 = await storage.add_tracked_keyword(pid, "python web scraping")
+    await storage.add_tracked_keyword(pid, "python web scraping")
     keywords = await storage.list_tracked_keywords(pid)
     assert len(keywords) == 1
 
@@ -182,8 +182,8 @@ async def test_serp_trends_with_data(tmp_db):
 @pytest.mark.asyncio
 async def test_serp_trends_no_data(tmp_db):
     """get_serp_trends returns 'no data' when empty."""
-    from opencmo.tools.serp_tracker import _get_serp_trends_impl
     from opencmo import storage
+    from opencmo.tools.serp_tracker import _get_serp_trends_impl
 
     pid = await storage.ensure_project("Test", "https://example.com", "saas")
     result = await _get_serp_trends_impl(pid)

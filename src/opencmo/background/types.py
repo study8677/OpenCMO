@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
 import socket
 import uuid
+from dataclasses import dataclass
 
 TASK_KINDS = frozenset({"scan", "report", "graph_expansion"})
 ACTIVE_STATUSES = frozenset({"queued", "claimed", "running", "cancel_requested"})

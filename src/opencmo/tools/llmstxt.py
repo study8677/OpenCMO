@@ -126,7 +126,7 @@ async def _discover_pages(url: str, max_pages: int = 30) -> list[dict]:
             if resp.status_code == 200:
                 # Extract title
                 title_match = re.search(r'<title[^>]*>(.*?)</title>', resp.text, re.I | re.S)
-                site_title = title_match.group(1).strip() if title_match else ""
+                _site_title = title_match.group(1).strip() if title_match else ""
 
                 # Extract internal links
                 links = re.findall(r'href=["\']([^"\']+)["\']', resp.text)
@@ -296,7 +296,7 @@ async def generate_llmstxt(url: str) -> str:
     lines.append(f"Pages analyzed: {len(pages)}")
     lines.append(f"Sections: {validation['section_count']}")
     lines.append(f"Links: {validation['link_count']}")
-    lines.append(f"\nSave this content as `/llms.txt` on your web server:\n")
+    lines.append("\nSave this content as `/llms.txt` on your web server:\n")
     lines.append(f"```markdown\n{content}\n```")
 
     return "\n".join(lines)

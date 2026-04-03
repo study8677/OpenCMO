@@ -1,8 +1,8 @@
 """Tests for email report — SMTP config, HTML build, send logic."""
 
-import os
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 
 
 def test_smtp_config_missing(monkeypatch):

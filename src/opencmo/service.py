@@ -10,34 +10,34 @@ implementations now live in focused domain modules under ``opencmo.services``:
 
 from __future__ import annotations
 
-# ── Monitoring & project management ──────────────────────────────────
-from opencmo.services.monitoring_service import (  # noqa: F401
-    create_monitor,
-    remove_monitor,
-    update_monitor,
-    get_monitor,
-    list_monitors,
-    get_monitor_history,
-    run_monitor,
-    resolve_project,
-    manage_keywords,
-    send_project_report,
-    regenerate_project_report,
-    get_status_summary,
-)
-
 # ── Approval & publishing ────────────────────────────────────────────
 from opencmo.services.approval_service import (  # noqa: F401
-    create_approval,
-    list_approvals,
-    get_approval,
     approve_approval,
+    create_approval,
+    get_approval,
+    list_approvals,
     reject_approval,
 )
 
 # ── AI intelligence (URL analysis, competitor discovery) ─────────────
 from opencmo.services.intelligence_service import (  # noqa: F401
-    analyze_url_with_ai,
     analyze_and_enrich_project,
+    analyze_url_with_ai,
     discover_competitors,
+)
+
+# ── Monitoring & project management ──────────────────────────────────
+from opencmo.services.monitoring_service import (  # noqa: F401
+    create_monitor,
+    get_monitor,
+    get_monitor_history,
+    get_status_summary,
+    list_monitors,
+    manage_keywords,
+    regenerate_project_report,
+    remove_monitor,
+    resolve_project,
+    run_monitor,
+    send_project_report,
+    update_monitor,
 )

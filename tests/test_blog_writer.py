@@ -1,9 +1,11 @@
 """Tests for blog writer — research tool + agent structure."""
 
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
+
 from opencmo.tools.tavily_helper import TavilyResult
-from unittest.mock import AsyncMock, patch, MagicMock
 
 
 @pytest.mark.asyncio

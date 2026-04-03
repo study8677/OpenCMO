@@ -2,12 +2,11 @@
 
 import asyncio
 import os
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from opencmo import llm
-
 
 # ---------------------------------------------------------------------------
 # get_key / ContextVar isolation

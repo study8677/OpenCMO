@@ -11,12 +11,10 @@ from urllib.parse import urlparse
 from agents import function_tool
 
 from opencmo import llm
-from opencmo.tools.community_query_planner import build_query_plan
 from opencmo.tools.community_providers import (
     PROVIDER_REGISTRY,
-    DiscussionDetail,
-    DiscussionHit,
     DisabledProvider,
+    DiscussionHit,
     ProviderError,
     QuerySpec,
     ScanResult,
@@ -24,6 +22,7 @@ from opencmo.tools.community_providers import (
     SuggestedQuery,
     _truncate,
 )
+from opencmo.tools.community_query_planner import build_query_plan
 from opencmo.tools.community_scoring import rescore_hits
 
 # ---------------------------------------------------------------------------
@@ -489,7 +488,7 @@ async def analyze_community_patterns(brand_name: str, category: str) -> str:
         lines = [
             f"# Community Pattern Analysis: {brand_name}",
             f"**Category**: {category}\n",
-            f"## Overview",
+            "## Overview",
             f"- Total tracked discussions: {len(discussions)}",
             f"- Platforms: {', '.join(f'{k} ({v})' for k, v in sorted(platform_counts.items()))}",
             "",

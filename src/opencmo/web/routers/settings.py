@@ -25,7 +25,6 @@ async def _get_setting(name: str) -> str:
 
 @router.get("/settings")
 async def api_v1_settings_get():
-    from opencmo import config
     api_key = await _get_setting("OPENAI_API_KEY")
     base_url = await _get_setting("OPENAI_BASE_URL")
     model = await _get_setting("OPENCMO_MODEL_DEFAULT")
@@ -116,7 +115,6 @@ _ALL_SETTING_KEYS = (
 
 @router.post("/settings")
 async def api_v1_settings_save(request: Request):
-    from opencmo import config
     body = await request.json()
     for key in _ALL_SETTING_KEYS:
         val = body.get(key)

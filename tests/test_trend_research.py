@@ -7,13 +7,12 @@ from unittest.mock import patch
 
 import pytest
 
-from opencmo.tools.community_providers import HttpResult, DiscussionHit
+from opencmo.tools.community_providers import HttpResult
 from opencmo.tools.trend_research import (
+    _research_trend_impl,
     expand_queries,
     is_comparative,
-    _research_trend_impl,
 )
-
 
 # ---------------------------------------------------------------------------
 # Force "light" profile for tests

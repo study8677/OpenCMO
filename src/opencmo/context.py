@@ -29,7 +29,7 @@ async def build_project_context(project_id: int, depth: str = "brief") -> str:
     serp_nodes = [n for n in nodes if n.get("type") == "serp"]
     discussions = [n for n in nodes if n.get("type") == "discussion"]
     comp_keywords = [n for n in nodes if n.get("type") == "competitor_keyword"]
-    overlaps = [l for l in links if l.get("type") == "keyword_overlap"]
+    overlaps = [lnk for lnk in links if lnk.get("type") == "keyword_overlap"]
 
     # Frontier: unexplored high-priority nodes
     frontier = [n for n in nodes if not n.get("explored", True) and n.get("depth", 0) > 0]
@@ -98,10 +98,10 @@ async def build_project_context(project_id: int, depth: str = "brief") -> str:
             parts.append("\n## Competitive Landscape")
             # Build competitor -> keywords mapping via links
             comp_kw_map: dict[str, list[str]] = {}
-            for l in links:
-                if l.get("type") == "comp_keyword":
-                    src = l["source"]
-                    tgt_node = next((n for n in nodes if n["id"] == l["target"]), None)
+            for lnk in links:
+                if lnk.get("type") == "comp_keyword":
+                    src = lnk["source"]
+                    tgt_node = next((n for n in nodes if n["id"] == lnk["target"]), None)
                     if tgt_node:
                         comp_kw_map.setdefault(src, []).append(tgt_node["label"])
             for comp in competitors[:8]:
@@ -112,8 +112,8 @@ async def build_project_context(project_id: int, depth: str = "brief") -> str:
         if overlaps:
             parts.append(f"\n## Keyword Overlaps ({len(overlaps)} shared)")
             overlap_kws: set[str] = set()
-            for l in overlaps:
-                src_node = next((n for n in nodes if n["id"] == l["source"]), None)
+            for lnk in overlaps:
+                src_node = next((n for n in nodes if n["id"] == lnk["source"]), None)
                 if src_node:
                     overlap_kws.add(src_node["label"])
             if overlap_kws:

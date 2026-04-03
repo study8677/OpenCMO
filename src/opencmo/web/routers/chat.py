@@ -26,7 +26,7 @@ async def api_v1_chat_context(project_id: int):
     # Graph data for competitors, keywords, gaps
     graph = await storage.get_graph_data(project_id)
     nodes = graph.get("nodes", [])
-    links = graph.get("links", [])
+
 
     competitors = [
         {"label": n["label"], "url": n.get("url", "")}
@@ -183,7 +183,7 @@ async def api_v1_chat(request: Request):
 
     context_item = None
     # Inject project context from knowledge graph
-    from opencmo.context import resolve_chat_project, build_project_context
+    from opencmo.context import build_project_context, resolve_chat_project
     project_id = await resolve_chat_project(body)
     if project_id:
         ctx = await build_project_context(project_id, depth="full")
@@ -206,6 +206,7 @@ async def api_v1_chat(request: Request):
     async def event_stream():
         try:
             from agents import Runner
+
             from opencmo.agents.cmo import cmo_agent
 
             result = Runner.run_streamed(cmo_agent, input_items, max_turns=15)

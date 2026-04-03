@@ -548,7 +548,7 @@ async def _phase_write_section(
     )
     if completed_summaries:
         user += (
-            f"\n== 已完成的其他章节摘要 ==\n"
+            "\n== 已完成的其他章节摘要 ==\n"
             + "\n".join(f"- {s}" for s in completed_summaries)
         )
 

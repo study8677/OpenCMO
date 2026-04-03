@@ -1,9 +1,9 @@
 from agents import Agent
 
 from opencmo.config import get_model
-from opencmo.tools.trend_research import research_trend
-from opencmo.tools.search import web_search
 from opencmo.tools.community import scan_community
+from opencmo.tools.search import web_search
+from opencmo.tools.trend_research import research_trend
 
 trend_agent = Agent(
     name="Trend Research",

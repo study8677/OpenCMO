@@ -1,11 +1,11 @@
 from agents import Agent
 
 from opencmo.config import get_model
+from opencmo.tools.brand_presence import scan_brand_presence
+from opencmo.tools.citability import score_page_citability
 from opencmo.tools.geo import scan_geo_visibility
 from opencmo.tools.search import web_search
 from opencmo.tools.trends import get_geo_trends
-from opencmo.tools.citability import score_page_citability
-from opencmo.tools.brand_presence import scan_brand_presence
 
 geo_agent = Agent(
     name="AI Visibility Expert",

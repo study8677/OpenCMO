@@ -47,13 +47,13 @@ async def _startup_fix_stale_expansions():
 @app.on_event("startup")
 async def _startup_runtime_services():
     """Start optional runtime services after DB bootstrap."""
+    from opencmo import scheduler
     from opencmo.background.executors import (
         run_graph_expansion_executor,
         run_report_executor,
         run_scan_executor,
     )
     from opencmo.background.worker import get_background_worker
-    from opencmo import scheduler
 
     worker = get_background_worker()
     worker.register_executor("scan", run_scan_executor)
@@ -73,8 +73,8 @@ async def _startup_runtime_services():
 @app.on_event("shutdown")
 async def _shutdown_runtime_services():
     """Stop optional runtime services cleanly."""
-    from opencmo.background.worker import get_background_worker
     from opencmo import scheduler
+    from opencmo.background.worker import get_background_worker
 
     await get_background_worker().stop()
     scheduler.stop_scheduler()
@@ -147,22 +147,22 @@ async def api_v1_health():
 # Include domain routers
 # ---------------------------------------------------------------------------
 
-from opencmo.web.routers.legacy import router as legacy_router
-from opencmo.web.routers.projects import router as projects_router
+from opencmo.web.routers.approvals import router as approvals_router
+from opencmo.web.routers.brand_kit import router as brand_kit_router
+from opencmo.web.routers.campaigns import router as campaigns_router
+from opencmo.web.routers.chat import router as chat_router
+from opencmo.web.routers.events import router as events_router
 from opencmo.web.routers.graph import router as graph_router
 from opencmo.web.routers.insights import router as insights_router
 from opencmo.web.routers.keywords import router as keywords_router
+from opencmo.web.routers.legacy import router as legacy_router
 from opencmo.web.routers.monitors import router as monitors_router
-from opencmo.web.routers.campaigns import router as campaigns_router
-from opencmo.web.routers.approvals import router as approvals_router
-from opencmo.web.routers.tasks import router as tasks_router
-from opencmo.web.routers.chat import router as chat_router
-from opencmo.web.routers.settings import router as settings_router
-from opencmo.web.routers.report import router as report_router
-from opencmo.web.routers.events import router as events_router
-from opencmo.web.routers.brand_kit import router as brand_kit_router
 from opencmo.web.routers.performance import router as performance_router
+from opencmo.web.routers.projects import router as projects_router
 from opencmo.web.routers.quick_actions import router as quick_actions_router
+from opencmo.web.routers.report import router as report_router
+from opencmo.web.routers.settings import router as settings_router
+from opencmo.web.routers.tasks import router as tasks_router
 
 app.include_router(legacy_router, prefix="/legacy")
 app.include_router(projects_router)

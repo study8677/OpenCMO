@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict
 
 from agents import function_tool
 
@@ -12,10 +11,8 @@ from opencmo.tools.community_providers import (
     PROVIDER_REGISTRY,
     DiscussionHit,
     ProviderError,
-    ScanResult,
 )
 from opencmo.tools.community_scoring import rescore_hits
-
 
 # ---------------------------------------------------------------------------
 # Query expansion

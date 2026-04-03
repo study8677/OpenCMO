@@ -2,12 +2,12 @@
 
 import json
 from types import SimpleNamespace
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from opencmo import storage
 import opencmo.scheduler as scheduler_module
+from opencmo import storage
 from opencmo.scheduler import run_scheduled_scan
 
 

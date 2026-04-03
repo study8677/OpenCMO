@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
 
 from opencmo import storage
 
@@ -226,7 +225,7 @@ async def _detect_ai_crawler_blocks(project_id: int) -> list[Insight]:
                 insight_type="ai_crawlers_blocked",
                 severity="critical",
                 title=f"{blocked}/{total} AI crawlers blocked",
-                summary=f"More than half of AI crawlers are blocked by robots.txt. This severely limits your AI search visibility.",
+                summary="More than half of AI crawlers are blocked by robots.txt. This severely limits your AI search visibility.",
                 action_type="chat",
                 action_params=f'{{"message": "My robots.txt is blocking {blocked} out of {total} AI crawlers. Help me fix this."}}',
             ))

@@ -7,11 +7,11 @@ from fastapi.responses import JSONResponse
 
 from opencmo import storage
 from opencmo.tools.performance_tracker import (
-    collect_approval_metrics,
-    get_project_performance,
     add_manual_tracking,
-    list_manual_tracking,
+    collect_approval_metrics,
     delete_manual_tracking,
+    get_project_performance,
+    list_manual_tracking,
 )
 
 router = APIRouter(prefix="/api/v1")

@@ -6,8 +6,8 @@ import contextlib
 import json
 from datetime import datetime, timedelta, timezone
 
-from opencmo.storage._db import get_db
 from opencmo.background.types import ACTIVE_STATUSES
+from opencmo.storage._db import get_db
 
 
 def _task_row_to_dict(row) -> dict:

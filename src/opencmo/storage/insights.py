@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 from opencmo.storage._db import get_db
 
 

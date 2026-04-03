@@ -136,7 +136,6 @@ class DataForSeoProvider(SerpProvider):
 
     @property
     def is_enabled(self) -> bool:
-        import os
 
         from opencmo import llm
         return bool(llm.get_key("DATAFORSEO_LOGIN") and llm.get_key("DATAFORSEO_PASSWORD"))
@@ -173,7 +172,6 @@ class TavilySerpProvider(SerpProvider):
 
     @property
     def is_enabled(self) -> bool:
-        import os
 
         from opencmo import llm
         return bool(llm.get_key("TAVILY_API_KEY"))

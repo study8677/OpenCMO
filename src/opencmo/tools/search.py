@@ -1,7 +1,6 @@
 """Web search tool — Tavily-first, with OpenAI WebSearchTool or crawl4ai fallback."""
 
 import logging
-import os
 
 from agents import function_tool
 
@@ -58,6 +57,7 @@ async def web_search(query: str) -> str:
     # 3. Final fallback: crawl4ai Google scrape
     try:
         from crawl4ai import AsyncWebCrawler
+
         from opencmo.tools.crawl import _extract_markdown
 
         url = f"https://www.google.com/search?q={query.replace(' ', '+')}&num=5"

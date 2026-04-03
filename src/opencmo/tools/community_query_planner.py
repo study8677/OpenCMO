@@ -11,7 +11,6 @@ from opencmo.tools.community_providers import (
     _get_v2ex_nodes_for_category,
 )
 
-
 _TEXT_SEARCH_PROVIDERS = (
     "reddit",
     "hackernews",
@@ -346,7 +345,6 @@ def _provider_query_map(
     competitor: list[QuerySpec],
     opportunity: list[QuerySpec],
 ) -> dict[str, list[QuerySpec]]:
-    general = _dedupe_query_specs(direct + problem + category_specs + competitor + opportunity)
     short_text = _dedupe_query_specs(direct[:3] + category_specs[:2] + opportunity[:2] + competitor[:2])
     return {
         provider: (

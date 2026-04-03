@@ -65,6 +65,7 @@ async def api_v1_monitors():
 @router.post("/monitors")
 async def api_v1_create_monitor(request: Request):
     from urllib.parse import urlparse
+
     from opencmo import service
 
     body = await request.json()
@@ -125,8 +126,8 @@ async def api_v1_update_monitor(monitor_id: int, request: Request):
 
 @router.post("/monitors/{monitor_id}/run")
 async def api_v1_run_monitor(monitor_id: int):
-    from opencmo.background import service as bg_service
     from opencmo import service
+    from opencmo.background import service as bg_service
 
     job = await service.get_monitor(monitor_id)
     if not job:

@@ -103,9 +103,9 @@ MAX_AUTOPILOT_PER_DAY = 3
 async def _generate_content_with_agent(agent_name: str, prompt: str, project_id: int | None = None) -> str | None:
     """Call an expert agent to generate content. Returns None on failure."""
     try:
-        from opencmo.config import get_model
-
         from agents import Agent, Runner
+
+        from opencmo.config import get_model
 
         # Build brand-aware instructions
         instructions = (

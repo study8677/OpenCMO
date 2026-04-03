@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from opencmo.storage._db import get_db
 
-
 # --- Citability scans ---
 
 async def save_citability_scan(

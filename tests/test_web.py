@@ -5,7 +5,7 @@ import json
 import os
 import sqlite3
 import time
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -17,8 +17,8 @@ pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
 from opencmo.web import app as app_module
-from opencmo.web.app import app
 from opencmo.web import chat_sessions, task_registry
+from opencmo.web.app import app
 
 
 @pytest.fixture

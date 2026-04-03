@@ -17,6 +17,7 @@ def _get_templates():
     global _templates
     if _templates is None:
         from pathlib import Path
+
         from fastapi.templating import Jinja2Templates
         _templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
     return _templates

@@ -3,18 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import html as html_mod
 import math
 import os
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from urllib.parse import quote_plus
-
-import html as html_mod
-import re
 
 import httpx
-
 
 # ---------------------------------------------------------------------------
 # Data models
