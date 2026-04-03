@@ -59,8 +59,8 @@ See OpenCMO in action with a **real scan of [Cursor.com](https://cursor.com)** â
 
 ## The Growth Loop
 
-1. **Scan a project URL** to extract brand, category, keywords, and early competitive context.
-2. **Monitor SEO, GEO, SERP, and community signals** in one workspace.
+1. **Enter your URL** on the homepage â€” AI scans your brand, category, keywords, and competitive context.
+2. **Monitor SEO, GEO, SERP, and community signals** on a Daily / Weekly / Monthly schedule.
 3. **Turn raw signals into context** with reports, graph exploration, and AI chat grounded in project data.
 4. **Move to execution** with drafts, approvals, and prioritized next actions.
 
@@ -76,7 +76,7 @@ See OpenCMO in action with a **real scan of [Cursor.com](https://cursor.com)** â
 
 ## Deep Reports
 
-OpenCMO includes a report system inside each project workspace. Open the **Reports** tab or visit `/app/projects/<id>/reports`.
+OpenCMO includes a report system inside each project workspace. Open the **Reports** tab or visit `/projects/<id>/reports`.
 
 - **Strategic reports**: full-scan analysis with positioning, competitor context, risks, and recommendations.
 - **Weekly reports**: 7-day monitoring summaries with trend changes, risks, wins, and next actions.
@@ -98,9 +98,11 @@ cp .env.example .env
 opencmo-web
 ```
 
-Then open `http://localhost:8080/app`.
+Then open `http://localhost:8080`.
 
-> Tip: you can also configure API keys from the web dashboard's **Settings** panel.
+Enter your project URL on the homepage to run the first scan. If no LLM API key is configured yet, a red dot on the Settings icon will guide you to the setup panel.
+
+> Tip: you can also configure API keys from the web dashboard's **Settings** panel without touching `.env`.
 
 <details>
 <summary>Frontend development (optional)</summary>
@@ -112,7 +114,7 @@ npm run dev
 npm run build
 ```
 
-The dev app runs at `http://localhost:5173/app` and proxies API traffic to `:8080`.
+The dev app runs at `http://localhost:5173` and proxies API traffic to `:8080`.
 
 </details>
 
@@ -141,6 +143,7 @@ The dev app runs at `http://localhost:5173/app` and proxies API traffic to `:808
 - [x] Full i18n (English, Chinese, Japanese, Korean, Spanish)
 - [x] Locale-aware AI responses (LLM follows UI language setting)
 - [x] LLM retry with exponential backoff for unreliable providers
+- [x] Simplified onboarding: enter URL on homepage, no configuration required to start
 - [ ] More publishing targets
 - [ ] Brand voice controls
 - [ ] Deeper enterprise SEO crawls
