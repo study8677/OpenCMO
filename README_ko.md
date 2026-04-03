@@ -59,7 +59,7 @@
 
 ## AI CMO 리포트
 
-OpenCMO에는 프로젝트별 정식 리포트 시스템이 있습니다. **Reports** 탭 또는 `/app/projects/<id>/reports` 에서 확인할 수 있습니다.
+OpenCMO에는 프로젝트별 정식 리포트 시스템이 있습니다. **Reports** 탭 또는 `/projects/<id>/reports` 에서 확인할 수 있습니다.
 
 ### 멀티 에이전트 딕 리포트 파이프라인
 
@@ -106,9 +106,11 @@ cp .env.example .env
 opencmo-web
 ```
 
-그다음 `http://localhost:8080/app` 을 엽니다.
+그다음 `http://localhost:8080` 을 엽니다.
 
-> 팁: API 키는 Web 대시보드의 **Settings** 에서도 직접 설정할 수 있습니다.
+홈페이지에서 URL을 입력해 첫 번째 스캔을 시작하세요. LLM API 키가 설정되지 않은 경우 Settings 아이콘의 빨간 점이 설정 패널로 안내합니다.
+
+> 팁: API 키는 Web 대시보드의 **Settings** 에서도 직접 설정할 수 있습니다 (`.env` 불필요).
 
 <details>
 <summary>프론트엔드 개발 (선택)</summary>
@@ -120,7 +122,7 @@ npm run dev
 npm run build
 ```
 
-개발 앱은 `http://localhost:5173/app` 에서 실행되고 API는 `:8080` 으로 프록시됩니다.
+개발 앱은 `http://localhost:5173` 에서 실행되고 API는 `:8080` 으로 프록시됩니다.
 
 </details>
 
@@ -147,6 +149,7 @@ npm run build
 - [x] 완전한 i18n 지원 (영어, 중국어, 일본어, 한국어, 스페인어)
 - [x] 로케일 인식 AI 응답 (LLM이 UI 언어 설정을 따름)
 - [x] 불안정한 프로바이더를 위한 LLM 지수 백오프 재시도
+- [x] 간편 온보딩: 홈페이지에서 URL만 입력하면 바로 시작
 - [ ] 더 많은 발행 채널
 - [ ] 브랜드 보이스 제어
 - [ ] 더 깊은 엔터프라이즈 SEO 크롤링

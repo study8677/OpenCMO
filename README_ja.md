@@ -59,7 +59,7 @@
 
 ## AI CMO レポート
 
-OpenCMO にはプロジェクトごとの正式なレポート機能があります。**Reports** タブ、または `/app/projects/<id>/reports` から確認できます。
+OpenCMO にはプロジェクトごとの正式なレポート機能があります。**Reports** タブ、または `/projects/<id>/reports` から確認できます。
 
 ### マルチエージェント深層レポートパイプライン
 
@@ -106,9 +106,11 @@ cp .env.example .env
 opencmo-web
 ```
 
-その後 `http://localhost:8080/app` を開きます。
+その後 `http://localhost:8080` を開きます。
 
-> ヒント: API キーは Web ダッシュボードの **Settings** からも設定できます。
+ホームページで URL を入力してスキャンを開始してください。LLM API キーが未設定の場合、Settings アイコンの赤いドットがセットアップパネルへ案内します。
+
+> ヒント: API キーは Web ダッシュボードの **Settings** からも設定できます（`.env` 不要）。
 
 <details>
 <summary>フロントエンド開発（任意）</summary>
@@ -120,7 +122,7 @@ npm run dev
 npm run build
 ```
 
-開発用アプリは `http://localhost:5173/app` で動作し、API は `:8080` にプロキシされます。
+開発用アプリは `http://localhost:5173` で動作し、API は `:8080` にプロキシされます。
 
 </details>
 
@@ -147,6 +149,7 @@ npm run build
 - [x] 完全な i18n 対応（英語、中国語、日本語、韓国語、スペイン語）
 - [x] ロケール対応 AI 応答（LLM が UI 言語設定に追従）
 - [x] 不安定なプロバイダー向け LLM 指数バックオフリトライ
+- [x] オンボーディング簡略化：ホームページで URL を入力するだけで開始可能
 - [ ] 公開先の追加
 - [ ] ブランドボイス制御
 - [ ] より深い企業向け SEO クロール

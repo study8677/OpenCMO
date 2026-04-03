@@ -59,7 +59,7 @@ Mira OpenCMO en accion con un **escaneo real de [Cursor.com](https://cursor.com)
 
 ## Reportes AI CMO
 
-OpenCMO ya incluye un sistema formal de reportes dentro de cada proyecto. Abre la pestaña **Reports** o visita `/app/projects/<id>/reports`.
+OpenCMO ya incluye un sistema formal de reportes dentro de cada proyecto. Abre la pestaña **Reports** o visita `/projects/<id>/reports`.
 
 ### Pipeline Multi-Agente de Reportes Profundos
 
@@ -106,9 +106,11 @@ cp .env.example .env
 opencmo-web
 ```
 
-Luego abre `http://localhost:8080/app`.
+Luego abre `http://localhost:8080`.
 
-> Consejo: también puedes configurar las claves API desde el panel **Settings** del dashboard.
+Ingresa tu URL del proyecto en la página principal para ejecutar el primer escaneo. Si no hay clave de API LLM configurada, un punto rojo en el ícono de Settings te guiará al panel de configuración.
+
+> Consejo: también puedes configurar las claves API desde el panel **Settings** del dashboard (sin tocar `.env`).
 
 <details>
 <summary>Desarrollo frontend (opcional)</summary>
@@ -120,7 +122,7 @@ npm run dev
 npm run build
 ```
 
-La app de desarrollo corre en `http://localhost:5173/app` y proxya la API a `:8080`.
+La app de desarrollo corre en `http://localhost:5173` y proxya la API a `:8080`.
 
 </details>
 
@@ -147,6 +149,7 @@ La app de desarrollo corre en `http://localhost:5173/app` y proxya la API a `:80
 - [x] i18n completo (inglés, chino, japonés, coreano, español)
 - [x] Respuestas IA según el idioma (el LLM sigue la configuración de idioma de la UI)
 - [x] Reintentos LLM con backoff exponencial para proveedores inestables
+- [x] Onboarding simplificado: ingresa tu URL en la página principal, sin configuración previa
 - [ ] Más destinos de publicación
 - [ ] Control de brand voice
 - [ ] Crawls SEO enterprise más profundos
