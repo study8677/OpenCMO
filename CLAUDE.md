@@ -98,3 +98,51 @@ Key optional variables — see `.env.example` for full list:
 - `DATAFORSEO_LOGIN/PASSWORD` — SERP tracking
 - `OPENCMO_AUTO_PUBLISH=1` + Reddit/Twitter credentials — auto-publishing
 - `OPENCMO_SMTP_*` + `OPENCMO_REPORT_EMAIL` — email reports
+
+## BWG Server Deployment (aidcmo.com)
+
+**Server**: BandwagonHost VPS — `97.64.16.217`, SSH port `2222`, user `root`
+
+```bash
+ssh -p 2222 root@97.64.16.217
+```
+
+**Code location**: `/opt/OpenCMO/`
+**systemd service**: `opencmo` (runs `opencmo-web` on port 8080)
+**Database**: `/root/.opencmo/data.db`
+**Config**: `/opt/OpenCMO/.env`
+
+### Deploy latest code
+
+```bash
+ssh -p 2222 root@97.64.16.217 "
+  cd /opt/OpenCMO &&
+  git pull origin main &&
+  pip install -e '.[all]' -q &&
+  systemctl restart opencmo &&
+  systemctl is-active opencmo
+"
+```
+
+### Frontend build
+
+The server has only 1GB RAM — `npm run build` will OOM. **Always build locally and rsync**:
+
+```bash
+cd frontend && npm run build
+rsync -avz --delete dist/ root@97.64.16.217:/opt/OpenCMO/frontend/dist/ -e "ssh -p 2222"
+```
+
+### Nginx
+
+- Config file: `/etc/nginx/conf.d/aidcmo.conf` (NOT `sites-enabled/` — nginx.conf only includes `conf.d/*.conf`)
+- HTTPS via Let's Encrypt (certbot via snap, not apt)
+- Proxies `https://aidcmo.com/` → `http://127.0.0.1:8080`
+- To reload: `nginx -t && systemctl reload nginx`
+
+### Key gotchas
+
+- **nginx.conf includes only `conf.d/`** — putting configs in `sites-enabled/` has no effect on this server
+- **Another server block (`724claw.conf`) was previously intercepting aidcmo.com** — check `conf.d/` for conflicting `server_name` entries if 502 appears unexpectedly
+- **SPA is served from root `/`** — React Router `basename="/"`, Vite `base: "/"`, FastAPI catchall at `/{full_path:path}`
+- **certbot must be installed via snap**, not apt (apt version has Python `requests_toolbelt` conflict)
