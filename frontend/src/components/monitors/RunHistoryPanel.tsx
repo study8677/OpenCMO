@@ -132,7 +132,7 @@ export function RunHistoryPanel({
                           {formatTimeAgo(displayTime, locale)}
                         </p>
                         <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                          {run.job_type}
+                          {t(`runHistory.jobType.${run.job_type}` as TranslationKey) || run.job_type}
                         </p>
                       </div>
                       <span

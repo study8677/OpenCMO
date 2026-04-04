@@ -149,6 +149,11 @@ export const zh: Record<TranslationKey, string> = {
   "runHistory.status.running": "运行中",
   "runHistory.status.completed": "已完成",
   "runHistory.status.failed": "失败",
+  "runHistory.jobType.full": "全量扫描",
+  "runHistory.jobType.seo": "仅 SEO",
+  "runHistory.jobType.geo": "仅 GEO",
+  "runHistory.jobType.community": "仅社区",
+  "runHistory.jobType.serp": "仅 SERP",
 
   // Keywords
   "keywords.addPlaceholder": "添加关键词...",

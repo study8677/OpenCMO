@@ -112,6 +112,15 @@ async def run_scheduled_scan(
         except Exception:
             logger.exception("SERP tracking failed for project %d", project_id)
 
+        # Keyword suggestions (independent — refreshes suggestions each scan)
+        try:
+            from opencmo.tools.keyword_suggest import suggest_keywords_impl
+
+            await suggest_keywords_impl(project_id, url)
+            logger.info("Keyword suggestions updated for project %d", project_id)
+        except Exception:
+            logger.exception("Keyword suggestion failed for project %d", project_id)
+
         # AI crawler access check (independent)
         try:
             import json as _json
@@ -253,9 +262,17 @@ async def run_scheduled_scan(
             total_hits = len(data.get("hits", []))
             await storage.save_community_scan(project_id, total_hits, raw)
 
-            # Track discussions + snapshots
+            # Track discussions + snapshots (filter out irrelevant noise)
+            from opencmo.tools.community_scoring import text_relevance
+
             for hit in data.get("hits", []):
                 if hit.get("source_kind") == "external_search":
+                    continue
+                # Skip hits with very low text relevance to brand name
+                title = hit.get("title", "")
+                preview = hit.get("preview", "")
+                relevance = text_relevance(brand, title, preview)
+                if relevance < 0.05 and (hit.get("engagement_score") or 0) < 5:
                     continue
                 try:
                     disc_id = await storage.upsert_tracked_discussion(project_id, hit)

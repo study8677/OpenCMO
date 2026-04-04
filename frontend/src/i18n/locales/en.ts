@@ -147,6 +147,11 @@ export const en = {
   "runHistory.status.running": "Running",
   "runHistory.status.completed": "Completed",
   "runHistory.status.failed": "Failed",
+  "runHistory.jobType.full": "Full Scan",
+  "runHistory.jobType.seo": "SEO Only",
+  "runHistory.jobType.geo": "GEO Only",
+  "runHistory.jobType.community": "Community Only",
+  "runHistory.jobType.serp": "SERP Only",
 
   // Keywords
   "keywords.addPlaceholder": "Add keyword...",

@@ -146,6 +146,11 @@ export const ja: Record<TranslationKey, string> = {
   "runHistory.status.running": "実行中",
   "runHistory.status.completed": "完了",
   "runHistory.status.failed": "失敗",
+  "runHistory.jobType.full": "フルスキャン",
+  "runHistory.jobType.seo": "SEOのみ",
+  "runHistory.jobType.geo": "GEOのみ",
+  "runHistory.jobType.community": "コミュニティのみ",
+  "runHistory.jobType.serp": "SERPのみ",
 
   // Keywords
   "keywords.addPlaceholder": "キーワードを追加...",

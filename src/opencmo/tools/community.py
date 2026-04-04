@@ -111,39 +111,76 @@ def _pick_external_specs(provider_name: str, plan: SearchQueryPlan) -> list[Quer
     return direct[:2] + opportunity[:2]
 
 
+async def _crawl4ai_site_search(
+    query: str, domains: list[str], max_results: int = 5,
+) -> list[dict]:
+    """Google site-search via crawl4ai, returns [{url, title, content}, ...]."""
+    try:
+        from crawl4ai import AsyncWebCrawler
+        import re as _re
+    except ImportError:
+        return []
+
+    site_filter = " OR ".join(f"site:{d}" for d in domains) if domains else ""
+    full_query = f"{query} {site_filter}".strip().replace(" ", "+")
+    search_url = f"https://www.google.com/search?q={full_query}&num={max_results}"
+
+    try:
+        async with AsyncWebCrawler() as crawler:
+            result = await crawler.arun(url=search_url)
+        md = result.markdown if hasattr(result, "markdown") else ""
+        if not md:
+            return []
+        # Parse markdown links from Google results
+        entries: list[dict] = []
+        for m in _re.finditer(r'\[([^\]]+)\]\((https?://[^\)]+)\)', md):
+            title, url = m.group(1), m.group(2)
+            if "google.com" in url:
+                continue
+            if domains and not any(d in url for d in domains):
+                continue
+            entries.append({"url": url, "title": title, "content": ""})
+            if len(entries) >= max_results:
+                break
+        return entries
+    except Exception:
+        return []
+
+
 async def _search_external_platform(
     provider_name: str,
     specs: list[QuerySpec],
 ) -> tuple[list[DiscussionHit], list[str]]:
-    if not specs or not _has_tavily():
+    if not specs:
         return [], []
 
-    try:
-        from tavily import AsyncTavilyClient
-    except ImportError:
-        return [], ["tavily-python not installed"]
-
-    api_key = llm.get_key("TAVILY_API_KEY") or os.environ.get("TAVILY_API_KEY")
-    if not api_key:
-        return [], []
-
-    client = AsyncTavilyClient(api_key=api_key)
     domains = _EXTERNAL_SEARCH_DOMAINS.get(provider_name, [])
     hits: list[DiscussionHit] = []
     errors: list[str] = []
+    use_tavily = _has_tavily()
 
     for spec in specs:
-        try:
-            resp = await client.search(
-                query=_format_site_query(spec.query, domains),
-                max_results=5,
-                search_depth="basic",
-            )
-        except Exception as exc:
-            errors.append(f"external {provider_name} {spec.source}: {exc}")
-            continue
+        results: list[dict] = []
 
-        results = resp.get("results", []) if isinstance(resp, dict) else []
+        # Try Tavily first
+        if use_tavily:
+            try:
+                from tavily import AsyncTavilyClient
+                api_key = llm.get_key("TAVILY_API_KEY") or os.environ.get("TAVILY_API_KEY")
+                client = AsyncTavilyClient(api_key=api_key)
+                resp = await client.search(
+                    query=_format_site_query(spec.query, domains),
+                    max_results=5,
+                    search_depth="basic",
+                )
+                results = resp.get("results", []) if isinstance(resp, dict) else []
+            except Exception as exc:
+                errors.append(f"external {provider_name} {spec.source}: {exc}")
+
+        # Fallback to crawl4ai Google scrape if Tavily unavailable or returned nothing
+        if not results:
+            results = await _crawl4ai_site_search(spec.query, domains)
+
         for result in results:
             url = result.get("url", "")
             title = result.get("title", "")
