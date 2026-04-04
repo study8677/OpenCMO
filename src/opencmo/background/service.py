@@ -17,7 +17,16 @@ async def enqueue_task(
     max_attempts: int = 3,
     run_after: str | None = None,
 ) -> dict:
+    from opencmo import llm
+    
+    # Capture BYOK keys from current request context
+    keys = llm.get_request_keys()
+    if keys:
+        payload = payload.copy()
+        payload["_byok_keys"] = keys
+
     if dedupe_key:
+
         existing = await bg_storage.find_active_task_by_dedupe_key(dedupe_key)
         if existing is not None:
             return existing

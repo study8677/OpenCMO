@@ -269,8 +269,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           <Field
             label={t("settings.baseUrl")}
             type="url"
-            placeholder={t("settings.baseUrlPlaceholder")}
-            hint={t("settings.baseUrlHint")}
+            placeholder="https://api.deepseek.com/v1"
+            hint="Custom OpenAI-compatible URL. Providers like DeepSeek, OpenRouter, or XH usually require the /v1 suffix (e.g., https://xh.v1api.cc/v1)."
             value={baseUrl}
             onChange={setBaseUrl}
           />

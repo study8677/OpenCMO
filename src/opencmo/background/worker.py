@@ -145,6 +145,14 @@ class BackgroundWorker:
                     kind_sem.release()
 
     async def _execute_task(self, task: dict) -> None:
+        from opencmo import llm
+        
+        # Inject BYOK context if present in task payload
+        byok_keys = task.get("payload", {}).get("_byok_keys", {})
+        token = None
+        if byok_keys:
+            token = llm.set_request_keys(byok_keys)
+
         heartbeat_task = asyncio.create_task(self._heartbeat_loop(task["task_id"]))
         try:
             executor = self._executors[task["kind"]]
@@ -154,7 +162,10 @@ class BackgroundWorker:
         except Exception as exc:
             await bg_service.fail_task(task["task_id"], error={"message": str(exc)})
         finally:
+            if token:
+                llm.reset_request_keys(token)
             heartbeat_task.cancel()
+
             with contextlib.suppress(asyncio.CancelledError):
                 await heartbeat_task
 
