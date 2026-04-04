@@ -1,4 +1,5 @@
 import { Bot, Check, Clock3, ExternalLink, MessageSquare, Send, X } from "lucide-react";
+import { utcDate } from "../../utils/time";
 import type { ApprovalRecord } from "../../types";
 import { EmptyState } from "../common/EmptyState";
 import { useI18n } from "../../i18n";
@@ -196,7 +197,7 @@ export function ApprovalCard({
                 {t("approvals.created")}
               </p>
               <p className="mt-2 text-sm text-slate-700">
-                {new Date(approval.created_at).toLocaleString()}
+                {utcDate(approval.created_at).toLocaleString()}
               </p>
             </div>
           </aside>

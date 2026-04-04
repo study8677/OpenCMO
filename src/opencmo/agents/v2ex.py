@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 v2ex_expert = Agent(
-    name="V2EX 专家",
+    name="V2EX Expert",
     handoff_description="Hand off to this expert when the user needs content for V2EX.",
     instructions="""You are a V2EX content specialist for tech products and developer tools.
 

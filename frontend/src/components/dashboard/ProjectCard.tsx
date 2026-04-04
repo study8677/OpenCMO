@@ -3,8 +3,10 @@ import { Activity, Trash2 } from "lucide-react";
 import type { Project } from "../../types";
 import { useI18n } from "../../i18n";
 
+import { utcDate } from "../../utils/time";
+
 function formatRelativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const diff = Date.now() - utcDate(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
@@ -48,7 +50,7 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
         </div>
         <div className="ml-3 flex items-center gap-2 shrink-0">
           <span className="rounded-md bg-slate-50 px-2 py-1 text-[10px] font-medium tracking-wider text-slate-500 uppercase">
-            {project.category}
+            {project.category === "auto" ? t("project.categoryAuto") : project.category}
           </span>
           {onDelete && (
             <button

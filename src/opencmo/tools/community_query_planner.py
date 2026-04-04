@@ -58,6 +58,11 @@ def _derive_domain_terms(canonical_url: str | None) -> list[str]:
     return _unique_keep_order(parts)
 
 
+def _is_placeholder_category(category: str) -> bool:
+    """Return True if the category is a placeholder that should not be used as a search term."""
+    return not category or category.lower() in ("auto", "unknown", "other", "general")
+
+
 def _english_queries(
     brand_name: str,
     category: str,
@@ -111,7 +116,7 @@ def _english_queries(
         for keyword in tracked_keywords[:6]
     ]
 
-    category_specs = [
+    category_specs = [] if _is_placeholder_category(category) else [
         QuerySpec(
             query=category,
             source="category_search",
@@ -160,7 +165,7 @@ def _english_queries(
         for keyword in competitor_keywords[:4]
     )
 
-    opportunity = [
+    opportunity = [] if _is_placeholder_category(category) else [
         QuerySpec(
             query=f"{category} alternatives",
             source="opportunity_alternatives",
@@ -241,7 +246,7 @@ def _chinese_queries(
         for keyword in tracked_keywords[:6]
     ]
 
-    category_specs = [
+    category_specs = [] if _is_placeholder_category(category) else [
         QuerySpec(
             query=category,
             source="category_search",
@@ -298,7 +303,7 @@ def _chinese_queries(
         for keyword in competitor_keywords[:4]
     )
 
-    opportunity = [
+    opportunity = [] if _is_placeholder_category(category) else [
         QuerySpec(
             query=f"{category} 平替",
             source="opportunity_budget_alternative",

@@ -6,7 +6,7 @@ from opencmo.tools.crawl import crawl_website
 from opencmo.tools.search import web_search
 
 blog_expert = Agent(
-    name="Blog/SEO Expert",
+    name="Blog SEO Expert",
     handoff_description="Hand off to this expert when the user needs blog content for Medium, Dev.to, or SEO articles.",
     instructions="""You are a blog content and SEO specialist for tech products and startups.
 

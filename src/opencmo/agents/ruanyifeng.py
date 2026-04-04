@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 ruanyifeng_expert = Agent(
-    name="阮一峰周刊专家",
+    name="Ruanyifeng Weekly Expert",
     handoff_description="Hand off to this expert when the user needs content for 阮一峰科技爱好者周刊 (Ruan Yifeng's Weekly).",
     instructions="""You are a specialist in writing submissions for 阮一峰的科技爱好者周刊 (Ruan Yifeng's Tech Enthusiasts Weekly).
 

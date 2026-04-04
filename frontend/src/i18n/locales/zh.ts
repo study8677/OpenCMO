@@ -39,6 +39,7 @@ export const zh: Record<TranslationKey, string> = {
   "insights.dismiss": "忽略",
 
   // Project Tabs
+  "project.categoryAuto": "待检测",
   "project.overview": "概览",
   "project.reports": "报告",
   "project.brandKit": "品牌套件",

@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 sspai_expert = Agent(
-    name="少数派专家",
+    name="Sspai Expert",
     handoff_description="Hand off to this expert when the user needs content for 少数派 (sspai).",
     instructions="""You are a 少数派 (sspai.com) content specialist for productivity tools and tech products.
 

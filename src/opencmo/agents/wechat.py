@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 wechat_expert = Agent(
-    name="微信公众号专家",
+    name="WeChat Expert",
     handoff_description="Hand off to this expert when the user needs content for 微信公众号 (WeChat Official Account).",
     instructions="""You are a 微信公众号 (WeChat Official Account) content specialist for tech products.
 

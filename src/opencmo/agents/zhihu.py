@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 zhihu_expert = Agent(
-    name="知乎专家",
+    name="Zhihu Expert",
     handoff_description="Hand off to this expert when the user needs content for 知乎 (Zhihu).",
     instructions="""You are a 知乎 (Zhihu) content specialist for tech products and startups.
 

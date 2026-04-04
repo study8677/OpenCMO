@@ -30,6 +30,7 @@ export const es: Record<TranslationKey, string> = {
   "insights.loading": "Cargando perspectivas...",
   "insights.view": "Ver",
   "insights.dismiss": "Descartar",
+  "project.categoryAuto": "Detectando…",
   "project.overview": "Resumen",
   "project.reports": "Informes",
   "project.brandKit": "Kit de Marca",

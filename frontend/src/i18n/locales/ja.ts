@@ -39,6 +39,7 @@ export const ja: Record<TranslationKey, string> = {
   "insights.dismiss": "非表示",
 
   // Project Tabs
+  "project.categoryAuto": "検出中…",
   "project.overview": "概要",
   "project.reports": "レポート",
   "project.brandKit": "ブランドキット",

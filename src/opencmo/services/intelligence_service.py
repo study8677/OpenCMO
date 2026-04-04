@@ -13,15 +13,10 @@ logger = logging.getLogger(__name__)
 async def _llm_call(client, model: str, messages: list[dict]) -> str:
     """Single LLM chat completion call, returns content string.
 
-    Uses the centralized llm module when client is None.
+    Always uses the centralized llm module for automatic retry + backoff.
     """
-    if client is None:
-        from opencmo import llm
-        return await llm.chat_completion_messages(messages)
-    resp = await client.chat.completions.create(
-        model=model, messages=messages, temperature=0.7,
-    )
-    return resp.choices[0].message.content.strip()
+    from opencmo import llm
+    return await llm.chat_completion_messages(messages, temperature=0.7)
 
 
 async def analyze_url_with_ai(url: str, on_progress=None, locale: str = "en") -> dict:

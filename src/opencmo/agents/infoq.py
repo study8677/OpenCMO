@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 infoq_expert = Agent(
-    name="InfoQ 专家",
+    name="InfoQ Expert",
     handoff_description="Hand off to this expert when the user needs content for InfoQ China.",
     instructions="""You are an InfoQ China content specialist for enterprise-grade technical articles.
 

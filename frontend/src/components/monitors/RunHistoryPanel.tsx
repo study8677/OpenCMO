@@ -19,8 +19,10 @@ const STATUS_LABELS: Record<MonitorRun["status"], TranslationKey> = {
   failed: "runHistory.status.failed",
 };
 
+import { utcDate } from "../../utils/time";
+
 function formatTimeAgo(value: string, locale: string) {
-  const timestamp = new Date(value).getTime();
+  const timestamp = utcDate(value).getTime();
   if (Number.isNaN(timestamp)) {
     return "";
   }
@@ -51,7 +53,7 @@ function formatTimeAgo(value: string, locale: string) {
 }
 
 function formatAbsoluteTime(value: string, locale: string) {
-  const date = new Date(value);
+  const date = utcDate(value);
   if (Number.isNaN(date.getTime())) {
     return value;
   }
@@ -80,7 +82,7 @@ export function RunHistoryPanel({
   const recentRuns = useMemo(
     () =>
       [...runs]
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .sort((a, b) => utcDate(b.created_at).getTime() - utcDate(a.created_at).getTime())
         .slice(0, 5),
     [runs],
   );

@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 gitcode_expert = Agent(
-    name="GitCode 专家",
+    name="GitCode Expert",
     handoff_description="Hand off to this expert when the user needs content for GitCode.",
     instructions="""You are a GitCode content specialist for mirroring and promoting projects on CSDN's code platform.
 

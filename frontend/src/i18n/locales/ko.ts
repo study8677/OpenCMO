@@ -30,6 +30,7 @@ export const ko: Record<TranslationKey, string> = {
   "insights.loading": "인사이트 로딩 중...",
   "insights.view": "보기",
   "insights.dismiss": "무시",
+  "project.categoryAuto": "감지 중…",
   "project.overview": "개요",
   "project.reports": "보고서",
   "project.brandKit": "브랜드 키트",

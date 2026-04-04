@@ -37,6 +37,7 @@ export const en = {
   "insights.dismiss": "Dismiss",
 
   // Project Tabs
+  "project.categoryAuto": "Detecting…",
   "project.overview": "Overview",
   "project.reports": "Reports",
   "project.brandKit": "Brand Kit",

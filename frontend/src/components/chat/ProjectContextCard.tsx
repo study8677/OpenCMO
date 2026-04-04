@@ -105,7 +105,7 @@ export function ProjectContextCard({
                 <ExternalLink size={12} />
               </a>
               <span className="rounded-full bg-slate-200/60 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                {project.category}
+                {project.category === "auto" ? t("project.categoryAuto") : project.category}
               </span>
             </div>
           </div>

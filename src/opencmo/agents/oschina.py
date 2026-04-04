@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 oschina_expert = Agent(
-    name="OSChina 专家",
+    name="OSChina Expert",
     handoff_description="Hand off to this expert when the user needs content for OSChina (开源中国).",
     instructions="""You are an OSChina (开源中国) content specialist for open-source projects.
 

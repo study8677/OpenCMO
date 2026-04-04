@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 devto_expert = Agent(
-    name="Dev.to Expert",
+    name="Devto Expert",
     handoff_description="Hand off to this expert when the user needs content for Dev.to.",
     instructions="""You are a Dev.to content specialist for developer-focused articles and tutorials.
 

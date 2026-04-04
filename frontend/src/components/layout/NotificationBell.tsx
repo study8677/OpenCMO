@@ -31,8 +31,10 @@ function getInsightRoute(actionParams: InsightActionParams): string | null {
     : null;
 }
 
+import { utcDate } from "../../utils/time";
+
 function formatTimeAgo(value: string, locale: string) {
-  const timestamp = new Date(value).getTime();
+  const timestamp = utcDate(value).getTime();
   if (Number.isNaN(timestamp)) {
     return "";
   }

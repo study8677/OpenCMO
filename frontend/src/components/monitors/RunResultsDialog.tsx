@@ -13,6 +13,7 @@ import { useTaskFindings, useTaskRecommendations } from "../../hooks/useTasks";
 import { useI18n } from "../../i18n";
 import { apiJson } from "../../api/client";
 import type { MonitorRun } from "../../types";
+import { utcDate } from "../../utils/time";
 
 const SEVERITY_STYLE: Record<string, string> = {
   critical: "bg-rose-50 text-rose-700 ring-rose-200",
@@ -93,8 +94,8 @@ export function RunResultsDialog({
             )}
             <span className="text-slate-600">
               {run.completed_at
-                ? new Date(run.completed_at).toLocaleString()
-                : new Date(run.created_at).toLocaleString()}
+                ? utcDate(run.completed_at).toLocaleString()
+                : utcDate(run.created_at).toLocaleString()}
             </span>
             <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium uppercase text-slate-500">
               {run.job_type}

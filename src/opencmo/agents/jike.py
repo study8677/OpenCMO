@@ -3,7 +3,7 @@ from agents import Agent
 from opencmo.config import get_model
 
 jike_expert = Agent(
-    name="即刻专家",
+    name="Jike Expert",
     handoff_description="Hand off to this expert when the user needs content for 即刻 (Jike).",
     instructions="""You are a 即刻 (Jike) content specialist for indie developers and startup founders.
 

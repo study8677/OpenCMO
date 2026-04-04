@@ -4,7 +4,7 @@ from opencmo.config import get_model
 from opencmo.tools.publishers import publish_to_twitter
 
 twitter_expert = Agent(
-    name="Twitter/X Expert",
+    name="Twitter Expert",
     handoff_description="Hand off to this expert when the user needs content for Twitter/X.",
     instructions="""You are a Twitter/X content specialist for tech products and startups.
 
