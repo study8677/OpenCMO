@@ -62,7 +62,9 @@ async def api_v1_reports(project_id: int, kind: str | None = None, audience: str
     project = await storage.get_project(project_id)
     if not project:
         return JSONResponse({"error": "Not found"}, status_code=404)
+    # Removed blocking wait for active report tasks
     return JSONResponse(await storage.list_reports(project_id, kind=kind, audience=audience))
+
 
 
 @router.get("/projects/{project_id}/reports/latest")
@@ -70,8 +72,9 @@ async def api_v1_latest_reports(project_id: int):
     project = await storage.get_project(project_id)
     if not project:
         return JSONResponse({"error": "Not found"}, status_code=404)
-    await _wait_for_project_report_tasks(project_id)
+    # Removed blocking wait for active report tasks
     return JSONResponse(await storage.get_latest_reports(project_id))
+
 
 
 @router.get("/reports/{report_id}")
