@@ -9,8 +9,13 @@ from opencmo.tools.geo_providers import (
     GEO_PROVIDER_REGISTRY,
     ChatGPTProvider,
     ClaudeProvider,
+    DeepSeekProvider,
+    DoubaoProvider,
     GeminiProvider,
+    KimiProvider,
     PerplexityProvider,
+    QwenProvider,
+    ZhipuProvider,
     _analyze_text,
 )
 
@@ -26,9 +31,12 @@ def _use_light_profile(monkeypatch):
 
 
 def test_geo_provider_registry():
-    assert len(GEO_PROVIDER_REGISTRY) == 5
+    assert len(GEO_PROVIDER_REGISTRY) == 10
     names = {p.name for p in GEO_PROVIDER_REGISTRY}
-    assert names == {"Perplexity", "You.com", "ChatGPT", "Claude", "Gemini"}
+    assert names == {
+        "Perplexity", "You.com", "ChatGPT", "Claude", "Gemini",
+        "Kimi", "Qwen", "DeepSeek", "Zhipu GLM", "Doubao",
+    }
 
 
 def test_crawl_providers_enabled_by_default():
@@ -39,20 +47,26 @@ def test_crawl_providers_enabled_by_default():
 
 
 def test_api_providers_disabled_without_keys():
-    """ChatGPT/Claude/Gemini should be disabled without their env vars."""
-    # Clean env
+    """API-based providers should be disabled without their env vars."""
     env_clean = {
         "OPENCMO_GEO_CHATGPT": "",
         "ANTHROPIC_API_KEY": "",
         "GOOGLE_AI_API_KEY": "",
+        "MOONSHOT_API_KEY": "",
+        "DASHSCOPE_API_KEY": "",
+        "DEEPSEEK_API_KEY": "",
+        "ZHIPU_API_KEY": "",
+        "DOUBAO_API_KEY": "",
     }
     with patch.dict(os.environ, env_clean, clear=False):
-        chatgpt = ChatGPTProvider()
-        claude = ClaudeProvider()
-        gemini = GeminiProvider()
-        assert not chatgpt.is_enabled
-        assert not claude.is_enabled
-        assert not gemini.is_enabled
+        assert not ChatGPTProvider().is_enabled
+        assert not ClaudeProvider().is_enabled
+        assert not GeminiProvider().is_enabled
+        assert not KimiProvider().is_enabled
+        assert not QwenProvider().is_enabled
+        assert not DeepSeekProvider().is_enabled
+        assert not ZhipuProvider().is_enabled
+        assert not DoubaoProvider().is_enabled
 
 
 def test_chatgpt_requires_opt_in():
@@ -158,6 +172,37 @@ async def test_gemini_provider_parse():
                 result = await provider.check_visibility("Crawl4AI", "web scraping")
                 assert result.mentioned is True
                 assert result.error is None
+
+
+@pytest.mark.asyncio
+async def test_cn_provider_parse():
+    """Chinese AI providers should parse OpenAI-compatible responses."""
+    for provider_cls in (KimiProvider, QwenProvider, DeepSeekProvider, ZhipuProvider, DoubaoProvider):
+        provider = provider_cls()
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "推荐工具：1. Crawl4AI - 强大的爬虫框架 2. Scrapy"
+
+        with patch("openai.AsyncOpenAI") as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+            mock_cls.return_value = mock_client
+
+            result = await provider.check_visibility("Crawl4AI", "网页爬虫")
+            assert result.mentioned is True
+            assert result.mention_count >= 1
+            assert result.error is None
+            assert result.platform == provider.name
+
+
+@pytest.mark.asyncio
+async def test_cn_provider_enabled_with_key():
+    """Chinese providers should enable when their API key is set."""
+    with patch.dict(os.environ, {"MOONSHOT_API_KEY": "test-key"}, clear=False):
+        assert KimiProvider().is_enabled
+    with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=False):
+        assert DeepSeekProvider().is_enabled
 
 
 # ---------------------------------------------------------------------------

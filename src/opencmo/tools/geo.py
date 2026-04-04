@@ -9,10 +9,10 @@ from opencmo.tools.geo_providers import GEO_PROVIDER_REGISTRY, GeoProviderResult
 async def scan_geo_visibility(brand_name: str, category: str) -> str:
     """Scan AI search platforms for brand visibility and compute a GEO score.
 
-    Checks multiple AI platforms (Perplexity, You.com, ChatGPT, Claude, Gemini)
-    for brand mentions, position, and sentiment using multiple query templates.
-    Crawl-based providers run by default; API-based providers require environment
-    variables to enable.
+    Checks multiple AI platforms (Perplexity, You.com, ChatGPT, Claude, Gemini,
+    Kimi, Qwen, DeepSeek, Zhipu GLM, Doubao) for brand mentions, position, and
+    sentiment using multiple query templates. Crawl-based providers run by default;
+    API-based providers require environment variables to enable.
     Returns a GEO Score (0-100) with breakdown and improvement suggestions.
 
     Args:

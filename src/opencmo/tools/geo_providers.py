@@ -488,6 +488,126 @@ class GeminiProvider(GeoProvider):
 
 
 # ---------------------------------------------------------------------------
+# OpenAI-compatible Chinese AI providers
+# ---------------------------------------------------------------------------
+
+_CN_API_QUERY_TEMPLATE = (
+    "有哪些好用的{category}工具？列出最推荐的几个，并简要介绍各自的特点。"
+)
+
+
+class _OpenAICompatibleProvider(GeoProvider):
+    """Base for providers that expose an OpenAI-compatible chat API."""
+
+    api_key_env: str
+    base_url: str
+    model_name: str
+
+    @property
+    def is_enabled(self) -> bool:
+        from opencmo import llm
+        return bool(llm.get_key(self.api_key_env))
+
+    async def check_visibility(
+        self, brand_name: str, category: str
+    ) -> GeoProviderResult:
+        query = _CN_API_QUERY_TEMPLATE.format(category=category)
+        return await self._check_single_query(brand_name, query)
+
+    async def _check_single_query(
+        self, brand_name: str, query: str
+    ) -> GeoProviderResult:
+        snippet_chars = _get_snippet_chars()
+        try:
+            from openai import AsyncOpenAI
+
+            from opencmo import llm
+
+            client = AsyncOpenAI(
+                api_key=llm.get_key(self.api_key_env),
+                base_url=self.base_url,
+            )
+            response = await client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": query}],
+                max_tokens=1024,
+            )
+            content = response.choices[0].message.content or ""
+            mentioned, mention_count, position_pct = _analyze_text(
+                content, brand_name
+            )
+            return GeoProviderResult(
+                platform=self.name,
+                mentioned=mentioned,
+                mention_count=mention_count,
+                position_pct=position_pct,
+                content_snippet=content[:snippet_chars],
+                error=None,
+                query=query,
+            )
+        except Exception as e:
+            return GeoProviderResult(
+                platform=self.name,
+                mentioned=False,
+                mention_count=0,
+                position_pct=None,
+                content_snippet="",
+                error=str(e),
+                query=query,
+            )
+
+
+class KimiProvider(_OpenAICompatibleProvider):
+    name = "Kimi"
+    status = "disabled"
+    requires_auth = True
+    auth_env_vars = ["MOONSHOT_API_KEY"]
+    api_key_env = "MOONSHOT_API_KEY"
+    base_url = "https://api.moonshot.cn/v1"
+    model_name = "moonshot-v1-8k"
+
+
+class QwenProvider(_OpenAICompatibleProvider):
+    name = "Qwen"
+    status = "disabled"
+    requires_auth = True
+    auth_env_vars = ["DASHSCOPE_API_KEY"]
+    api_key_env = "DASHSCOPE_API_KEY"
+    base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name = "qwen-turbo"
+
+
+class DeepSeekProvider(_OpenAICompatibleProvider):
+    name = "DeepSeek"
+    status = "disabled"
+    requires_auth = True
+    auth_env_vars = ["DEEPSEEK_API_KEY"]
+    api_key_env = "DEEPSEEK_API_KEY"
+    base_url = "https://api.deepseek.com"
+    model_name = "deepseek-chat"
+
+
+class ZhipuProvider(_OpenAICompatibleProvider):
+    name = "Zhipu GLM"
+    status = "disabled"
+    requires_auth = True
+    auth_env_vars = ["ZHIPU_API_KEY"]
+    api_key_env = "ZHIPU_API_KEY"
+    base_url = "https://open.bigmodel.cn/api/paas/v4"
+    model_name = "glm-4-flash"
+
+
+class DoubaoProvider(_OpenAICompatibleProvider):
+    name = "Doubao"
+    status = "disabled"
+    requires_auth = True
+    auth_env_vars = ["DOUBAO_API_KEY"]
+    api_key_env = "DOUBAO_API_KEY"
+    base_url = "https://ark.cn-beijing.volces.com/api/v3"
+    model_name = "doubao-1-5-lite-32k"
+
+
+# ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
@@ -497,4 +617,9 @@ GEO_PROVIDER_REGISTRY: list[GeoProvider] = [
     ChatGPTProvider(),
     ClaudeProvider(),
     GeminiProvider(),
+    KimiProvider(),
+    QwenProvider(),
+    DeepSeekProvider(),
+    ZhipuProvider(),
+    DoubaoProvider(),
 ]
