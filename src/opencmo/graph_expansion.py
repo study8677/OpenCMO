@@ -428,3 +428,8 @@ async def run_expansion(
             on_progress, "wave_done",
             f"Wave {wave}: explored {ops}, discovered {wave_discovered}.",
         )
+
+        # Auto-pause after each wave to avoid running indefinitely
+        await storage.update_expansion(project_id, runtime_state="paused", desired_state="paused")
+        _emit(on_progress, "paused", f"Auto-paused after wave {wave}. Start again to continue.")
+        return
