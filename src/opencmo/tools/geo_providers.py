@@ -66,11 +66,11 @@ class GeoAggregatedResult:
 # ---------------------------------------------------------------------------
 
 _QUERY_TEMPLATES = [
-    "best {category} tools",
-    "best {category} tools 2026",
+    "What are the best {category} tools and platforms?",
+    "Can you recommend some {category} alternatives?",
+    "{brand_name} vs competitors in {category}",
     "{brand_name} review",
-    "{brand_name} vs alternatives",
-    "{category} comparison",
+    "{category} comparison 2026",
 ]
 
 
@@ -94,6 +94,11 @@ def _get_snippet_chars() -> int:
 def _get_request_delay() -> float:
     from opencmo.scrape_config import get_scrape_profile
     return get_scrape_profile().request_delay_seconds
+
+
+_API_QUERY_TEMPLATE = (
+    "What are the best {category} tools? List the top options with brief descriptions."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -199,6 +204,69 @@ class GeoProvider(ABC):
 
 
 # ---------------------------------------------------------------------------
+# Default LLM provider — uses whatever model the user already configured
+# ---------------------------------------------------------------------------
+
+
+class DefaultLLMProvider(GeoProvider):
+    """GEO provider that queries the user's configured default LLM.
+
+    Always enabled because OpenCMO requires an LLM to function at all.
+    Uses opencmo.llm.chat_completion_messages() so it respects BYOK keys,
+    custom base URLs, and per-request ContextVar isolation.
+    """
+
+    name = "Default LLM"
+    status = "enabled"
+    requires_auth = False
+    auth_env_vars: list[str] = []
+
+    @property
+    def is_enabled(self) -> bool:
+        return True
+
+    async def check_visibility(
+        self, brand_name: str, category: str
+    ) -> GeoProviderResult:
+        query = _API_QUERY_TEMPLATE.format(category=category)
+        return await self._check_single_query(brand_name, query)
+
+    async def _check_single_query(
+        self, brand_name: str, query: str
+    ) -> GeoProviderResult:
+        snippet_chars = _get_snippet_chars()
+        try:
+            from opencmo import llm
+
+            content = await llm.chat_completion_messages(
+                [{"role": "user", "content": query}],
+                max_tokens=1024,
+            )
+            mentioned, mention_count, position_pct = _analyze_text(
+                content, brand_name
+            )
+            return GeoProviderResult(
+                platform=self.name,
+                mentioned=mentioned,
+                mention_count=mention_count,
+                position_pct=position_pct,
+                content_snippet=content[:snippet_chars],
+                error=None,
+                query=query,
+            )
+        except Exception as e:
+            return GeoProviderResult(
+                platform=self.name,
+                mentioned=False,
+                mention_count=0,
+                position_pct=None,
+                content_snippet="",
+                error=str(e),
+                query=query,
+            )
+
+
+# ---------------------------------------------------------------------------
 # Crawl-based providers
 # ---------------------------------------------------------------------------
 
@@ -297,10 +365,6 @@ class YouDotComProvider(GeoProvider):
 # ---------------------------------------------------------------------------
 # API-based providers
 # ---------------------------------------------------------------------------
-
-_API_QUERY_TEMPLATE = (
-    "What are the best {category} tools? List the top options with brief descriptions."
-)
 
 
 class ChatGPTProvider(GeoProvider):
@@ -612,6 +676,7 @@ class DoubaoProvider(_OpenAICompatibleProvider):
 # ---------------------------------------------------------------------------
 
 GEO_PROVIDER_REGISTRY: list[GeoProvider] = [
+    DefaultLLMProvider(),
     PerplexityProvider(),
     YouDotComProvider(),
     ChatGPTProvider(),

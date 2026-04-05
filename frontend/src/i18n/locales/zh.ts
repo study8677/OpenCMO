@@ -419,6 +419,7 @@ export const zh: Record<TranslationKey, string> = {
   "geo.sentiment": "情感",
   "geo.sentimentUnavailable": "最新 GEO 扫描未拿到情感分，这次总分不包含该项。",
   "geo.latestSnapshot": "最新快照",
+  "geo.configHint": "GEO 检测各 AI 平台对你品牌的提及情况。默认 LLM 始终参与检测。在设置中添加更多 API Key 可启用 Claude、Gemini、ChatGPT、Kimi、DeepSeek 等平台。",
 
   // Action Tips
   "actionTip.seoExcellent": "SEO 性能优秀，继续保持！",

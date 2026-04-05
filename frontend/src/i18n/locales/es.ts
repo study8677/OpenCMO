@@ -336,6 +336,7 @@ export const es: Record<TranslationKey, string> = {
   "geo.sentiment": "Sentimiento",
   "geo.sentimentUnavailable": "El último escaneo GEO no pudo calcular sentimiento; la puntuación total excluye ese componente.",
   "geo.latestSnapshot": "Última Instantánea",
+  "geo.configHint": "GEO detecta las menciones de tu marca en plataformas de IA. Tu LLM predeterminado siempre se verifica. Agrega más claves API en Configuración para Claude, Gemini, ChatGPT, Kimi, DeepSeek y otras plataformas.",
   "actionTip.seoExcellent": "¡El rendimiento SEO es excelente — sigue así!",
   "actionTip.seoPoor": "El rendimiento del sitio es críticamente bajo. Prioriza la optimización de LCP y TBT.",
   "actionTip.seoWarning": "El rendimiento necesita atención. Considera optimizar imágenes y reducir JavaScript.",

@@ -417,6 +417,7 @@ export const en = {
   "geo.sentiment": "Sentiment",
   "geo.sentimentUnavailable": "Sentiment is unavailable for the latest GEO scan; the total excludes that component.",
   "geo.latestSnapshot": "Latest Snapshot",
+  "geo.configHint": "GEO checks how AI platforms mention your brand. Your default LLM is always checked. Add more API keys in Settings for Claude, Gemini, ChatGPT, Kimi, DeepSeek, and other platforms.",
 
   // Action Tips
   "actionTip.seoExcellent": "SEO performance is excellent — keep it up!",

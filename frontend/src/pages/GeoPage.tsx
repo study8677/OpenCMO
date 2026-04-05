@@ -11,7 +11,7 @@ import { ChartCard } from "../components/common/ChartCard";
 import { GeoScoreChart } from "../components/charts/GeoScoreChart";
 import { useI18n } from "../i18n";
 import { ActionTip } from "../components/common/ActionTip";
-import { Globe, Eye, MapPin, Heart } from "lucide-react";
+import { Globe, Eye, MapPin, Heart, Info } from "lucide-react";
 
 function getDelta(arr: (number | null)[] | undefined): number | null {
   if (!arr || arr.length < 2) return null;
@@ -53,6 +53,10 @@ export function GeoPage() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <ProjectHeader project={summary.project} />
       <ProjectTabs projectId={projectId} />
+      <div className="mb-4 flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+        <Info className="h-4 w-4 shrink-0" />
+        <span>{t("geo.configHint")}</span>
+      </div>
       {loadingChart ? (
         <LoadingSpinner />
       ) : !chart?.labels?.length ? (

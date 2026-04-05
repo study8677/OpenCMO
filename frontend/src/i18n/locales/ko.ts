@@ -336,6 +336,7 @@ export const ko: Record<TranslationKey, string> = {
   "geo.sentiment": "감성",
   "geo.sentimentUnavailable": "최신 GEO 스캔은 감성 점수를 계산하지 못했고, 총점에서도 제외되었습니다.",
   "geo.latestSnapshot": "최신 스냅샷",
+  "geo.configHint": "GEO는 각 AI 플랫폼에서 브랜드 언급을 감지합니다. 기본 LLM은 항상 확인됩니다. 설정에서 API 키를 추가하면 Claude, Gemini, ChatGPT, Kimi, DeepSeek 등의 플랫폼도 활성화됩니다.",
   "actionTip.seoExcellent": "SEO 성능이 우수합니다. 계속 유지하세요!",
   "actionTip.seoPoor": "사이트 성능이 매우 낮습니다. LCP와 TBT 최적화를 우선하세요.",
   "actionTip.seoWarning": "성능 개선이 필요합니다. 이미지 최적화와 JavaScript 축소를 고려하세요.",
