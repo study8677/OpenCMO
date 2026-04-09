@@ -210,6 +210,7 @@ CREATE TABLE IF NOT EXISTS scan_findings (
     summary TEXT NOT NULL,
     confidence REAL,
     evidence_json TEXT NOT NULL DEFAULT '[]',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -228,6 +229,7 @@ CREATE TABLE IF NOT EXISTS scan_recommendations (
     rationale TEXT NOT NULL,
     confidence REAL,
     evidence_json TEXT NOT NULL DEFAULT '[]',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -517,6 +519,10 @@ _MIGRATIONS: list[tuple[int, str, list[str]]] = [
     (9, "seo_health_score and geo crawl_success_rate columns", [
         "ALTER TABLE seo_scans ADD COLUMN seo_health_score REAL",
         "ALTER TABLE geo_scans ADD COLUMN crawl_success_rate REAL",
+    ]),
+    (10, "finding and recommendation metadata json columns", [
+        "ALTER TABLE scan_findings ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'",
+        "ALTER TABLE scan_recommendations ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'",
     ]),
 ]
 

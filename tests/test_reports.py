@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from opencmo import service, storage
+from opencmo.reports import _classify_findings
 
 
 @pytest.fixture(autouse=True)
@@ -258,10 +259,20 @@ async def test_generate_report_marks_failed_when_all_generation_paths_fail():
     assert report["human"]["meta"]["used_pipeline"] is False
     assert report["human"]["meta"]["used_fallback"] is False
     assert "LLM unavailable" in str(report["human"]["meta"].get("llm_error"))
-
     assert report["agent"]["generation_status"] == "failed"
     assert report["agent"]["content"] == ""
 
+
+def test_classify_findings_separates_verified_hypothesis_and_environment():
+    validated, environment, hypotheses = _classify_findings([
+        {"title": "Verified", "metadata": {"status": "confirmed"}},
+        {"title": "Maybe", "metadata": {"status": "hypothesis"}},
+        {"title": "Timeout", "metadata": {"status": "environment_limitation"}},
+    ])
+
+    assert [item["title"] for item in validated] == ["Verified"]
+    assert [item["title"] for item in environment] == ["Timeout"]
+    assert [item["title"] for item in hypotheses] == ["Maybe"]
 
 def test_strategic_agent_prompt_avoids_nonexistent_cli_contracts():
     from opencmo.reports import _prompts

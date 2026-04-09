@@ -58,6 +58,22 @@ def _rank_label(position: int | None) -> str:
     return f"#{position}"
 
 
+def _classify_findings(findings: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
+    validated: list[dict] = []
+    environment_limitations: list[dict] = []
+    hypotheses: list[dict] = []
+    for finding in findings:
+        metadata = finding.get("metadata") or {}
+        status = metadata.get("status", "likely")
+        if status == "environment_limitation":
+            environment_limitations.append(finding)
+        elif status == "hypothesis":
+            hypotheses.append(finding)
+        else:
+            validated.append(finding)
+    return validated, environment_limitations, hypotheses
+
+
 def _simple_markdown_to_html(markdown_text: str) -> str:
     lines = markdown_text.splitlines()
     html_lines: list[str] = []
@@ -242,6 +258,8 @@ async def _build_strategic_facts(project_id: int) -> tuple[dict, dict]:
         storage.get_all_serp_latest(project_id),
         build_project_opportunity_snapshot(project_id),
     )
+    findings, environment_limitations, hypothesis_findings = _classify_findings(findings)
+    findings, environment_limitations, hypothesis_findings = _classify_findings(findings)
 
     # Fetch competitor keywords in parallel using batch query
     competitor_cards: list[dict] = []
@@ -317,8 +335,10 @@ async def _build_strategic_facts(project_id: int) -> tuple[dict, dict]:
         risks.append(f"GEO 得分 {geo_score}/100，AI 平台认知偏弱。")
     if not competitor_cards:
         risks.append("竞品画像仍然稀薄。")
-    if monitoring and monitoring.get("findings_count", 0) > 0:
-        risks.append(f"最近一次监控仍有 {monitoring['findings_count']} 条待处理发现。")
+    if findings:
+        risks.append(f"最近一次监控仍有 {len(findings)} 条待处理发现。")
+    if environment_limitations:
+        risks.append(f"有 {len(environment_limitations)} 条监控限制来自环境或 provider 异常，需谨慎解读。")
     if citability_history:
         avg = citability_history[0].get("avg_score")
         if avg is not None and avg < 0.4:
@@ -356,6 +376,8 @@ async def _build_strategic_facts(project_id: int) -> tuple[dict, dict]:
         "previous_scans": previous,
         "monitoring_summary": monitoring,
         "findings": findings,
+        "environment_limitations": environment_limitations,
+        "hypothesis_findings": hypothesis_findings,
         "recommendations": recommendations,
         "insights": insights,
         "citability": citability_history,
@@ -385,7 +407,7 @@ async def _build_strategic_facts(project_id: int) -> tuple[dict, dict]:
         "low_sample": sample_count < 3,
         "facts_summary": (
             f"{len(keywords)} 个关键词, {len(competitor_cards)} 个竞品, "
-            f"{len(findings)} 条发现, {len(recommendations)} 条建议, "
+            f"{len(findings)} 条已验证发现, {len(recommendations)} 条建议, "
             f"{len(insights)} 条洞察, {len(discussions)} 条社区讨论, "
             f"{len(citability_history)} 条引文分析, {len(ai_crawler_history)} 条爬虫检测, "
             f"{len(brand_presence_history)} 条品牌存在感分析"
@@ -443,6 +465,7 @@ async def _build_periodic_facts(
         storage.get_brand_presence_history(project_id, limit=5),
         build_project_opportunity_snapshot(project_id),
     )
+    findings, environment_limitations, hypothesis_findings = _classify_findings(findings)
 
     # Apply time window filtering
     seo_history = _filter_window(seo_history_raw, "scanned_at", window_start_dt)
@@ -512,6 +535,8 @@ async def _build_periodic_facts(
         "opportunities": opportunity_snapshot["opportunities"],
         "cluster_summary": opportunity_snapshot["cluster_summary"],
         "findings": findings,
+        "environment_limitations": environment_limitations,
+        "hypothesis_findings": hypothesis_findings,
         "recommendations": recommendations,
         "insights": insights,
         "citability": citability_history,
@@ -527,6 +552,7 @@ async def _build_periodic_facts(
         "facts_summary": (
             f"SEO 样本 {len(seo_history)}, GEO 样本 {len(geo_history)}, "
             f"Community 样本 {len(community_history)}, SERP 关键词 {len(serp_latest)}, "
+            f"已验证发现 {len(findings)} 条, 环境限制 {len(environment_limitations)} 条, "
             f"洞察 {len(insights)} 条, 引文分析 {len(citability_history)} 条, "
             f"爬虫检测 {len(ai_crawler_history)} 条, 品牌存在感 {len(brand_presence_history)} 条"
         ),

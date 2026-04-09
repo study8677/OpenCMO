@@ -48,7 +48,8 @@ def test_run_monitoring_workflow_persists_artifacts():
     ))
     run(storage.save_community_scan(project_id, 0, '{"hits": []}'))
 
-    with patch("opencmo.scheduler.run_scheduled_scan", new_callable=AsyncMock):
+    with patch("opencmo.scheduler.run_scheduled_scan", new_callable=AsyncMock), \
+         patch("opencmo.monitoring._collect_signals", new_callable=AsyncMock):
         result = run(run_monitoring_workflow(
             "task_monitor_1",
             project_id,
@@ -70,3 +71,6 @@ def test_run_monitoring_workflow_persists_artifacts():
     assert latest is not None
     assert latest["findings_count"] == len(findings)
     assert latest["recommendations_count"] == len(recommendations)
+    assert findings[0]["metadata"]["status"] in {"confirmed", "likely", "hypothesis", "environment_limitation"}
+    assert "dedupe_key" in findings[0]["metadata"]
+    assert isinstance(recommendations[0]["metadata"], dict)

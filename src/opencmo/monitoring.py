@@ -10,6 +10,8 @@ from typing import Callable
 logger = logging.getLogger(__name__)
 
 from opencmo import llm, storage
+from opencmo.finding_contract import upgrade_legacy_finding
+from opencmo.finding_verifier import run_verifier_suite
 
 ProgressCallback = Callable[[dict], None]
 
@@ -891,15 +893,25 @@ def _dedupe_recommendations(recommendations: list[Recommendation]) -> list[Recom
     return sorted(result, key=lambda item: (PRIORITY_ORDER[item.priority], item.domain, item.title))
 
 
-def _build_summary(findings: list[Finding], recommendations: list[Recommendation]) -> str:
-    critical = sum(1 for item in findings if item.severity == "critical")
-    warnings = sum(1 for item in findings if item.severity == "warning")
-    domains = sorted({item.domain for item in findings + recommendations})
+def _build_summary(findings: list[dict], recommendations: list[dict]) -> str:
+    critical = sum(1 for item in findings if item.get("severity") == "critical")
+    warnings = sum(1 for item in findings if item.get("severity") == "warning")
+    domains = sorted({item.get("domain", "?") for item in findings + recommendations})
     if not findings and not recommendations:
         return "Monitoring completed without new findings."
     if critical:
         return f"Monitoring found {critical} critical and {warnings} warning issue(s) across {', '.join(domains)}."
     return f"Monitoring produced {len(findings)} findings and {len(recommendations)} recommended actions across {', '.join(domains)}."
+
+
+def _serialize_recommendation(rec: Recommendation) -> dict:
+    payload = rec.to_dict()
+    payload["metadata"] = {
+        "source_stage": "domain_review",
+        "dedupe_key": f"{rec.domain}:{rec.title.strip().lower().replace(' ', '_')}",
+        "rationale": rec.rationale,
+    }
+    return payload
 
 
 async def run_monitoring_workflow(
@@ -921,7 +933,7 @@ async def run_monitoring_workflow(
         await _collect_signals(run_id, project_id, job_type, job_id, on_progress)
         normalized = await _normalize_signals(run_id, project_id, context, on_progress)
 
-        all_findings: list[Finding] = []
+        all_findings: list[dict] = []
         all_recommendations: list[Recommendation] = []
 
         await _emit(run_id, on_progress, _event(
@@ -938,7 +950,7 @@ async def run_monitoring_workflow(
             ("Competitor Analyst", _competitor_review),
         ]:
             summary, findings, recommendations = review_fn(normalized)
-            all_findings.extend(findings)
+            all_findings.extend({**item.to_dict(), "_source_agent": agent_name} for item in findings)
             all_recommendations.extend(recommendations)
             await _emit(run_id, on_progress, _event(
                 "domain_review",
@@ -948,8 +960,31 @@ async def run_monitoring_workflow(
                 detail=summary,
             ))
 
-        findings = _dedupe_findings(all_findings)
-        recommendations = _dedupe_recommendations(all_recommendations)
+        await _emit(run_id, on_progress, _event(
+            "finding_verification",
+            "started",
+            "Validating findings, deduplicating overlap, and classifying evidence quality.",
+            agent="Chief Verifier",
+        ))
+
+        contract_findings = [
+            upgrade_legacy_finding(
+                {k: v for k, v in item.items() if not k.startswith("_")},
+                source_agent=item.get("_source_agent", "Domain Analyst"),
+            )
+            for item in all_findings
+        ]
+        verification = run_verifier_suite(contract_findings, normalized)
+        findings = [item.to_storage_dict() for item in verification.validated_findings]
+        recommendations = [_serialize_recommendation(item) for item in _dedupe_recommendations(all_recommendations)]
+
+        await _emit(run_id, on_progress, _event(
+            "finding_verification",
+            "completed",
+            f"Validated {len(findings)} findings, dropped {len(verification.dropped_findings)} duplicates/conflicts.",
+            agent="Chief Verifier",
+            detail=json.dumps(verification.to_dict(), ensure_ascii=False),
+        ))
 
         summary = _build_summary(findings, recommendations)
         await _emit(run_id, on_progress, _event(
@@ -961,8 +996,8 @@ async def run_monitoring_workflow(
 
         await storage.replace_scan_artifacts(
             run_id,
-            [item.to_dict() for item in findings],
-            [item.to_dict() for item in recommendations],
+            findings,
+            recommendations,
         )
 
         await storage.update_scan_run(run_id, status="completed", summary=summary, completed=True)
@@ -1021,8 +1056,9 @@ async def run_monitoring_workflow(
             "run_id": run_id,
             "status": "completed",
             "summary": summary,
-            "findings": [item.to_dict() for item in findings],
-            "recommendations": [item.to_dict() for item in recommendations],
+            "findings": findings,
+            "recommendations": recommendations,
+            "verification": verification.to_dict(),
         }
     except Exception as exc:
         await storage.update_scan_run(run_id, status="failed", summary=str(exc), completed=True)

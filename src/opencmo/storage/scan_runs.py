@@ -148,8 +148,8 @@ async def replace_scan_artifacts(
         for finding in findings:
             await db.execute(
                 """INSERT INTO scan_findings
-                   (run_id, domain, severity, title, summary, confidence, evidence_json)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   (run_id, domain, severity, title, summary, confidence, evidence_json, metadata_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     run_id,
                     finding["domain"],
@@ -158,14 +158,15 @@ async def replace_scan_artifacts(
                     finding["summary"],
                     finding.get("confidence"),
                     json.dumps(finding.get("evidence_refs", [])),
+                    json.dumps(finding.get("metadata", {})),
                 ),
             )
 
         for rec in recommendations:
             await db.execute(
                 """INSERT INTO scan_recommendations
-                   (run_id, domain, priority, owner_type, action_type, title, summary, rationale, confidence, evidence_json)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (run_id, domain, priority, owner_type, action_type, title, summary, rationale, confidence, evidence_json, metadata_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     run_id,
                     rec["domain"],
@@ -177,6 +178,7 @@ async def replace_scan_artifacts(
                     rec["rationale"],
                     rec.get("confidence"),
                     json.dumps(rec.get("evidence_refs", [])),
+                    json.dumps(rec.get("metadata", {})),
                 ),
             )
 
@@ -190,7 +192,7 @@ async def get_task_findings(task_id: str) -> list[dict]:
     db = await get_db()
     try:
         cursor = await db.execute(
-            """SELECT f.domain, f.severity, f.title, f.summary, f.confidence, f.evidence_json
+            """SELECT f.domain, f.severity, f.title, f.summary, f.confidence, f.evidence_json, f.metadata_json
                FROM scan_findings f
                JOIN scan_runs r ON r.id = f.run_id
                WHERE r.task_id = ?
@@ -212,6 +214,7 @@ async def get_task_findings(task_id: str) -> list[dict]:
                 "summary": row[3],
                 "confidence": row[4],
                 "evidence_refs": json.loads(row[5] or "[]"),
+                "metadata": json.loads(row[6] or "{}"),
             }
             for row in rows
         ]
@@ -224,7 +227,7 @@ async def get_task_findings_by_project(project_id: int, limit: int = 6) -> list[
     db = await get_db()
     try:
         cursor = await db.execute(
-            """SELECT f.domain, f.severity, f.title, f.summary
+            """SELECT f.domain, f.severity, f.title, f.summary, f.metadata_json
                FROM scan_findings f
                JOIN scan_runs r ON r.id = f.run_id
                WHERE r.project_id = ?
@@ -240,7 +243,13 @@ async def get_task_findings_by_project(project_id: int, limit: int = 6) -> list[
         )
         rows = await cursor.fetchall()
         return [
-            {"domain": row[0], "severity": row[1], "title": row[2], "summary": row[3]}
+            {
+                "domain": row[0],
+                "severity": row[1],
+                "title": row[2],
+                "summary": row[3],
+                "metadata": json.loads(row[4] or "{}"),
+            }
             for row in rows
         ]
     finally:
@@ -253,7 +262,7 @@ async def get_task_recommendations(task_id: str) -> list[dict]:
     try:
         cursor = await db.execute(
             """SELECT rec.domain, rec.priority, rec.owner_type, rec.action_type,
-                      rec.title, rec.summary, rec.rationale, rec.confidence, rec.evidence_json
+                      rec.title, rec.summary, rec.rationale, rec.confidence, rec.evidence_json, rec.metadata_json
                FROM scan_recommendations rec
                JOIN scan_runs r ON r.id = rec.run_id
                WHERE r.task_id = ?
@@ -278,6 +287,7 @@ async def get_task_recommendations(task_id: str) -> list[dict]:
                 "rationale": row[6],
                 "confidence": row[7],
                 "evidence_refs": json.loads(row[8] or "[]"),
+                "metadata": json.loads(row[9] or "{}"),
             }
             for row in rows
         ]
