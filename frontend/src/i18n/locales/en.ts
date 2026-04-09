@@ -86,6 +86,12 @@ export const en = {
   "seo.noDataDesc": "Run a scan to see SEO metrics.",
   "seo.performanceScore": "Performance Score",
   "seo.coreWebVitals": "Core Web Vitals",
+  "seo.metric.lcp": "LCP",
+  "seo.metric.cls": "CLS",
+  "seo.metric.tbt": "TBT",
+  "seo.metric.lcpFull": "LCP (Largest Contentful Paint)",
+  "seo.metric.clsFull": "CLS (Cumulative Layout Shift)",
+  "seo.metric.tbtFull": "TBT (Total Blocking Time)",
 
   // GEO Page
   "geo.noData": "No GEO data yet",

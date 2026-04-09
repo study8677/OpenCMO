@@ -88,6 +88,12 @@ export const zh: Record<TranslationKey, string> = {
   "seo.noDataDesc": "运行扫描以查看 SEO 指标。",
   "seo.performanceScore": "性能评分",
   "seo.coreWebVitals": "核心 Web 指标",
+  "seo.metric.lcp": "LCP",
+  "seo.metric.cls": "CLS",
+  "seo.metric.tbt": "TBT",
+  "seo.metric.lcpFull": "LCP（最大内容绘制）",
+  "seo.metric.clsFull": "CLS（累计布局偏移）",
+  "seo.metric.tbtFull": "TBT（总阻塞时间）",
 
   // GEO Page
   "geo.noData": "暂无 GEO 数据",

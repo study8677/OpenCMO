@@ -70,7 +70,7 @@ export function SeoPage() {
             />
             <KpiCard
               icon={Timer}
-              label="LCP"
+              label={t("seo.metric.lcp")}
               value={latestLcp != null ? `${latestLcp.toFixed(1)}s` : null}
               delta={getDelta(lcp)}
               status={getCwvStatus(latestLcp, 2.5, 4)}
@@ -79,7 +79,7 @@ export function SeoPage() {
             />
             <KpiCard
               icon={Move}
-              label="CLS"
+              label={t("seo.metric.cls")}
               value={latestCls != null ? latestCls.toFixed(3) : null}
               delta={getDelta(cls)}
               status={getCwvStatus(latestCls, 0.1, 0.25)}
@@ -88,7 +88,7 @@ export function SeoPage() {
             />
             <KpiCard
               icon={Zap}
-              label="TBT"
+              label={t("seo.metric.tbt")}
               value={latestTbt != null ? `${Math.round(latestTbt)}ms` : null}
               delta={getDelta(tbt)}
               status={getCwvStatus(latestTbt, 200, 600)}
@@ -104,28 +104,28 @@ export function SeoPage() {
 
           {/* Core Web Vitals — individual mini charts */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <ChartCard title="LCP (Largest Contentful Paint)" accentBorder="border-l-sky-400">
+            <ChartCard title={t("seo.metric.lcpFull")} accentBorder="border-l-sky-400">
               <CwvMiniChart
                 data={chart.labels.map((label, i) => ({ date: label, value: (lcp as (number | null)[])[i] ?? null }))}
-                label="LCP"
+                label={t("seo.metric.lcp")}
                 color="#0ea5e9"
                 thresholds={[2.5, 4]}
                 unit="s"
               />
             </ChartCard>
-            <ChartCard title="CLS (Cumulative Layout Shift)" accentBorder="border-l-violet-400">
+            <ChartCard title={t("seo.metric.clsFull")} accentBorder="border-l-violet-400">
               <CwvMiniChart
                 data={chart.labels.map((label, i) => ({ date: label, value: (cls as (number | null)[])[i] ?? null }))}
-                label="CLS"
+                label={t("seo.metric.cls")}
                 color="#8b5cf6"
                 thresholds={[0.1, 0.25]}
                 unit=""
               />
             </ChartCard>
-            <ChartCard title="TBT (Total Blocking Time)" accentBorder="border-l-amber-400">
+            <ChartCard title={t("seo.metric.tbtFull")} accentBorder="border-l-amber-400">
               <CwvMiniChart
                 data={chart.labels.map((label, i) => ({ date: label, value: (tbt as (number | null)[])[i] ?? null }))}
-                label="TBT"
+                label={t("seo.metric.tbt")}
                 color="#f59e0b"
                 thresholds={[200, 600]}
                 unit="ms"

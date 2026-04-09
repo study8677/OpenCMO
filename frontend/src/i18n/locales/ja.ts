@@ -85,6 +85,12 @@ export const ja: Record<TranslationKey, string> = {
   "seo.noDataDesc": "スキャンを実行して SEO 指標を確認してください。",
   "seo.performanceScore": "パフォーマンススコア",
   "seo.coreWebVitals": "Core Web Vitals",
+  "seo.metric.lcp": "LCP",
+  "seo.metric.cls": "CLS",
+  "seo.metric.tbt": "TBT",
+  "seo.metric.lcpFull": "LCP（Largest Contentful Paint）",
+  "seo.metric.clsFull": "CLS（Cumulative Layout Shift）",
+  "seo.metric.tbtFull": "TBT（Total Blocking Time）",
 
   // GEO Page
   "geo.noData": "GEO データなし",
