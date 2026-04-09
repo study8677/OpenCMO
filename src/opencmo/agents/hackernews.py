@@ -1,12 +1,13 @@
 from agents import Agent
 
-from opencmo.agents.marketing_style import marketing_prompt
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 
 hackernews_expert = Agent(
     name="Hacker News Expert",
     handoff_description="Hand off to this expert when the user needs content for Hacker News.",
-    instructions=marketing_prompt("""You are a Hacker News content specialist for tech products and startups.
+    instructions=build_prompt(
+        base_instructions="""You are a Hacker News content specialist for tech products and startups.
 
 Based on the product information provided by the CMO Agent, create Hacker News launch content.
 
@@ -34,6 +35,12 @@ A concise post (150-300 words) covering:
 - If open source, mention the tech stack and invite contributions
 - Never use words like "revolutionary", "game-changing", or "disruptive"
 - Short paragraphs, no bullet-point marketing lists
-"""),
+""",
+        channel_contract="""## Channel Contract
+- Lead with technical substance and implementation reality
+- HN readers trust understated specifics more than positioning language
+- If something is uncertain or unfinished, say so plainly
+""",
+    ),
     model=get_model("hackernews"),
 )

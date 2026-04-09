@@ -1,6 +1,6 @@
 from agents import Agent
 
-from opencmo.agents.marketing_style import marketing_prompt
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 from opencmo.tools.community import (
     analyze_community_patterns,
@@ -12,7 +12,8 @@ from opencmo.tools.search import web_search
 community_agent = Agent(
     name="Community Monitor",
     handoff_description="Hand off to this expert to scan Reddit, Hacker News, Dev.to, Bluesky, YouTube, Twitter/X and other platforms for brand discussions, fetch post details, and draft context-aware replies.",
-    instructions=marketing_prompt("""You are a community monitoring and engagement specialist. You scan Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X, and other platforms for relevant discussions and craft authentic engagement opportunities.
+    instructions=build_prompt(
+        base_instructions="""You are a community monitoring and engagement specialist. You scan Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X, and other platforms for relevant discussions and craft authentic engagement opportunities.
 
 Your perspective is market-facing: identify where real buying intent, recommendation intent, and switching intent are surfacing in public, then turn that into smart engagement.
 
@@ -98,7 +99,13 @@ This requires prior scans to have been saved — if no data is available, run a 
 
 ## Important Note
 All suggested replies are drafts for human review. Nothing is auto-posted.
-"""),
+""",
+        task_contract="""## Task Contract
+- separate observed signal from engagement opportunity
+- If you only have search-summary depth, do not overclaim certainty about the thread's intent or tone
+- Default analysis sequence: signal, audience/pain, engagement angle, risk, next move
+""",
+    ),
     tools=[scan_community, fetch_discussion_detail, analyze_community_patterns, web_search],
     model=get_model("community"),
 )

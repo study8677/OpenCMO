@@ -16,6 +16,35 @@ logger = logging.getLogger(__name__)
 _REPORT_MODEL_DEFAULT = "gpt-4o"
 _PERIODIC_WINDOW_DAYS = 7
 _REPORT_LLM_TIMEOUT_SECONDS = 300.0
+_REPORT_SYSTEM_COMMON = (
+    "你是 AI CMO（首席营销官），拥有完整的多智能体营销系统：SEO审计专家、GEO(AI搜索可见性)分析师、"
+    "SERP排名追踪器、社区舆情监控(Reddit/HN/Dev.to/知乎/V2EX/掘金等)、AI引文可信度(Citability)评估引擎、"
+    "AI爬虫检测模块、品牌数字足迹(Brand Presence)扫描器、竞品知识图谱、以及Insights洞察引擎。"
+    "以下事实包(facts)是上述所有智能体在真实运行中采集到的一手数据。\n\n"
+    "【打分与量纲规范（百分制）】\n"
+    "- 系统所有核心健康度指标必须使用严格的 **百分制 (0-100分)** 进行评价和展示：\n"
+    "  - `seo_health_score` (0-100): 综合了技术基础与页面质量的 SEO 评分。\n"
+    "  - `geo_score` (0-100): 综合了提及率与情感倾向的 AI 可见性评分。\n"
+    "  - `engagement_score` (0-100): 经过算法归一化的社区讨论相对潜力和热度。\n"
+    "- 事实包中的 `raw_score` (如 16,525) 代表平台的**绝对物理流量**（播放量/点赞数等），绝对**不能**被用作“评分”，而应解读为具体的“流量表现”与“增长短板”进行交叉对比（例如流量极大但搜索增长极低）。\n\n"
+    "核心原则：\n"
+    "1. 你必须对事实包中的每一类数据进行深入解读，不能遗漏任何智能体的产出。\n"
+    "2. 不要使用含糊的“分数”表述，必须明确说是“SEO百分制健康度”、“社区原始流量表现”等，且不可偏离事实数据。\n"
+    "3. 不是简单罗列数据，而是像真正的 CMO 那样做业务推演——高流量为何不能转化为高排名？对增长有什么影响？应该怎么做？\n"
+    "4. 不要虚构数据；某个维度数据缺失时，明确标注并说明获取方法。\n"
+    "5. 必须使用中文输出，报告要足够深入和详实，像一份面向CEO/投资人级别的商业分析文档。\n"
+)
+_REPORT_EVIDENCE_DISCIPLINE = (
+    "【事实纪律】\n"
+    "- 先写已确认事实，再写推断，最后写建议。\n"
+    "- 你的表达必须区分：事实 / 推断 / 建议。\n"
+    "- 缺失时必须明确标注，不得补造数字、案例、竞品结论或增长结果。\n"
+    "- 当样本稀疏时，降低语气强度，并说明结论的置信度边界。\n"
+)
+
+
+def _compose_report_system_prompt(*sections: str) -> str:
+    return "".join((_REPORT_SYSTEM_COMMON, _REPORT_EVIDENCE_DISCIPLINE, *sections))
 
 
 def _json_dump(data: object) -> str:
@@ -583,27 +612,8 @@ def _failed_report_payload(meta: dict, model: str, *, used_pipeline: bool, llm_e
 
 def _prompts(kind: str, audience: str, facts: dict, meta: dict, previous_exists: bool) -> tuple[str, str]:
     project = facts["project"]
-    system_common = (
-        "你是 AI CMO（首席营销官），拥有完整的多智能体营销系统：SEO审计专家、GEO(AI搜索可见性)分析师、"
-        "SERP排名追踪器、社区舆情监控(Reddit/HN/Dev.to/知乎/V2EX/掘金等)、AI引文可信度(Citability)评估引擎、"
-        "AI爬虫检测模块、品牌数字足迹(Brand Presence)扫描器、竞品知识图谱、以及Insights洞察引擎。"
-        "以下事实包(facts)是上述所有智能体在真实运行中采集到的一手数据。\n\n"
-        "【打分与量纲规范（百分制）】\n"
-        "- 系统所有核心健康度指标必须使用严格的 **百分制 (0-100分)** 进行评价和展示：\n"
-        "  - `seo_health_score` (0-100): 综合了技术基础与页面质量的 SEO 评分。\n"
-        "  - `geo_score` (0-100): 综合了提及率与情感倾向的 AI 可见性评分。\n"
-        "  - `engagement_score` (0-100): 经过算法归一化的社区讨论相对潜力和热度。\n"
-        "- 事实包中的 `raw_score` (如 16,525) 代表平台的**绝对物理流量**（播放量/点赞数等），绝对**不能**被用作“评分”，而应解读为具体的“流量表现”与“增长短板”进行交叉对比（例如流量极大但搜索增长极低）。\n\n"
-        "核心原则：\n"
-        "1. 你必须对事实包中的每一类数据进行深入解读，不能遗漏任何智能体的产出。\n"
-        "2. 不要使用含糊的“分数”表述，必须明确说是“SEO百分制健康度”、“社区原始流量表现”等，且不可偏离事实数据。\n"
-        "3. 不是简单罗列数据，而是像真正的 CMO 那样做业务推演——高流量为何不能转化为高排名？对增长有什么影响？应该怎么做？\n"
-        "4. 不要虚构数据；某个维度数据缺失时，明确标注并说明获取方法。\n"
-        "5. 必须使用中文输出，报告要足够深入和详实，像一份面向CEO/投资人级别的商业分析文档。\n"
-    )
     if kind == "strategic" and audience == "human":
-        system = (
-            f"{system_common}"
+        system = _compose_report_system_prompt(
             "你的任务是生成一份极其深入的战略分析报告。输出 Markdown，报告总长度应在 2000-4000 字之间。\n\n"
             "严格按以下 6 大模块结构生成，每个模块都必须展开详细论述，不能用简短的一两句话敷衍：\n\n"
             "## 1. 执行摘要与项目定性 (Executive Summary)\n"
@@ -648,8 +658,7 @@ def _prompts(kind: str, audience: str, facts: dict, meta: dict, previous_exists:
         return system, user
 
     if kind == "strategic" and audience == "agent":
-        system = (
-            f"{system_common}"
+        system = _compose_report_system_prompt(
             "输出 Markdown，这是给 AI Agent 和执行团队的可执行行动简报。结构固定为：\n\n"
             "## 1. 本周必做（P0）\n"
             "   - 列出 2-3 个最高优先级任务\n"
@@ -673,8 +682,7 @@ def _prompts(kind: str, audience: str, facts: dict, meta: dict, previous_exists:
         return system, user
 
     if kind == "periodic" and audience == "human":
-        system = (
-            f"{system_common}"
+        system = _compose_report_system_prompt(
             "你的任务是生成一份深度周报。输出 Markdown，报告总长度应在 1500-3000 字之间。\n\n"
             "严格按以下结构生成，每个模块都要做深入的业务推导，不能停留在数据罗列层面：\n\n"
             "## 1. 本周最重要的变化 (Top Changes)\n"
@@ -700,7 +708,7 @@ def _prompts(kind: str, audience: str, facts: dict, meta: dict, previous_exists:
         )
         user = (
             f"项目：{project['brand_name']} ({project['category']})\n"
-            f"统计窗口：{meta['window_start']} 到 {meta['window_end']}\n"
+            f"统计窗口：{meta.get('window_start', '未知')} 到 {meta.get('window_end', '未知')}\n"
             f"数据来源覆盖度：{meta.get('sample_count', 0)}/{meta.get('total_data_sources', 0)} 个数据源有数据\n"
             f"元数据：{_json_dump(meta)}\n\n"
             f"=== 完整事实包（来自所有智能体的采集结果）===\n{_json_dump(facts)}"
@@ -708,8 +716,7 @@ def _prompts(kind: str, audience: str, facts: dict, meta: dict, previous_exists:
         return system, user
 
     # periodic / agent
-    system = (
-        f"{system_common}"
+    system = _compose_report_system_prompt(
         "输出 Markdown，保持像给执行 Agent 的周度行动简报。结构固定为：\n"
         "1. 项目与置信度\n"
         "2. 本周关键指标快照\n"

@@ -293,3 +293,42 @@ def test_strategic_agent_prompt_avoids_nonexistent_cli_contracts():
     assert "opencmo health check --module=seo" not in system
     assert "Google Search Console、Ahrefs" not in system
     assert user.startswith("项目战略事实包：")
+
+
+def test_report_prompt_fragments_preserve_truth_rules_across_audiences():
+    from opencmo.reports import _prompts
+
+    facts = {
+        "project": {
+            "brand_name": "Acme",
+            "category": "saas",
+            "url": "https://acme.test",
+        }
+    }
+    meta = {"sample_count": 1, "total_data_sources": 8}
+
+    human_system, _ = _prompts("strategic", "human", facts, meta, previous_exists=False)
+    agent_system, _ = _prompts("strategic", "agent", facts, meta, previous_exists=False)
+
+    for prompt in (human_system, agent_system):
+        assert "事实 / 推断 / 建议" in prompt
+        assert "缺失时必须明确标注" in prompt
+        assert "不得补造数字" in prompt
+
+
+def test_report_prompt_distinguishes_facts_from_recommendations_when_data_is_sparse():
+    from opencmo.reports import _prompts
+
+    facts = {
+        "project": {
+            "brand_name": "Acme",
+            "category": "saas",
+            "url": "https://acme.test",
+        }
+    }
+    meta = {"sample_count": 1, "total_data_sources": 8}
+
+    system, _ = _prompts("periodic", "human", facts, meta, previous_exists=False)
+
+    assert "先写已确认事实，再写推断，最后写建议" in system
+    assert "样本稀疏时" in system

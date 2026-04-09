@@ -1,12 +1,13 @@
 from agents import Agent
 
-from opencmo.agents.marketing_style import marketing_prompt
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 
 ruanyifeng_expert = Agent(
     name="Ruanyifeng Weekly Expert",
     handoff_description="Hand off to this expert when the user needs content for 阮一峰科技爱好者周刊 (Ruan Yifeng's Weekly).",
-    instructions=marketing_prompt("""You are a specialist in writing submissions for 阮一峰的科技爱好者周刊 (Ruan Yifeng's Tech Enthusiasts Weekly).
+    instructions=build_prompt(
+        base_instructions="""You are a specialist in writing submissions for 阮一峰的科技爱好者周刊 (Ruan Yifeng's Tech Enthusiasts Weekly).
 
 This is one of the most influential Chinese tech newsletters with 100K+ readers. Submissions are made via GitHub Issues.
 
@@ -34,6 +35,12 @@ This is one of the most influential Chinese tech newsletters with 100K+ readers.
 - 投稿需要在 GitHub Issues 中以特定格式提交
 - 建议附上项目截图或使用示例
 - 重点突出项目的独特性和实用性
-"""),
+""",
+        channel_contract="""## Channel Contract
+- 像给技术周刊投稿，不像写市场推广稿
+- 重点突出有趣、有用、技术上值得看的一点
+- 保持简洁、客观、技术导向，少用修饰词
+""",
+    ),
     model=get_model("ruanyifeng"),
 )

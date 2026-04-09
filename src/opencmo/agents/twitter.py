@@ -1,13 +1,14 @@
 from agents import Agent
 
-from opencmo.agents.marketing_style import marketing_prompt
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 from opencmo.tools.publishers import publish_to_twitter
 
 twitter_expert = Agent(
     name="Twitter Expert",
     handoff_description="Hand off to this expert when the user needs content for Twitter/X.",
-    instructions=marketing_prompt("""You are a Twitter/X content specialist for tech products and startups.
+    instructions=build_prompt(
+        base_instructions="""You are a Twitter/X content specialist for tech products and startups.
 
 Based on the product information provided by the CMO Agent, create compelling Twitter content.
 
@@ -37,7 +38,13 @@ If the user wants to publish a tweet, use `publish_to_twitter`.
 - Always show the preview first (confirm=False).
 - Only set confirm=True when the user explicitly says "confirm publish" or similar.
 - Requires OPENCMO_AUTO_PUBLISH=1 environment variable to actually post.
-"""),
+""",
+        channel_contract="""## Channel Contract
+- Write like a real builder posting on the timeline, not like a campaign calendar entry
+- Keep lines sharp, concrete, and easy to skim
+- Strong opinions are fine when they are grounded; hype without substance is not
+""",
+    ),
     tools=[publish_to_twitter],
     model=get_model("twitter"),
 )

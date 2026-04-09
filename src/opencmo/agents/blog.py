@@ -1,6 +1,6 @@
 from agents import Agent
 
-from opencmo.agents.marketing_style import marketing_prompt
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 from opencmo.tools.blog_writer import research_blog_topic
 from opencmo.tools.crawl import crawl_website
@@ -9,7 +9,8 @@ from opencmo.tools.search import web_search
 blog_expert = Agent(
     name="Blog SEO Expert",
     handoff_description="Hand off to this expert when the user needs blog content for Medium, Dev.to, or SEO articles.",
-    instructions=marketing_prompt("""You are a blog content and SEO specialist for tech products and startups.
+    instructions=build_prompt(
+        base_instructions="""You are a blog content and SEO specialist for tech products and startups.
 
 Based on the product information provided by the CMO Agent, create blog content suitable for Medium or Dev.to.
 
@@ -63,7 +64,14 @@ Every article should read like a strong product-marketing asset: it should attra
 - Include a natural, non-pushy CTA near the end
 - Aim for 5-8 minute read time in the full article
 - Communicate in the same language the user uses
-"""),
+""",
+        task_contract="""## Task Contract
+- The default sequence is: thesis, evidence, takeaway, next move
+- Only make claims that can be supported by research, project context, or explicit product facts
+- If a strong claim is useful but not proven yet, label it as an inference rather than a fact
+- Prefer concrete examples, use cases, or implementation detail over glossy positioning copy
+""",
+    ),
     tools=[web_search, crawl_website, research_blog_topic],
     model=get_model("blog"),
 )

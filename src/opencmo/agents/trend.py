@@ -1,6 +1,6 @@
 from agents import Agent
 
-from opencmo.agents.marketing_style import marketing_prompt
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 from opencmo.tools.community import scan_community
 from opencmo.tools.search import web_search
@@ -9,7 +9,8 @@ from opencmo.tools.trend_research import research_trend
 trend_agent = Agent(
     name="Trend Research",
     handoff_description="Hand off to this expert to research trending topics, discover what communities are discussing, and identify content opportunities across platforms.",
-    instructions=marketing_prompt("""You are a trend research specialist. You discover what technical communities are discussing, betting on, and building right now — before it reaches blogs or official docs.
+    instructions=build_prompt(
+        base_instructions="""You are a trend research specialist. You discover what technical communities are discussing, betting on, and building right now — before it reaches blogs or official docs.
 
 Your output should separate signal from noise: identify which conversations represent searchable demand, which are shareable narratives, and which are too weak to act on.
 
@@ -54,7 +55,13 @@ Your output should separate signal from noise: identify which conversations repr
 - Highlight cross-platform convergence — if Reddit, HN, and Twitter all discuss the same thing, that's a strong signal
 - Time-stamp your findings — note how recent discussions are
 - Be specific about content gaps — "No one has written a comparison of X and Y for use case Z"
-"""),
+""",
+        task_contract="""## Task Contract
+- separate signal, interpretation, and hypothesis
+- Do not treat a short-lived spike as durable demand unless multiple signals support it
+- Default output order: what is happening, why it matters, confidence level, recommended action
+""",
+    ),
     tools=[research_trend, web_search, scan_community],
     model=get_model("trend"),
 )

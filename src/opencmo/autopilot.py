@@ -103,33 +103,43 @@ MAX_AUTOPILOT_PER_DAY = 3
 async def _generate_content_with_agent(agent_name: str, prompt: str, project_id: int | None = None) -> str | None:
     """Call an expert agent to generate content. Returns None on failure."""
     try:
-        from agents import Agent, Runner
+        from agents import Runner
 
-        from opencmo.config import get_model
-
-        # Build brand-aware instructions
-        instructions = (
-            f"You are {agent_name}, an expert content creator. "
-            "Generate high-quality, publication-ready content based on the brief. "
-            "Return ONLY the content, no meta-commentary."
-        )
-
-        if project_id:
-            from opencmo.storage.brand_kit import build_brand_kit_prompt
-            brand_prompt = await build_brand_kit_prompt(project_id)
-            if brand_prompt:
-                instructions += f"\n\n{brand_prompt}"
-
-        agent = Agent(
-            name=agent_name,
-            instructions=instructions,
-            model=get_model(agent_name),
-        )
+        agent = await _build_generation_agent(agent_name, project_id=project_id)
         result = await Runner.run(agent, prompt)
         return result.final_output
     except Exception:
         logger.exception("Agent %s content generation failed", agent_name)
         return None
+
+
+async def _build_generation_agent(agent_name: str, project_id: int | None = None):
+    """Return an expert-grade content agent for autopilot generation."""
+    from agents import Agent
+
+    from opencmo.agents.blog import blog_expert
+    from opencmo.agents.reddit import reddit_expert
+    from opencmo.storage.brand_kit import build_brand_kit_prompt
+
+    templates = {
+        "blog_expert": blog_expert,
+        "reddit_expert": reddit_expert,
+    }
+    template = templates.get(agent_name)
+    if template is None:
+        raise ValueError(f"Unsupported autopilot agent: {agent_name}")
+
+    brand_prompt = await build_brand_kit_prompt(project_id) if project_id else ""
+    if not brand_prompt:
+        return template
+
+    return Agent(
+        name=template.name,
+        handoff_description=getattr(template, "handoff_description", None),
+        instructions=f"{template.instructions.rstrip()}\n\n{brand_prompt}",
+        tools=list(getattr(template, "tools", [])),
+        model=template.model,
+    )
 
 
 # ---------------------------------------------------------------------------

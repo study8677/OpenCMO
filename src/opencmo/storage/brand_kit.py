@@ -73,25 +73,32 @@ async def upsert_brand_kit(
     return await get_brand_kit(project_id)
 
 
+def _render_brand_overlay(kit: dict) -> str:
+    """Render a structured brand overlay with bounded priority."""
+    parts = [
+        "## Brand Overlay",
+        "- This overlay is lower priority than truth, evidence, and channel-native rules.",
+        "- Preserve the brand where it does not conflict with those higher-priority rules.",
+    ]
+    if kit.get("tone_of_voice"):
+        parts.append(f"- Tone: {kit['tone_of_voice']}")
+    if kit.get("target_audience"):
+        parts.append(f"- Audience: {kit['target_audience']}")
+    if kit.get("core_values"):
+        parts.append(f"- Core Values: {kit['core_values']}")
+    if kit.get("forbidden_words"):
+        words = ", ".join(kit["forbidden_words"])
+        parts.append(f"- Forbidden: {words}")
+    if kit.get("best_examples"):
+        parts.append(f"- Best Examples:\n{kit['best_examples']}")
+    if kit.get("custom_instructions"):
+        parts.append(f"- Custom Notes: {kit['custom_instructions']}")
+    return "\n".join(parts)
+
+
 async def build_brand_kit_prompt(project_id: int) -> str:
     """Build a system prompt fragment from the brand kit. Returns empty string if no kit."""
     kit = await get_brand_kit(project_id)
     if not kit:
         return ""
-
-    parts = ["[Brand Guidelines — You MUST follow these when generating any content]"]
-    if kit["tone_of_voice"]:
-        parts.append(f"Tone of Voice: {kit['tone_of_voice']}")
-    if kit["target_audience"]:
-        parts.append(f"Target Audience: {kit['target_audience']}")
-    if kit["core_values"]:
-        parts.append(f"Core Values: {kit['core_values']}")
-    if kit["forbidden_words"]:
-        words = ", ".join(kit["forbidden_words"])
-        parts.append(f"FORBIDDEN words/phrases (never use): {words}")
-    if kit["best_examples"]:
-        parts.append(f"Best Content Examples:\n{kit['best_examples']}")
-    if kit["custom_instructions"]:
-        parts.append(f"Additional Instructions: {kit['custom_instructions']}")
-
-    return "\n".join(parts)
+    return _render_brand_overlay(kit)

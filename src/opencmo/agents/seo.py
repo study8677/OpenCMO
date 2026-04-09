@@ -1,6 +1,6 @@
 from agents import Agent
 
-from opencmo.agents.marketing_style import marketing_prompt
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 from opencmo.tools.ai_crawler_check import check_ai_crawler_access, check_llms_txt
 from opencmo.tools.llmstxt import generate_llmstxt, validate_llmstxt
@@ -12,7 +12,8 @@ from opencmo.tools.trends import get_seo_trends
 seo_agent = Agent(
     name="SEO Audit Expert",
     handoff_description="Hand off to this expert when the user needs a technical SEO audit of a web page.",
-    instructions=marketing_prompt("""You are an SEO audit specialist. You analyze web pages for technical SEO issues and provide actionable fix recommendations.
+    instructions=build_prompt(
+        base_instructions="""You are an SEO audit specialist. You analyze web pages for technical SEO issues and provide actionable fix recommendations.
 
 Think like a growth operator, not just a checker. Translate technical issues into lost visibility, missed demand capture, and concrete ranking opportunities.
 
@@ -80,7 +81,13 @@ Think like a growth operator, not just a checker. Translate technical issues int
 - Be specific and actionable — no vague advice like "improve your SEO"
 - Every recommendation must include code the user can copy-paste
 - Communicate in the same language the user uses
-"""),
+""",
+        task_contract="""## Task Contract
+- For each important finding, think in this order: diagnosis, impact, fix, expected outcome, next move
+- Translate technical findings into growth implications, but do not imply ranking gains as guaranteed
+- Be explicit about what is measured now versus what is a likely improvement path
+""",
+    ),
     tools=[audit_page_seo, web_search, get_seo_trends, check_keyword_ranking, get_serp_trends,
            check_ai_crawler_access, check_llms_txt, validate_llmstxt, generate_llmstxt],
     model=get_model("seo"),

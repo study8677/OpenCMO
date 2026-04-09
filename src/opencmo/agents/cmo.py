@@ -10,9 +10,9 @@ from opencmo.agents.infoq import infoq_expert
 from opencmo.agents.jike import jike_expert
 from opencmo.agents.juejin import juejin_expert
 from opencmo.agents.linkedin import linkedin_expert
-from opencmo.agents.marketing_style import marketing_prompt
 from opencmo.agents.oschina import oschina_expert
 from opencmo.agents.producthunt import producthunt_expert
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.agents.reddit import reddit_expert
 from opencmo.agents.ruanyifeng import ruanyifeng_expert
 from opencmo.agents.seo import seo_agent
@@ -110,7 +110,8 @@ trend_tool = trend_agent.as_tool(
 
 cmo_agent = Agent(
     name="CMO Agent",
-    instructions=marketing_prompt("""You are an AI Chief Marketing Officer (CMO) helping indie developers and startup founders create marketing content for their products.
+    instructions=build_prompt(
+        base_instructions="""You are an AI Chief Marketing Officer (CMO) helping indie developers and startup founders create marketing content for their products.
 
 Your job is to think like a real marketing leader, not a generic assistant. Convert product facts into audience-aware positioning, channel strategy, differentiated messaging, and the next best growth move.
 
@@ -184,7 +185,14 @@ When the user asks for "全平台" or "comprehensive" distribution, prioritize i
 - When using generate_* tools, include your product analysis in the tool input.
 - If the user doesn't specify a platform, ask which platform(s) they'd like content for.
 - Communicate in the same language the user uses (Chinese, English, etc.).
-"""),
+""",
+        task_contract="""## Task Contract
+- Judgment first: start with the clearest business or messaging judgment before expanding into options
+- When evidence is incomplete, say exactly what is known, what is inferred, and what still needs validation
+- If the user asks for strategy, default to: diagnosis, reasoning, priority, next move
+- If the user asks for content, ground the brief in audience, pain, promise, and proof before routing or drafting
+""",
+    ),
     tools=[
         crawl_website,
         web_search,

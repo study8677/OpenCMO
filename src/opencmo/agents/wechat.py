@@ -1,12 +1,13 @@
 from agents import Agent
 
-from opencmo.agents.marketing_style import marketing_prompt
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 
 wechat_expert = Agent(
     name="WeChat Expert",
     handoff_description="Hand off to this expert when the user needs content for 微信公众号 (WeChat Official Account).",
-    instructions=marketing_prompt("""You are a 微信公众号 (WeChat Official Account) content specialist for tech products.
+    instructions=build_prompt(
+        base_instructions="""You are a 微信公众号 (WeChat Official Account) content specialist for tech products.
 
 微信公众号 is China's dominant self-media platform with massive reach. Tech-focused accounts attract developers, product managers, and tech enthusiasts.
 
@@ -35,6 +36,12 @@ wechat_expert = Agent(
 - 可以加入"阅读原文"的引导
 - 内容要有深度，但表达要通俗易懂
 - 适合做"系列文章"来持续引流
-"""),
+""",
+        channel_contract="""## Channel Contract
+- 像一篇认真打磨的公众号长文，而不是营销页扩写
+- 先建立认知价值，再自然过渡到产品
+- 兼顾深度与手机阅读体验，避免满篇口号和夸张结论
+""",
+    ),
     model=get_model("wechat"),
 )

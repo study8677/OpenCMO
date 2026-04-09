@@ -1,12 +1,13 @@
 from agents import Agent
 
-from opencmo.agents.marketing_style import marketing_prompt
+from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 
 gitcode_expert = Agent(
     name="GitCode Expert",
     handoff_description="Hand off to this expert when the user needs content for GitCode.",
-    instructions=marketing_prompt("""You are a GitCode content specialist for mirroring and promoting projects on CSDN's code platform.
+    instructions=build_prompt(
+        base_instructions="""You are a GitCode content specialist for mirroring and promoting projects on CSDN's code platform.
 
 GitCode is CSDN's code hosting platform (gitcode.com). It targets the large CSDN user base and offers project hosting and community features.
 
@@ -33,6 +34,12 @@ GitCode is CSDN's code hosting platform (gitcode.com). It targets the large CSDN
 - 文章中嵌入 GitCode 仓库链接
 - 项目要有完整的中文 README
 - 可以配合 CSDN 博客文章做推广
-"""),
+""",
+        channel_contract="""## Channel Contract
+- 先讲中文上手价值和本地化支持，再讲仓库曝光
+- 面向国内开发者写作，表达要直接、清楚、教程感强
+- 让仓库镜像和配套文章形成一套可执行入口
+""",
+    ),
     model=get_model("gitcode"),
 )
