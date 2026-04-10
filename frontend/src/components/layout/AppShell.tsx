@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "./Sidebar";
 import { SiteFooter } from "./SiteFooter";
@@ -6,6 +6,24 @@ import { TopBar } from "./TopBar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const robotsMeta = document.querySelector('meta[name="robots"]');
+    const previousRobots = robotsMeta?.getAttribute("content") ?? null;
+    const previousTitle = document.title;
+
+    if (robotsMeta) {
+      robotsMeta.setAttribute("content", "noindex,nofollow");
+    }
+    document.title = "OpenCMO Workspace";
+
+    return () => {
+      if (robotsMeta && previousRobots) {
+        robotsMeta.setAttribute("content", previousRobots);
+      }
+      document.title = previousTitle;
+    };
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-white text-slate-800 transition-colors duration-500 font-sans">

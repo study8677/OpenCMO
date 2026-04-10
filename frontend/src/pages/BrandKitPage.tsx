@@ -188,7 +188,7 @@ export function BrandKitPage() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <Link
-          to="/"
+          to="/workspace"
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900"
         >
           <ArrowLeft size={16} />

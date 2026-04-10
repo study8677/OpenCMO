@@ -1,0 +1,26 @@
+# OpenCMO
+
+> Open-source AI CMO workspace for SEO audits, GEO visibility, SERP tracking, community monitoring, and growth execution.
+
+## Summary
+
+OpenCMO helps teams understand how their brand is discovered across traditional search engines, generative search products, and public communities. It combines technical SEO checks, AI visibility analysis, keyword tracking, and discussion monitoring in one workspace.
+
+## Primary URLs
+
+- Product overview: https://www.aidcmo.com/
+- Source code: https://github.com/study8677/OpenCMO
+- Sitemap: https://www.aidcmo.com/sitemap.xml
+
+## Core capabilities
+
+- SEO and performance auditing
+- GEO visibility tracking across AI assistants
+- SERP keyword monitoring
+- Community discussion discovery and review
+- Growth recommendations and execution workflows
+
+## Crawling notes
+
+- Canonical product URL: https://www.aidcmo.com/
+- Internal workspace routes such as `/workspace`, `/projects/*`, `/chat`, and `/approvals` are application surfaces, not documentation pages.

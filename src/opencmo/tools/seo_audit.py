@@ -271,12 +271,24 @@ async def _check_robots_and_sitemap(url: str) -> dict:
         "sitemap_loc_count": 0,
     }
 
+    def _looks_like_robots(body: str) -> bool:
+        lowered = body.lower()
+        if "<html" in lowered:
+            return False
+        return any(token in lowered for token in ("user-agent:", "disallow:", "allow:", "sitemap:"))
+
+    def _looks_like_sitemap(body: str) -> bool:
+        lowered = body.lower()
+        if "<html" in lowered:
+            return False
+        return "<urlset" in lowered or "<sitemapindex" in lowered
+
     try:
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
             # --- robots.txt ---
             try:
                 robots_resp = await client.get(f"{origin}/robots.txt")
-                if robots_resp.status_code == 200:
+                if robots_resp.status_code == 200 and _looks_like_robots(robots_resp.text):
                     result["has_robots"] = True
                     body = robots_resp.text
                     for line in body.splitlines():
@@ -297,7 +309,7 @@ async def _check_robots_and_sitemap(url: str) -> dict:
             sitemap_url = result["sitemap_in_robots"] or f"{origin}/sitemap.xml"
             try:
                 sitemap_resp = await client.get(sitemap_url)
-                if sitemap_resp.status_code == 200:
+                if sitemap_resp.status_code == 200 and _looks_like_sitemap(sitemap_resp.text):
                     result["has_sitemap"] = True
                     # Count <loc> entries
                     result["sitemap_loc_count"] = sitemap_resp.text.count("<loc>")

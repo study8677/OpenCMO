@@ -1252,6 +1252,27 @@ def test_spa_catchall_blocks_directory_traversal(client, tmp_path):
         assert "TOPSECRET" not in resp.text
 
 
+def test_site_stats_increment_on_document_requests(client, tmp_path):
+    spa_dir = tmp_path / "spa_dist"
+    spa_dir.mkdir()
+    (spa_dir / "index.html").write_text("<html>SPA</html>")
+
+    with patch.object(app_module, "_SPA_DIR", spa_dir):
+        resp = client.get("/")
+        assert resp.status_code == 200
+
+        resp = client.get("/api/v1/site/stats")
+        assert resp.status_code == 200
+        assert resp.json() == {"total_visits": 1, "unique_visitors": 1}
+
+        resp = client.get("/")
+        assert resp.status_code == 200
+
+        resp = client.get("/api/v1/site/stats")
+        assert resp.status_code == 200
+        assert resp.json() == {"total_visits": 2, "unique_visitors": 1}
+
+
 # ---------------------------------------------------------------------------
 # Scan data endpoints (v1)
 # ---------------------------------------------------------------------------

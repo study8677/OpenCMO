@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { AppShell } from "./components/layout/AppShell";
+import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ProjectPage } from "./pages/ProjectPage";
 import { SeoPage } from "./pages/SeoPage";
@@ -38,29 +39,37 @@ function LazyFallback() {
 
 function AppRoutes() {
   return (
-    <AppShell>
-      <Suspense fallback={<LazyFallback />}>
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/approvals" element={<ApprovalsPage />} />
-          <Route path="/projects/:id" element={<ProjectPage />} />
-          <Route path="/projects/:id/reports" element={<ReportsPage />} />
-          <Route path="/projects/:id/brand-kit" element={<BrandKitPage />} />
-          <Route
-            path="/projects/:id/performance"
-            element={<PerformancePage />}
-          />
-          <Route path="/projects/:id/seo" element={<SeoPage />} />
-          <Route path="/projects/:id/geo" element={<GeoPage />} />
-          <Route path="/projects/:id/serp" element={<SerpPage />} />
-          <Route path="/projects/:id/community" element={<CommunityPage />} />
-          <Route path="/projects/:id/graph" element={<GraphPage />} />
-          <Route path="/projects/:id/monitors" element={<ProjectMonitorsPage />} />
-          <Route path="/projects/:id/github-leads" element={<GitHubLeadsPage />} />
-<Route path="/chat" element={<ChatPage />} />
-        </Routes>
-      </Suspense>
-    </AppShell>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route
+        path="*"
+        element={(
+          <AppShell>
+            <Suspense fallback={<LazyFallback />}>
+              <Routes>
+                <Route path="/workspace" element={<DashboardPage />} />
+                <Route path="/approvals" element={<ApprovalsPage />} />
+                <Route path="/projects/:id" element={<ProjectPage />} />
+                <Route path="/projects/:id/reports" element={<ReportsPage />} />
+                <Route path="/projects/:id/brand-kit" element={<BrandKitPage />} />
+                <Route
+                  path="/projects/:id/performance"
+                  element={<PerformancePage />}
+                />
+                <Route path="/projects/:id/seo" element={<SeoPage />} />
+                <Route path="/projects/:id/geo" element={<GeoPage />} />
+                <Route path="/projects/:id/serp" element={<SerpPage />} />
+                <Route path="/projects/:id/community" element={<CommunityPage />} />
+                <Route path="/projects/:id/graph" element={<GraphPage />} />
+                <Route path="/projects/:id/monitors" element={<ProjectMonitorsPage />} />
+                <Route path="/projects/:id/github-leads" element={<GitHubLeadsPage />} />
+                <Route path="/chat" element={<ChatPage />} />
+              </Routes>
+            </Suspense>
+          </AppShell>
+        )}
+      />
+    </Routes>
   );
 }
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -170,6 +171,7 @@ from opencmo.web.routers.projects import router as projects_router
 from opencmo.web.routers.quick_actions import router as quick_actions_router
 from opencmo.web.routers.report import router as report_router
 from opencmo.web.routers.settings import router as settings_router
+from opencmo.web.routers.site import router as site_router
 from opencmo.web.routers.tasks import router as tasks_router
 
 app.include_router(legacy_router, prefix="/legacy")
@@ -183,6 +185,7 @@ app.include_router(approvals_router)
 app.include_router(tasks_router)
 app.include_router(chat_router)
 app.include_router(settings_router)
+app.include_router(site_router)
 app.include_router(report_router)
 app.include_router(events_router)
 app.include_router(brand_kit_router)
@@ -213,8 +216,28 @@ async def spa_catchall(request: Request, full_path: str = ""):
             import mimetypes
             ct = mimetypes.guess_type(str(asset))[0] or "application/octet-stream"
             return StreamingResponse(open(asset, "rb"), media_type=ct)
+
+    new_visitor_id: str | None = None
+    try:
+        await storage.increment_site_counter("total_visits")
+        if not request.cookies.get("opencmo_visitor_id"):
+            new_visitor_id = uuid.uuid4().hex
+            await storage.increment_site_counter("unique_visitors")
+    except Exception:
+        logger.exception("Failed to record site visit counters")
+
     # SPA fallback — always return index.html
-    return HTMLResponse(index.read_text())
+    response = HTMLResponse(index.read_text())
+    if new_visitor_id:
+        response.set_cookie(
+            "opencmo_visitor_id",
+            new_visitor_id,
+            max_age=60 * 60 * 24 * 365,
+            httponly=True,
+            samesite="lax",
+            secure=request.url.scheme == "https",
+        )
+    return response
 
 
 # ---------------------------------------------------------------------------

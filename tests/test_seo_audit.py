@@ -201,6 +201,35 @@ async def test_sitemap_page_count():
         assert result["sitemap_loc_count"] == 42
 
 
+@pytest.mark.asyncio
+async def test_robots_and_sitemap_ignore_html_shell_false_positives():
+    class MockResponse:
+        def __init__(self, status_code, text):
+            self.status_code = status_code
+            self.text = text
+
+    html_shell = "<!doctype html><html><head><title>SPA</title></head><body><div id='root'></div></body></html>"
+
+    async def mock_get(url, **kwargs):
+        if "robots.txt" in url:
+            return MockResponse(200, html_shell)
+        if "sitemap.xml" in url:
+            return MockResponse(200, html_shell)
+        return MockResponse(404, "")
+
+    with patch("opencmo.tools.seo_audit.httpx.AsyncClient") as mock_cls:
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.get = mock_get
+        mock_cls.return_value = mock_client
+
+        result = await _check_robots_and_sitemap("https://example.com")
+        assert result["has_robots"] is False
+        assert result["has_sitemap"] is False
+        assert result["sitemap_loc_count"] == 0
+
+
 # ---------------------------------------------------------------------------
 # Full report includes all sections
 # ---------------------------------------------------------------------------

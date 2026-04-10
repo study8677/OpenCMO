@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /workspace
+Disallow: /approvals
+Disallow: /chat
+Disallow: /projects/
+
+Sitemap: https://www.aidcmo.com/sitemap.xml

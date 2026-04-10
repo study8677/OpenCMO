@@ -132,6 +132,12 @@ CREATE TABLE IF NOT EXISTS settings (
     value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS site_counters (
+    key TEXT PRIMARY KEY,
+    value INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS approvals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL REFERENCES projects(id),
@@ -624,6 +630,13 @@ _MIGRATIONS: list[tuple[int, str, list[str]]] = [
             error TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             completed_at TEXT
+        )""",
+    ]),
+    (12, "site counters table", [
+        """CREATE TABLE IF NOT EXISTS site_counters (
+            key TEXT PRIMARY KEY,
+            value INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         )""",
     ]),
 ]

@@ -6,6 +6,11 @@ export interface Project {
   latest?: LatestScans;
 }
 
+export interface SiteStats {
+  total_visits: number;
+  unique_visitors: number;
+}
+
 export interface LatestScans {
   seo: { scanned_at: string; score: number | null } | null;
   geo: { scanned_at: string; score: number } | null;

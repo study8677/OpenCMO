@@ -17,7 +17,7 @@ import type { TranslationKey } from "../../i18n";
 import { SettingsDialog } from "../settings/SettingsDialog";
 
 const NAV: { to: string; labelKey: TranslationKey; icon: typeof LayoutDashboard }[] = [
-  { to: "/", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { to: "/workspace", labelKey: "nav.dashboard", icon: LayoutDashboard },
   { to: "/approvals", labelKey: "nav.approvals", icon: CheckSquare },
   { to: "/chat", labelKey: "nav.aiChat", icon: MessageSquare },
 ];
@@ -48,7 +48,7 @@ export function Sidebar({
         }`}
       >
         <div className="flex h-14 items-center justify-between px-4 mt-2">
-          <Link to="/" className="text-lg font-semibold text-slate-800 tracking-tight" onClick={onClose}>
+          <Link to="/workspace" className="text-lg font-semibold text-slate-800 tracking-tight" onClick={onClose}>
             OpenCMO
           </Link>
           <button className="text-slate-400 hover:text-slate-800 transition-colors lg:hidden" onClick={onClose}>
@@ -58,7 +58,7 @@ export function Sidebar({
 
         <nav className="flex-1 space-y-1 p-3">
           {NAV.map(({ to, labelKey, icon: Icon }) => {
-            const active = to === "/" ? pathname === to : pathname.startsWith(to);
+            const active = to === "/workspace" ? pathname === to : pathname.startsWith(to);
             return (
               <Link
                 key={to}

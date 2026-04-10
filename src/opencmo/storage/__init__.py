@@ -208,6 +208,12 @@ from opencmo.storage.settings import (
     set_setting,
 )
 
+# --- Site stats ---
+from opencmo.storage.site_stats import (
+    get_site_counter,
+    increment_site_counter,
+)
+
 
 def __getattr__(name: str):
     if name == "_DB_PATH":
@@ -270,6 +276,8 @@ __all__ = [
     "update_chat_session", "delete_chat_session", "clear_chat_sessions",
     # settings
     "get_setting", "set_setting", "delete_setting",
+    # site stats
+    "get_site_counter", "increment_site_counter",
     # approvals
     "create_approval", "get_approval", "list_approvals",
     "update_approval_status", "create_approval_with_source",
