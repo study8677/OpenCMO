@@ -7,6 +7,7 @@ server entry point.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -59,6 +60,81 @@ _BLOG_STATIC_SITE_COPY = """
 </main>
 """.strip()
 
+_BLOG_JSON_LD = json.dumps(
+    {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "name": "OpenCMO Blog",
+        "description": (
+            "A public field guide to what OpenCMO is, who it is for, and how the system "
+            "should be used."
+        ),
+        "url": "https://www.aidcmo.com/blog",
+        "publisher": {
+            "@type": "Organization",
+            "name": "OpenCMO",
+            "url": "https://www.aidcmo.com/",
+        },
+        "blogPost": [
+            {
+                "@type": "BlogPosting",
+                "headline": "Why we refused to build another marketing dashboard",
+                "url": "https://www.aidcmo.com/blog#ai-cmo-workspace",
+                "description": (
+                    "Why OpenCMO is designed as a visibility workspace instead of another "
+                    "collection of disconnected charts."
+                ),
+            },
+            {
+                "@type": "BlogPosting",
+                "headline": "Why SEO, GEO, SERP, and community signals belong in the same war room",
+                "url": "https://www.aidcmo.com/blog#visibility-operating-system",
+                "description": (
+                    "Why modern brand discovery has to be monitored across search, AI, "
+                    "SERP language, and public discussion at the same time."
+                ),
+            },
+            {
+                "@type": "BlogPosting",
+                "headline": "How to make one site readable to Google, AI agents, and humans",
+                "url": "https://www.aidcmo.com/blog#crawler-readable-brand-surface",
+                "description": (
+                    "How homepage copy, metadata, sitemap, and llms.txt work together to "
+                    "make a product easier to parse and recommend."
+                ),
+            },
+            {
+                "@type": "BlogPosting",
+                "headline": "Inside OpenCMO: what the workspace actually contains",
+                "url": "https://www.aidcmo.com/blog#inside-opencmo-workspace",
+                "description": (
+                    "A walkthrough of the monitoring, review, context, and execution "
+                    "surfaces inside the OpenCMO workspace."
+                ),
+            },
+            {
+                "@type": "BlogPosting",
+                "headline": "Who should use OpenCMO, and when it starts paying for itself",
+                "url": "https://www.aidcmo.com/blog#who-should-use-opencmo",
+                "description": (
+                    "A buyer-oriented note on when fragmented visibility work becomes large "
+                    "enough to justify a dedicated operating layer."
+                ),
+            },
+            {
+                "@type": "BlogPosting",
+                "headline": "Your first 30 days with OpenCMO: a practical rollout plan",
+                "url": "https://www.aidcmo.com/blog#first-30-days-with-opencmo",
+                "description": (
+                    "A practical onboarding sequence for the first scans, reviews, and "
+                    "execution loops inside OpenCMO."
+                ),
+            },
+        ],
+    },
+    separators=(",", ":"),
+)
+
 
 def _apply_public_route_metadata(html: str, full_path: str) -> str:
     normalized = full_path.strip("/")
@@ -68,11 +144,11 @@ def _apply_public_route_metadata(html: str, full_path: str) -> str:
     replacements = [
         (
             r"<title>.*?</title>",
-            "<title>OpenCMO Blog | Notes on SEO, GEO, AI Visibility, and Growth Operations</title>",
+            "<title>OpenCMO Blog | Field Guide to Visibility Operations and OpenCMO</title>",
         ),
         (
             r'<meta\s+name="description"\s+content="[^"]*"\s*/?>',
-            '<meta name="description" content="Read OpenCMO&#39;s public notes on AI CMO workflows, crawler-readable sites, GEO strategy, SEO operations, and community-aware growth." />',
+            '<meta name="description" content="Read the public OpenCMO field guide covering adoption fit, first-30-day rollout, crawler-readable surfaces, and visibility operations." />',
         ),
         (
             r'<link\s+rel="canonical"\s+href="[^"]*"\s*/?>',
@@ -80,11 +156,11 @@ def _apply_public_route_metadata(html: str, full_path: str) -> str:
         ),
         (
             r'<meta\s+property="og:title"\s+content="[^"]*"\s*/?>',
-            '<meta property="og:title" content="OpenCMO Blog | Notes on SEO, GEO, AI Visibility, and Growth Operations" />',
+            '<meta property="og:title" content="OpenCMO Blog | Field Guide to Visibility Operations and OpenCMO" />',
         ),
         (
             r'<meta\s+property="og:description"\s+content="[^"]*"\s*/?>',
-            '<meta property="og:description" content="Read public notes on AI CMO workflows, crawler-readable sites, GEO strategy, and growth operations." />',
+            '<meta property="og:description" content="Read the public OpenCMO field guide covering adoption fit, rollout, crawler-readable surfaces, and visibility operations." />',
         ),
         (
             r'<meta\s+property="og:url"\s+content="[^"]*"\s*/?>',
@@ -92,11 +168,15 @@ def _apply_public_route_metadata(html: str, full_path: str) -> str:
         ),
         (
             r'<meta\s+name="twitter:title"\s+content="[^"]*"\s*/?>',
-            '<meta name="twitter:title" content="OpenCMO Blog | Notes on SEO, GEO, AI Visibility, and Growth Operations" />',
+            '<meta name="twitter:title" content="OpenCMO Blog | Field Guide to Visibility Operations and OpenCMO" />',
         ),
         (
             r'<meta\s+name="twitter:description"\s+content="[^"]*"\s*/?>',
-            '<meta name="twitter:description" content="Read public notes on AI CMO workflows, crawler-readable sites, GEO strategy, and community-aware growth." />',
+            '<meta name="twitter:description" content="Read the public OpenCMO field guide covering adoption fit, rollout, crawler-readable surfaces, and visibility operations." />',
+        ),
+        (
+            r'<script\s+type="application/ld\+json">.*?</script>',
+            f'<script type="application/ld+json">{_BLOG_JSON_LD}</script>',
         ),
     ]
 

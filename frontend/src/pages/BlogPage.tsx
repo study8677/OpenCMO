@@ -21,6 +21,7 @@ export function BlogPage() {
   const decisionArticles = BLOG_ARTICLES.filter((article) =>
     BLOG_DECISION_ARTICLE_SLUGS.includes(article.slug as (typeof BLOG_DECISION_ARTICLE_SLUGS)[number])
   );
+  const articleDirectoryColumns = [BLOG_ARTICLES.slice(0, 3), BLOG_ARTICLES.slice(3)];
 
   usePageMetadata({
     title: t("blog.metaTitle"),
@@ -266,54 +267,69 @@ export function BlogPage() {
             </Link>
           </div>
 
-          <div className="mt-10 grid gap-5 lg:grid-cols-3">
-            {BLOG_ARTICLES.map((article, index) => (
+          <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
+            <div className="rounded-[2rem] border border-black/8 bg-white/78 p-6 shadow-[0_18px_60px_rgba(8,32,50,0.05)]">
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#c96f45]">
+                {t("blog.featuredLabel")}
+              </p>
+              <h3 className="font-display mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+                {t(featuredArticle.title)}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-slate-700">
+                {t(featuredArticle.summary)}
+              </p>
+              <div className="mt-5 rounded-[1.4rem] border border-black/8 bg-[#f8f4ed] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  {t("blog.thesisLabel")}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {t(featuredArticle.thesis)}
+                </p>
+              </div>
               <a
-                key={article.slug}
-                href={`#${article.slug}`}
-                className={`group relative overflow-hidden rounded-[2rem] border border-black/8 bg-gradient-to-br p-6 shadow-[0_18px_60px_rgba(8,32,50,0.08)] transition-transform duration-300 hover:-translate-y-1 ${article.accentClass}`}
+                href={`#${featuredArticle.slug}`}
+                className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-900 transition-colors hover:text-[#082032]"
               >
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0.78))]" />
-                <div className="relative flex h-full flex-col">
-                  <div className="flex items-start justify-between gap-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
-                      {t(article.category)}
-                    </p>
-                    <span className="rounded-full border border-black/8 bg-white/72 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                      {index + 1}
-                    </span>
-                  </div>
-                  <h3 className="font-display mt-5 text-2xl font-semibold tracking-tight text-slate-950">
-                    {t(article.title)}
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-slate-700">
-                    {t(article.summary)}
-                  </p>
-                  <div className="mt-6 space-y-2 border-t border-black/8 pt-4">
-                    {article.takeawayKeys.map((key) => (
-                      <p key={key} className="text-sm leading-6 text-slate-700">
-                        {t(key)}
-                      </p>
-                    ))}
-                  </div>
-                  <div className="mt-5 rounded-2xl border border-black/8 bg-white/72 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      {t("blog.thesisLabel")}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-700">
-                      {t(article.thesis)}
-                    </p>
-                  </div>
-                  <div className="mt-6 flex items-center justify-between text-sm font-semibold text-slate-700">
-                    <span>{t(article.readTime)}</span>
-                    <span className="inline-flex items-center gap-1 text-slate-900">
-                      {t("blog.readArticleCta")}
-                      <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
-                    </span>
-                  </div>
-                </div>
+                {t("blog.readArticleCta")}
+                <ArrowRight size={15} />
               </a>
-            ))}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {articleDirectoryColumns.map((column, columnIndex) => (
+                <div key={columnIndex} className="grid gap-4">
+                  {column.map((article) => (
+                    <a
+                      key={article.slug}
+                      href={`#${article.slug}`}
+                      className="group rounded-[1.6rem] border border-black/8 bg-white/78 p-5 shadow-[0_18px_50px_rgba(8,32,50,0.05)] transition-transform duration-300 hover:-translate-y-1"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                          {t(article.category)}
+                        </p>
+                        <span className="rounded-full border border-black/8 bg-[#f8f4ed] px-2.5 py-1 text-xs font-semibold text-slate-600">
+                          {article.index}
+                        </span>
+                      </div>
+                      <h3 className="font-display mt-4 text-xl font-semibold tracking-tight text-slate-950">
+                        {t(article.title)}
+                      </h3>
+                      <p className="mt-3 text-sm leading-7 text-slate-700">
+                        {t(article.summary)}
+                      </p>
+                      <div className="mt-4 flex items-center justify-between border-t border-black/8 pt-4 text-sm font-semibold text-slate-700">
+                        <span>{t(article.readTime)}</span>
+                        <span className="inline-flex items-center gap-1 text-slate-900">
+                          {t("blog.readArticleCta")}
+                          <ArrowUpRight size={15} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                        </span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </SectionReveal>
 
