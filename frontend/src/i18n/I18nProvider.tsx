@@ -1,23 +1,21 @@
-import { createContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { en, type TranslationKey } from "./locales/en";
 import { zh } from "./locales/zh";
 import { ja } from "./locales/ja";
 import { ko } from "./locales/ko";
 import { es } from "./locales/es";
-
-export type Locale = "en" | "zh" | "ja" | "ko" | "es";
+import {
+  getDocumentLanguage,
+  normalizeLocale,
+  type Locale,
+} from "./locale";
 
 const dictionaries: Record<Locale, Partial<Record<TranslationKey, string>>> = { en, zh, ja, ko, es };
 
 function getInitialLocale(): Locale {
   const stored = localStorage.getItem("opencmo_lang");
-  if (stored && stored in dictionaries) return stored as Locale;
-  const lang = navigator.language;
-  if (lang.startsWith("zh")) return "zh";
-  if (lang.startsWith("ja")) return "ja";
-  if (lang.startsWith("ko")) return "ko";
-  if (lang.startsWith("es")) return "es";
-  return "en";
+  if (stored) return normalizeLocale(stored);
+  return normalizeLocale(navigator.language);
 }
 
 export interface I18nContextValue {
@@ -32,9 +30,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(getInitialLocale);
 
   const setLocale = useCallback((l: Locale) => {
-    setLocaleState(l);
-    localStorage.setItem("opencmo_lang", l);
+    const nextLocale = normalizeLocale(l);
+    setLocaleState(nextLocale);
+    localStorage.setItem("opencmo_lang", nextLocale);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = getDocumentLanguage(locale);
+    document.documentElement.dataset.locale = locale;
+  }, [locale]);
 
   const t = useCallback(
     (key: TranslationKey, params?: Record<string, string | number>) => {
@@ -55,3 +59,5 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     </I18nContext.Provider>
   );
 }
+
+export type { Locale };

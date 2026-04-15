@@ -8,14 +8,15 @@ from opencmo.storage._db import get_db
 async def add_scheduled_job(
     project_id: int,
     job_type: str,
+    locale: str = "en",
     cron_expr: str = "0 9 * * *",
 ) -> int:
     """Add a scheduled job. Returns job id."""
     db = await get_db()
     try:
         cursor = await db.execute(
-            "INSERT INTO scheduled_jobs (project_id, job_type, cron_expr) VALUES (?, ?, ?)",
-            (project_id, job_type, cron_expr),
+            "INSERT INTO scheduled_jobs (project_id, job_type, locale, cron_expr) VALUES (?, ?, ?, ?)",
+            (project_id, job_type, locale, cron_expr),
         )
         await db.commit()
         return cursor.lastrowid
@@ -29,7 +30,7 @@ async def list_scheduled_jobs() -> list[dict]:
     try:
         cursor = await db.execute(
             """SELECT j.id, j.project_id, p.brand_name, p.url, p.category,
-                      j.job_type, j.cron_expr, j.enabled, j.last_run_at, j.next_run_at
+                      j.job_type, j.locale, j.cron_expr, j.enabled, j.last_run_at, j.next_run_at
                FROM scheduled_jobs j JOIN projects p ON j.project_id = p.id
                ORDER BY j.id"""
         )
@@ -37,8 +38,8 @@ async def list_scheduled_jobs() -> list[dict]:
         return [
             {
                 "id": r[0], "project_id": r[1], "brand_name": r[2], "url": r[3],
-                "category": r[4], "job_type": r[5], "cron_expr": r[6],
-                "enabled": bool(r[7]), "last_run_at": r[8], "next_run_at": r[9],
+                "category": r[4], "job_type": r[5], "locale": r[6], "cron_expr": r[7],
+                "enabled": bool(r[8]), "last_run_at": r[9], "next_run_at": r[10],
             }
             for r in rows
         ]
@@ -52,7 +53,7 @@ async def get_scheduled_job(job_id: int) -> dict | None:
     try:
         cursor = await db.execute(
             """SELECT j.id, j.project_id, p.brand_name, p.url, p.category,
-                      j.job_type, j.cron_expr, j.enabled, j.last_run_at, j.next_run_at
+                      j.job_type, j.locale, j.cron_expr, j.enabled, j.last_run_at, j.next_run_at
                FROM scheduled_jobs j JOIN projects p ON j.project_id = p.id
                WHERE j.id = ?""",
             (job_id,),
@@ -62,8 +63,8 @@ async def get_scheduled_job(job_id: int) -> dict | None:
             return None
         return {
             "id": row[0], "project_id": row[1], "brand_name": row[2], "url": row[3],
-            "category": row[4], "job_type": row[5], "cron_expr": row[6],
-            "enabled": bool(row[7]), "last_run_at": row[8], "next_run_at": row[9],
+            "category": row[4], "job_type": row[5], "locale": row[6], "cron_expr": row[7],
+            "enabled": bool(row[8]), "last_run_at": row[9], "next_run_at": row[10],
         }
     finally:
         await db.close()
@@ -84,6 +85,7 @@ async def update_scheduled_job(
     job_id: int,
     cron_expr: str | None = None,
     enabled: bool | None = None,
+    locale: str | None = None,
 ) -> bool:
     """Update a scheduled job's cron expression and/or enabled flag. Returns True if found."""
     db = await get_db()
@@ -96,6 +98,9 @@ async def update_scheduled_job(
         if enabled is not None:
             parts.append("enabled = ?")
             params.append(int(enabled))
+        if locale is not None:
+            parts.append("locale = ?")
+            params.append(locale)
         if not parts:
             return True
         params.append(job_id)

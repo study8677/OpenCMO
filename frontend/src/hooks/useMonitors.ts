@@ -48,10 +48,10 @@ export function useDeleteMonitor() {
 export function useRunMonitor() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: runMonitor,
-    onSuccess: (_data, monitorId) => {
+    mutationFn: ({ id, locale }: { id: number; locale?: string }) => runMonitor(id, locale),
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ["monitors"] });
-      qc.invalidateQueries({ queryKey: ["monitor-runs", monitorId] });
+      qc.invalidateQueries({ queryKey: ["monitor-runs", variables.id] });
     },
   });
 }

@@ -8,6 +8,19 @@ from fastapi.responses import JSONResponse
 router = APIRouter(prefix="/api/v1")
 
 
+def _normalize_locale(value: str | None) -> str:
+    locale = (value or "en").strip().lower()
+    if locale.startswith("zh"):
+        return "zh"
+    if locale.startswith("ja"):
+        return "ja"
+    if locale.startswith("ko"):
+        return "ko"
+    if locale.startswith("es"):
+        return "es"
+    return "en"
+
+
 async def _enqueue_scan_task(
     *,
     monitor_id: int,
@@ -79,10 +92,11 @@ async def api_v1_create_monitor(request: Request):
         brand = domain.removeprefix("www.").split(".")[0].capitalize() or domain
     category = body.get("category", "").strip() or "auto"
     job_type = body.get("job_type", "full")
-    locale = body.get("locale", "en").strip() or "en"
+    locale = _normalize_locale(body.get("locale", "en"))
     result = await service.create_monitor(
         brand, url, category,
         job_type=job_type,
+        locale=locale,
         cron_expr=body.get("cron_expr", "0 9 * * *"),
         keywords=body.get("keywords"),
     )
@@ -135,9 +149,11 @@ async def api_v1_run_monitor(monitor_id: int, request: Request):
 
     # Support optional force parameter in request body
     force = False
+    locale_override: str | None = None
     try:
         body = await request.json()
         force = bool(body.get("force", False))
+        locale_override = _normalize_locale(body.get("locale")) if body.get("locale") else None
     except Exception:
         pass
 
@@ -151,10 +167,15 @@ async def api_v1_run_monitor(monitor_id: int, request: Request):
             error={"message": "Superseded by forced re-run"},
         )
 
+    if locale_override and locale_override != job.get("locale", "en"):
+        await service.update_monitor(monitor_id, locale=locale_override)
+        job["locale"] = locale_override
+
     record = await _enqueue_scan_task(
         monitor_id=monitor_id,
         project_id=job["project_id"],
         job_type=job["job_type"],
         job_id=monitor_id,
+        locale=locale_override or job.get("locale", "en"),
     )
     return JSONResponse(_pending_scan_response(record), status_code=202)

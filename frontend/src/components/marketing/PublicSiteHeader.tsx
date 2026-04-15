@@ -1,18 +1,10 @@
 import { ExternalLink, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 import { useI18n } from "../../i18n";
-import type { Locale } from "../../i18n/I18nProvider";
+import { LOCALE_LABELS, SUPPORTED_LOCALES, type Locale } from "../../i18n/locale";
 import type { PublicNavItem } from "../../content/marketing";
 
 const GITHUB_REPO = "https://github.com/study8677/OpenCMO";
-const LOCALE_CYCLE: Locale[] = ["en", "zh", "ja", "ko", "es"];
-const LOCALE_LABELS: Record<Locale, string> = {
-  en: "EN",
-  zh: "中文",
-  ja: "日本語",
-  ko: "한국어",
-  es: "ES",
-};
 
 type PublicSiteHeaderProps = {
   items: PublicNavItem[];
@@ -45,8 +37,8 @@ export function PublicSiteHeader({
 }: PublicSiteHeaderProps) {
   const { t, locale, setLocale } = useI18n();
   const nextLocale = () => {
-    const idx = LOCALE_CYCLE.indexOf(locale);
-    const next = LOCALE_CYCLE[((idx === -1 ? 0 : idx) + 1) % LOCALE_CYCLE.length] as Locale;
+    const idx = SUPPORTED_LOCALES.indexOf(locale);
+    const next = SUPPORTED_LOCALES[((idx === -1 ? 0 : idx) + 1) % SUPPORTED_LOCALES.length] as Locale;
     setLocale(next);
   };
 

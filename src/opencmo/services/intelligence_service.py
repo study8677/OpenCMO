@@ -10,6 +10,51 @@ from opencmo import storage
 logger = logging.getLogger(__name__)
 
 
+def _normalize_locale(locale: str | None) -> str:
+    value = (locale or "en").strip().lower()
+    if value.startswith("zh"):
+        return "zh"
+    if value.startswith("ja"):
+        return "ja"
+    if value.startswith("ko"):
+        return "ko"
+    if value.startswith("es"):
+        return "es"
+    return "en"
+
+
+def _get_locale_profile(locale: str | None) -> dict[str, str]:
+    normalized = _normalize_locale(locale)
+    profiles = {
+        "en": {
+            "lang_instruction": "You MUST respond in English.",
+            "search_ecosystem": "Google, Bing, DuckDuckGo, and YouTube",
+            "community_platforms": "Reddit, Hacker News, Dev.to, Twitter/X, YouTube, Stack Overflow, and Product Hunt",
+        },
+        "zh": {
+            "lang_instruction": "You MUST respond in Chinese (中文). All your analysis and output should be in Chinese.",
+            "search_ecosystem": "Baidu, Sogou, 360 Search, Douyin Search, WeChat Search, Xiaohongshu Search, and Google",
+            "community_platforms": "知乎, V2EX, 掘金, 即刻, 小红书, 微信公众号, OSChina, CSDN, as well as Reddit, Hacker News, and Dev.to",
+        },
+        "ja": {
+            "lang_instruction": "You MUST respond in Japanese (日本語). All your analysis and output should be in Japanese.",
+            "search_ecosystem": "Google, Yahoo! Japan, Bing, DuckDuckGo, and YouTube",
+            "community_platforms": "X/Twitter, Qiita, Zenn, note, YouTube, Reddit, Hacker News, and Product Hunt",
+        },
+        "ko": {
+            "lang_instruction": "You MUST respond in Korean (한국어). All your analysis and output should be in Korean.",
+            "search_ecosystem": "Google, Naver, Daum, Bing, and YouTube",
+            "community_platforms": "X/Twitter, Velog, Tistory, YouTube, Reddit, Hacker News, and Product Hunt",
+        },
+        "es": {
+            "lang_instruction": "You MUST respond in Spanish (Español). All your analysis and output should be in Spanish.",
+            "search_ecosystem": "Google, Bing, DuckDuckGo, YouTube, and regional Spanish-language search surfaces",
+            "community_platforms": "Reddit, X/Twitter, YouTube, Product Hunt, Hacker News, Dev.to, and Spanish-speaking tech communities",
+        },
+    }
+    return profiles[normalized]
+
+
 async def _llm_call(client, model: str, messages: list[dict]) -> str:
     """Single LLM chat completion call, returns content string.
 
@@ -26,30 +71,17 @@ async def analyze_url_with_ai(url: str, on_progress=None, locale: str = "en") ->
     Args:
         url: The URL to analyze.
         on_progress: Optional callback(role, content, round_num) called after each agent speaks.
-        locale: Language for the discussion ("zh" for Chinese, "en" for English).
+        locale: Language for the discussion ("en", "zh", "ja", "ko", or "es").
 
     Returns {"brand_name": str, "category": str, "keywords": list[str]}.
     """
     fallback = {"brand_name": "", "category": "", "keywords": []}
     emit = on_progress or (lambda *a: None)
 
-    # Language & ecosystem config based on locale
-    is_zh = locale == "zh"
-    lang_instruction = (
-        "You MUST respond in Chinese (中文). All your analysis and output should be in Chinese."
-        if is_zh
-        else "You MUST respond in English."
-    )
-    search_ecosystem = (
-        "Baidu, Sogou, 360 Search, Douyin Search, WeChat Search, Xiaohongshu Search, and Google"
-        if is_zh
-        else "Google, Bing, DuckDuckGo, and YouTube"
-    )
-    community_platforms = (
-        "知乎, V2EX, 掘金, 即刻, 小红书, 微信公众号, OSChina, CSDN, as well as Reddit, Hacker News, and Dev.to"
-        if is_zh
-        else "Reddit, Hacker News, Dev.to, Twitter/X, YouTube, Stack Overflow, and Product Hunt"
-    )
+    locale_profile = _get_locale_profile(locale)
+    lang_instruction = locale_profile["lang_instruction"]
+    search_ecosystem = locale_profile["search_ecosystem"]
+    community_platforms = locale_profile["community_platforms"]
 
     # 1. Crawl the URL
     try:

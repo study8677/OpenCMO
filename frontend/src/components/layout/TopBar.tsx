@@ -1,25 +1,16 @@
 import { Menu, Globe, LogOut } from "lucide-react";
 import { useAuth } from "../auth/useAuth";
 import { useI18n } from "../../i18n";
+import { LOCALE_LABELS, SUPPORTED_LOCALES, type Locale } from "../../i18n/locale";
 import { NotificationBell } from "./NotificationBell";
-import type { Locale } from "../../i18n/I18nProvider";
-
-const LOCALE_CYCLE: Locale[] = ["en", "zh", "ja", "ko", "es"];
-const LOCALE_LABELS: Record<Locale, string> = {
-  en: "EN",
-  zh: "中文",
-  ja: "日本語",
-  ko: "한국어",
-  es: "ES",
-};
 
 export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { isAuthenticated, logout } = useAuth();
   const { locale, setLocale, t } = useI18n();
 
   const nextLocale = () => {
-    const idx = LOCALE_CYCLE.indexOf(locale);
-    const next = LOCALE_CYCLE[((idx === -1 ? 0 : idx) + 1) % LOCALE_CYCLE.length] as Locale;
+    const idx = SUPPORTED_LOCALES.indexOf(locale);
+    const next = SUPPORTED_LOCALES[((idx === -1 ? 0 : idx) + 1) % SUPPORTED_LOCALES.length] as Locale;
     setLocale(next);
   };
 

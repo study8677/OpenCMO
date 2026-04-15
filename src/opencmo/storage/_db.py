@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS scheduled_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL REFERENCES projects(id),
     job_type TEXT NOT NULL,
+    locale TEXT NOT NULL DEFAULT 'en',
     cron_expr TEXT NOT NULL DEFAULT '0 9 * * *',
     enabled INTEGER NOT NULL DEFAULT 1,
     autopilot INTEGER NOT NULL DEFAULT 1,
@@ -639,6 +640,9 @@ _MIGRATIONS: list[tuple[int, str, list[str]]] = [
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         )""",
     ]),
+    (13, "locale on scheduled_jobs", [
+        "ALTER TABLE scheduled_jobs ADD COLUMN locale TEXT NOT NULL DEFAULT 'en'",
+    ]),
 ]
 
 _LATEST_VERSION = _MIGRATIONS[-1][0]
@@ -672,6 +676,7 @@ async def _reconcile_required_columns(db: aiosqlite.Connection) -> None:
     required_columns = {
         "seo_scans": {"seo_health_score": "ALTER TABLE seo_scans ADD COLUMN seo_health_score REAL"},
         "geo_scans": {"crawl_success_rate": "ALTER TABLE geo_scans ADD COLUMN crawl_success_rate REAL"},
+        "scheduled_jobs": {"locale": "ALTER TABLE scheduled_jobs ADD COLUMN locale TEXT NOT NULL DEFAULT 'en'"},
     }
 
     for table_name, columns in required_columns.items():

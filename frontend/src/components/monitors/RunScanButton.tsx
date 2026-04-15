@@ -20,7 +20,7 @@ export function RunScanButton({
   const runMonitor = useRunMonitor();
   const { data: task } = useTaskPoll(taskId);
   const qc = useQueryClient();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
 
   const status = task?.status;
 
@@ -38,7 +38,7 @@ export function RunScanButton({
 
   const handleRun = async () => {
     try {
-      const record = await runMonitor.mutateAsync(monitorId);
+      const record = await runMonitor.mutateAsync({ id: monitorId, locale });
       setTaskId(record.task_id);
       onTaskCreated?.(record.task_id);
     } catch {

@@ -37,6 +37,7 @@ export interface Monitor {
   url: string;
   category: string;
   job_type: string;
+  locale?: string;
   cron_expr: string;
   enabled: boolean;
   last_run_at: string | null;

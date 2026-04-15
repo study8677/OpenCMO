@@ -30,8 +30,11 @@ export function deleteMonitor(id: number): Promise<{ ok: boolean }> {
   return apiJson(`/monitors/${id}`, { method: "DELETE" });
 }
 
-export function runMonitor(id: number): Promise<TaskRecord> {
-  return apiJson<TaskRecord>(`/monitors/${id}/run`, { method: "POST" });
+export function runMonitor(id: number, locale?: string): Promise<TaskRecord> {
+  return apiJson<TaskRecord>(`/monitors/${id}/run`, {
+    method: "POST",
+    body: JSON.stringify(locale ? { locale } : {}),
+  });
 }
 
 export function getMonitorRuns(monitorId: number): Promise<MonitorRun[]> {
