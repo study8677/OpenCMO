@@ -1,6 +1,23 @@
 name: Production Chat Regression
 
 on:
+  workflow_call:
+    inputs:
+      base_url:
+        description: "Production API base URL"
+        required: false
+        default: "https://www.aidcmo.com/api/v1"
+        type: string
+      project_id:
+        description: "Project ID used for chat regression"
+        required: false
+        default: "36"
+        type: string
+      locale:
+        description: "Locale for generated content"
+        required: false
+        default: "zh"
+        type: string
   workflow_dispatch:
     inputs:
       base_url:
@@ -42,9 +59,9 @@ jobs:
 
       - name: Run production platform regression
         env:
-          BASE_URL: ${{ github.event.inputs.base_url || env.DEFAULT_BASE_URL }}
-          PROJECT_ID: ${{ github.event.inputs.project_id || env.DEFAULT_PROJECT_ID }}
-          LOCALE: ${{ github.event.inputs.locale || env.DEFAULT_LOCALE }}
+          BASE_URL: ${{ inputs.base_url || github.event.inputs.base_url || env.DEFAULT_BASE_URL }}
+          PROJECT_ID: ${{ inputs.project_id || github.event.inputs.project_id || env.DEFAULT_PROJECT_ID }}
+          LOCALE: ${{ inputs.locale || github.event.inputs.locale || env.DEFAULT_LOCALE }}
         run: |
           python -m opencmo.ops.chat_platform_regression \
             --base-url "$BASE_URL" \
