@@ -1,0 +1,80 @@
+name: Production Chat Regression
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Production API base URL"
+        required: true
+        default: "https://www.aidcmo.com/api/v1"
+      project_id:
+        description: "Project ID used for chat regression"
+        required: true
+        default: "36"
+      locale:
+        description: "Locale for generated content"
+        required: true
+        default: "zh"
+  schedule:
+    - cron: "30 3 * * *"
+
+concurrency:
+  group: prod-chat-regression
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEFAULT_BASE_URL: https://www.aidcmo.com/api/v1
+      DEFAULT_PROJECT_ID: "36"
+      DEFAULT_LOCALE: zh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[all]"
+
+      - name: Run production platform regression
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || env.DEFAULT_BASE_URL }}
+          PROJECT_ID: ${{ github.event.inputs.project_id || env.DEFAULT_PROJECT_ID }}
+          LOCALE: ${{ github.event.inputs.locale || env.DEFAULT_LOCALE }}
+        run: |
+          python -m opencmo.ops.chat_platform_regression \
+            --base-url "$BASE_URL" \
+            --project-id "$PROJECT_ID" \
+            --locale "$LOCALE" \
+            --json \
+            --fail-on-incomplete | tee prod-chat-regression.jsonl
+
+      - name: Build workflow summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("prod-chat-regression.jsonl")
+          rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+          with Path.cwd().joinpath("summary.md").open("w", encoding="utf-8") as fh:
+              fh.write("## Production Chat Regression\n\n")
+              fh.write("| Platform | Agent | Done | Timeout | Error |\n")
+              fh.write("| --- | --- | --- | --- | --- |\n")
+              for row in rows:
+                  error = (row.get("error") or "").replace("\n", " ")[:120]
+                  fh.write(
+                      f"| {row['platform']} | {row.get('agent') or ''} | {row['done']} | "
+                      f"{row.get('stream_timed_out')} | {error} |\n"
+                  )
+          PY
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload regression artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-chat-regression
+          path: prod-chat-regression.jsonl
