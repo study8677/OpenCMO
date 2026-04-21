@@ -40,7 +40,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_MODEL_DEFAULT = "gpt-5.4-mini"
+_MODEL_DEFAULT = "gpt-5.4"
 _ENV_PRIORITY_KEYS = frozenset({
     "OPENAI_API_KEY",
     "OPENAI_BASE_URL",
@@ -196,7 +196,7 @@ def normalize_base_url(base_url: str | None) -> str | None:
 async def get_model(purpose: str = "default") -> str:
     """Get the model name for a given purpose.
 
-    Resolution: OPENCMO_MODEL_{PURPOSE} > OPENCMO_MODEL_DEFAULT > 'gpt-5.4-mini'
+    Resolution: OPENCMO_MODEL_{PURPOSE} > OPENCMO_MODEL_DEFAULT > 'gpt-5.4'
     """
     if purpose and purpose != "default":
         specific = await get_key_async(f"OPENCMO_MODEL_{purpose.upper()}")

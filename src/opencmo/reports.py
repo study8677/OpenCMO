@@ -13,7 +13,7 @@ from opencmo.opportunities import build_project_opportunity_snapshot
 
 logger = logging.getLogger(__name__)
 
-_REPORT_MODEL_DEFAULT = "gpt-4o"
+_REPORT_MODEL_DEFAULT = "gpt-5.4"
 _PERIODIC_WINDOW_DAYS = 7
 _REPORT_LLM_TIMEOUT_SECONDS = 300.0
 _REPORT_SYSTEM_COMMON = (

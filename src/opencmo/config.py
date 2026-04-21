@@ -14,7 +14,7 @@ def get_model(agent_name: str):
     """Return the model for a given agent.
 
     Resolution order for model name:
-        OPENCMO_MODEL_{AGENT} > OPENCMO_MODEL_DEFAULT > 'gpt-5.4-mini'
+        OPENCMO_MODEL_{AGENT} > OPENCMO_MODEL_DEFAULT > 'gpt-5.4'
 
     If OPENAI_BASE_URL is set, returns an OpenAIChatCompletionsModel
     configured with a custom client (works with NVIDIA, DeepSeek, etc.).
@@ -24,7 +24,7 @@ def get_model(agent_name: str):
 
     model_name = llm.get_key(f"OPENCMO_MODEL_{agent_name.upper()}")
     if not model_name:
-        model_name = llm.get_key("OPENCMO_MODEL_DEFAULT", "gpt-5.4-mini")
+        model_name = llm.get_key("OPENCMO_MODEL_DEFAULT", "gpt-5.4")
 
     base_url = llm.normalize_base_url(llm.get_key("OPENAI_BASE_URL"))
     if base_url:

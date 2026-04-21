@@ -179,7 +179,7 @@ class TestGetModel:
         with patch("opencmo.storage.get_setting", new_callable=AsyncMock, return_value=None):
             with patch.dict(os.environ, {}, clear=True):
                 model = await llm.get_model()
-                assert model == "gpt-5.4-mini"
+                assert model == "gpt-5.4"
 
     @pytest.mark.asyncio
     async def test_custom_default_model(self):
