@@ -44,6 +44,7 @@ const TAB_GROUPS: Array<{
     accentBg: "bg-emerald-50/60",
     activeBg: "bg-emerald-600 text-white shadow-sm shadow-emerald-200",
     tabs: [
+      { path: "/content", labelKey: "project.content" },
       { path: "/brand-kit", labelKey: "project.brandKit" },
       { path: "/github-leads", labelKey: "project.githubLeads" },
       { path: "/monitors", labelKey: "project.monitors" },

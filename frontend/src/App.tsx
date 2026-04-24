@@ -16,6 +16,7 @@ import { ApprovalsPage } from "./pages/ApprovalsPage";
 import { BrandKitPage } from "./pages/BrandKitPage";
 import { ProjectMonitorsPage } from "./pages/ProjectMonitorsPage";
 import { GitHubLeadsPage } from "./pages/GitHubLeadsPage";
+import { ContentPage } from "./pages/ContentPage";
 
 // Heavy pages lazy-loaded: Three.js graph, react-markdown reports/chat, recharts performance
 const GraphPage = lazy(() =>
@@ -80,6 +81,7 @@ function AppRoutes() {
                 <Route path="/approvals" element={<ApprovalsPage />} />
                 <Route path="/projects/:id" element={<ProjectPage />} />
                 <Route path="/projects/:id/reports" element={<ReportsPage />} />
+                <Route path="/projects/:id/content" element={<ContentPage />} />
                 <Route path="/projects/:id/brand-kit" element={<BrandKitPage />} />
                 <Route
                   path="/projects/:id/performance"
