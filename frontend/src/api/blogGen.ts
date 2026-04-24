@@ -1,8 +1,9 @@
 import { apiJson } from "./client";
-import type { BlogDraft, BlogStyle } from "../types";
+import type { BlogDraft, BlogStyle, MarketingSkillId } from "../types";
 
 export interface BlogGenerateParams {
   style: BlogStyle;
+  skill_id: MarketingSkillId;
   bilingual: boolean;
 }
 
@@ -10,6 +11,8 @@ export interface BlogGenerateResult {
   task_id: string;
   project_id: number;
   style: string;
+  skill_id: MarketingSkillId;
+  skill_name: string;
   status: string;
 }
 

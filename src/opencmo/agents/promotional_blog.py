@@ -92,7 +92,9 @@ You will receive a structured context that includes:
 - Competitive research (competing articles, data points)
 - A style directive
 
-Write a complete promotional blog article of 2000-2500 words in markdown format.
+Write a complete markdown marketing asset. Unless the injected marketing
+framework asks for a checklist, page plan, asset pack, or comparison page,
+write a 2000-2500 word promotional blog article.
 
 ## Core principles
 
@@ -131,18 +133,26 @@ _CHANNEL_CONTRACT = """\
 # Public factory
 # ---------------------------------------------------------------------------
 
-def build_promotional_blog_agent(style: str, brand_overlay: str = "") -> Agent:
+def build_promotional_blog_agent(
+    style: str,
+    brand_overlay: str = "",
+    marketing_skill_overlay: str = "",
+) -> Agent:
     """Build a promotional blog agent configured for the given style.
 
     Args:
         style: One of 'launch', 'case_study', 'comparison', 'thought_leadership'.
         brand_overlay: Optional brand kit prompt fragment from build_brand_kit_prompt().
+        marketing_skill_overlay: Optional structured marketing framework.
     """
     style_block = _STYLE_INSTRUCTIONS.get(style, _STYLE_INSTRUCTIONS["launch"])
+    base_instructions = _BASE_INSTRUCTIONS + "\n" + style_block
+    if marketing_skill_overlay:
+        base_instructions += "\n\n" + marketing_skill_overlay
     return Agent(
         name="Promotional Blog Writer",
         instructions=build_prompt(
-            base_instructions=_BASE_INSTRUCTIONS + "\n" + style_block,
+            base_instructions=base_instructions,
             task_contract=_TASK_CONTRACT,
             channel_contract=_CHANNEL_CONTRACT,
             brand_overlay=brand_overlay or None,

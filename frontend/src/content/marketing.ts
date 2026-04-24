@@ -40,6 +40,7 @@ export type BlogArticle = {
 
 export const PUBLIC_HOME_NAV: PublicNavItem[] = [
   { href: "#product", label: "landing.navPlatform" },
+  { href: "#learning", label: "landing.navLearning" },
   { href: "#workflow", label: "landing.navWorkflow" },
   { href: "#open-source", label: "landing.navOpenSource" },
   { href: "#mentions", label: "landing.navMentions" },
@@ -71,6 +72,25 @@ export const LANDING_PLATFORM_ITEMS: MarketingItem[] = [
   {
     title: "landing.platform5Title",
     description: "landing.platform5Desc",
+  },
+];
+
+export const LANDING_LEARNING_LOOP_ITEMS: MarketingItem[] = [
+  {
+    title: "landing.learningLoop1Title",
+    description: "landing.learningLoop1Desc",
+  },
+  {
+    title: "landing.learningLoop2Title",
+    description: "landing.learningLoop2Desc",
+  },
+  {
+    title: "landing.learningLoop3Title",
+    description: "landing.learningLoop3Desc",
+  },
+  {
+    title: "landing.learningLoop4Title",
+    description: "landing.learningLoop4Desc",
   },
 ];
 

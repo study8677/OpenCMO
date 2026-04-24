@@ -18,6 +18,7 @@ import re
 from typing import Any, Callable
 
 from opencmo import llm, storage
+from opencmo.marketing_skills import MARKETING_SKILLS_UPSTREAM_COMMIT, MarketingSkill, get_marketing_skill
 from opencmo.services.approval_service import create_approval
 
 logger = logging.getLogger(__name__)
@@ -281,6 +282,7 @@ async def _phase_write_blog(
     research: dict,
     style: str,
     project_id: int,
+    marketing_skill: MarketingSkill,
     on_progress: Callable | None = None,
 ) -> tuple[str, str]:
     """Write the blog article using the promotional agent. Returns (title, content)."""
@@ -292,11 +294,16 @@ async def _phase_write_blog(
     _emit(on_progress, "writing", "running", "Writing blog article...")
 
     brand_overlay = await build_brand_kit_prompt(project_id)
-    agent = build_promotional_blog_agent(style, brand_overlay)
+    agent = build_promotional_blog_agent(
+        style,
+        brand_overlay,
+        marketing_skill_overlay=marketing_skill.as_prompt_block(),
+    )
 
     # Build the user prompt with all context
     prompt_parts = [
         f"## Product Profile\n```json\n{json.dumps(profile, ensure_ascii=False, indent=2)}\n```",
+        f"## Selected Marketing Skill\n{marketing_skill.name} ({marketing_skill.id})",
     ]
 
     if research.get("competing_articles"):
@@ -323,7 +330,10 @@ async def _phase_write_blog(
             "## Known Competitors\n" + ", ".join(research["competitors"])
         )
 
-    prompt_parts.append(f"\n## Instruction\nWrite a **{style.replace('_', ' ')}** style promotional blog article.")
+    prompt_parts.append(
+        f"\n## Instruction\nUse the **{style.replace('_', ' ')}** style and the selected "
+        f"**{marketing_skill.name}** framework to produce the requested markdown asset."
+    )
 
     user_message = "\n\n".join(prompt_parts)
 
@@ -408,22 +418,33 @@ Return ONLY a JSON object: {"score": <number>, "reasoning": "<brief explanation>
 }
 
 
+def _build_scoring_rubric(marketing_skill: MarketingSkill | None = None) -> dict[str, str]:
+    rubrics = dict(_SCORING_RUBRIC)
+    if marketing_skill is not None:
+        rubrics.update(marketing_skill.quality_rubrics)
+    return rubrics
+
+
 async def _phase_quality_score(
     content: str,
     keywords: list[str],
+    marketing_skill: MarketingSkill | None = None,
     on_progress: Callable | None = None,
 ) -> dict[str, Any]:
     """Score the article across 4 dimensions. Returns scores dict."""
     _emit(on_progress, "scoring", "running", "Scoring content quality...")
 
     sem = asyncio.Semaphore(_MAX_CONCURRENT_LLM_CALLS)
+    scoring_rubric = _build_scoring_rubric(marketing_skill)
 
     async def _score_dimension(dimension: str) -> tuple[str, int, str]:
         async with sem:
-            system = _SCORING_RUBRIC[dimension]
+            system = scoring_rubric[dimension]
             user = f"## Article to score\n\n{content[:8000]}"
             if dimension == "keyword_coverage" and keywords:
                 user += f"\n\n## Target Keywords\n{', '.join(keywords)}"
+            if marketing_skill is not None and dimension in marketing_skill.quality_rubrics:
+                user += f"\n\n## Marketing Skill\n{marketing_skill.name}: {marketing_skill.description}"
 
             raw = await llm.chat_completion(
                 system=system,
@@ -443,7 +464,7 @@ async def _phase_quality_score(
             return dimension, score, reasoning
 
     results = await asyncio.gather(
-        *[_score_dimension(dim) for dim in _SCORING_RUBRIC],
+        *[_score_dimension(dim) for dim in scoring_rubric],
         return_exceptions=True,
     )
 
@@ -458,8 +479,14 @@ async def _phase_quality_score(
 
     # Compute weighted overall
     weights = {"seo": 0.3, "readability": 0.25, "keyword_coverage": 0.25, "structure": 0.2}
-    weighted_sum = sum(scores.get(dim, 65) * w for dim, w in weights.items())
-    scores["overall"] = round(weighted_sum)
+    base_overall = sum(scores.get(dim, 65) * w for dim, w in weights.items())
+    skill_dimensions = [dim for dim in scoring_rubric if dim not in _SCORING_RUBRIC]
+    if skill_dimensions:
+        framework_score = round(sum(scores.get(dim, 65) for dim in skill_dimensions) / len(skill_dimensions))
+        scores["framework"] = framework_score
+        scores["overall"] = round(base_overall * 0.75 + framework_score * 0.25)
+    else:
+        scores["overall"] = round(base_overall)
 
     _emit(on_progress, "scoring", "completed",
           f"Quality score: {scores['overall']}/100 (SEO={scores.get('seo', '?')}, Read={scores.get('readability', '?')}, KW={scores.get('keyword_coverage', '?')}, Struct={scores.get('structure', '?')})")
@@ -520,6 +547,7 @@ async def generate_promotional_blog(
     style: str,
     bilingual: bool,
     task_id: str,
+    skill_id: str | None = None,
     on_progress: Callable | None = None,
 ) -> dict:
     """Run the full 6-phase promotional blog generation pipeline.
@@ -531,6 +559,9 @@ async def generate_promotional_blog(
     project = await storage.get_project(project_id)
     if not project:
         raise ValueError(f"Project {project_id} not found")
+    marketing_skill = get_marketing_skill(skill_id)
+    skill_meta = marketing_skill.to_public_dict()
+    _emit(on_progress, "framework", "completed", f"Using {marketing_skill.name} framework")
 
     # Determine primary language from project category/URL heuristics
     brand_name = project.get("brand_name", "")
@@ -547,7 +578,7 @@ async def generate_promotional_blog(
 
     # Phase 4: Blog writing
     title, content = await _phase_write_blog(
-        profile, research, style, project_id, on_progress,
+        profile, research, style, project_id, marketing_skill, on_progress,
     )
 
     # Create primary draft record
@@ -562,12 +593,16 @@ async def generate_promotional_blog(
         title=title,
         content=content,
         product_profile=profile,
+        meta={
+            "marketing_skill": skill_meta,
+            "source_commit": MARKETING_SKILLS_UPSTREAM_COMMIT,
+        },
         status="scoring",
     )
 
     # Phase 5: Quality scoring
     tracked_keywords = research.get("tracked_keywords", [])
-    scores = await _phase_quality_score(content, tracked_keywords, on_progress)
+    scores = await _phase_quality_score(content, tracked_keywords, marketing_skill, on_progress)
     await storage.update_blog_draft(draft["id"], quality_scores=scores)
 
     draft_ids = [draft["id"]]
@@ -600,6 +635,11 @@ async def generate_promotional_blog(
             title=translated_title,
             content=translated_content,
             product_profile=profile,
+            meta={
+                "marketing_skill": skill_meta,
+                "source_commit": MARKETING_SKILLS_UPSTREAM_COMMIT,
+                "translated_from_draft_id": draft["id"],
+            },
             paired_draft_id=draft["id"],
             status="scoring",
         )
@@ -610,7 +650,7 @@ async def generate_promotional_blog(
 
         # Score the translated version
         secondary_scores = await _phase_quality_score(
-            translated_content, tracked_keywords, on_progress,
+            translated_content, tracked_keywords, marketing_skill, on_progress,
         )
         await storage.update_blog_draft(
             paired_draft["id"], quality_scores=secondary_scores,
@@ -634,6 +674,7 @@ async def generate_promotional_blog(
                     "body": d["content"],
                     "project_id": project_id,
                     "draft_id": d["id"],
+                    "marketing_skill": skill_meta,
                 },
                 content=d["content"],
                 title=d["title"],
@@ -653,7 +694,10 @@ async def generate_promotional_blog(
     primary_scores = all_scores.get(primary_language, {})
     return {
         "draft_ids": draft_ids,
+        "marketing_skill": skill_meta,
+        "skill_id": marketing_skill.id,
+        "skill_name": marketing_skill.name,
         "quality_scores": primary_scores,
         "approval_ids": approval_ids,
-        "summary": f"Blog generated: \"{title}\" (score: {primary_scores.get('overall', '?')}/100)",
+        "summary": f"{marketing_skill.name} draft generated: \"{title}\" (score: {primary_scores.get('overall', '?')}/100)",
     }

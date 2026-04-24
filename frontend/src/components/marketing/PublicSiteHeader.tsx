@@ -1,4 +1,5 @@
 import { ExternalLink, Sparkles } from "lucide-react";
+import type { MouseEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useI18n } from "../../i18n";
 import { LOCALE_LABELS, SUPPORTED_LOCALES, type Locale } from "../../i18n/locale";
@@ -23,8 +24,17 @@ function PublicNavLink({
   className,
 }: { href: string; label: string; className: string }) {
   if (href.startsWith("#")) {
+    const scrollToSection = (event: MouseEvent<HTMLAnchorElement>) => {
+      const target = document.getElementById(href.slice(1));
+      if (!target) return;
+
+      event.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.history.replaceState(null, "", href);
+    };
+
     return (
-      <a href={href} className={className}>
+      <a href={href} className={className} onClick={scrollToSection}>
         {label}
       </a>
     );

@@ -8,6 +8,17 @@ import { useProjectSummary } from "../hooks/useProject";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { ErrorAlert } from "../components/common/ErrorAlert";
 import { useI18n } from "../i18n";
+import type { MarketingSkillId } from "../types";
+import type { TranslationKey } from "../i18n";
+
+const SKILL_LABEL_KEYS: Record<MarketingSkillId, TranslationKey> = {
+  content_strategy: "blogGen.skill.content_strategy",
+  copywriting: "blogGen.skill.copywriting",
+  ai_seo: "blogGen.skill.ai_seo",
+  competitor_alternatives: "blogGen.skill.competitor_alternatives",
+  programmatic_seo: "blogGen.skill.programmatic_seo",
+  directory_submissions: "blogGen.skill.directory_submissions",
+};
 
 function ScoreBadge({ score, label }: { score: number; label: string }) {
   const color =
@@ -93,6 +104,11 @@ export function ContentPage() {
                         <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 uppercase">
                           {draft.style.replace("_", " ")}
                         </span>
+                        {draft.meta?.marketing_skill?.id && (
+                          <span className="shrink-0 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                            {t(SKILL_LABEL_KEYS[draft.meta.marketing_skill.id])}
+                          </span>
+                        )}
                         <span className="shrink-0 flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 uppercase">
                           <Globe size={10} />
                           {draft.language}
@@ -120,11 +136,14 @@ export function ContentPage() {
                   </div>
 
                   {draft.quality_scores?.seo != null && (
-                    <div className="mt-3 grid grid-cols-4 gap-2">
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
                       <ScoreBadge score={draft.quality_scores.seo} label={t("blogGen.scores.seo")} />
                       <ScoreBadge score={draft.quality_scores.readability} label={t("blogGen.scores.readability")} />
                       <ScoreBadge score={draft.quality_scores.keyword_coverage} label={t("blogGen.scores.keywords")} />
                       <ScoreBadge score={draft.quality_scores.structure} label={t("blogGen.scores.structure")} />
+                      {typeof draft.quality_scores.framework === "number" && (
+                        <ScoreBadge score={draft.quality_scores.framework} label={t("blogGen.scores.framework")} />
+                      )}
                     </div>
                   )}
                 </article>

@@ -7,8 +7,15 @@ from fastapi.responses import JSONResponse
 
 from opencmo import storage
 from opencmo.background import service as bg_service
+from opencmo.marketing_skills import get_marketing_skill, list_marketing_skills
 
 router = APIRouter(prefix="/api/v1")
+
+
+@router.get("/blog/skills")
+async def api_v1_blog_skills():
+    """List the marketing skill frameworks available to blog generation."""
+    return JSONResponse([skill.to_public_dict() for skill in list_marketing_skills()])
 
 
 @router.post("/projects/{project_id}/blog/generate")
@@ -21,6 +28,7 @@ async def api_v1_generate_blog(project_id: int, request: Request):
     body = await request.json()
     style = body.get("style", "launch")
     bilingual = body.get("bilingual", False)
+    skill_id = body.get("skill_id")
 
     valid_styles = {"launch", "case_study", "comparison", "thought_leadership"}
     if style not in valid_styles:
@@ -28,6 +36,10 @@ async def api_v1_generate_blog(project_id: int, request: Request):
             {"error": f"Invalid style. Must be one of: {', '.join(sorted(valid_styles))}"},
             status_code=400,
         )
+    try:
+        marketing_skill = get_marketing_skill(skill_id)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
 
     # Capture BYOK keys from the current request context
     from opencmo import llm
@@ -35,19 +47,22 @@ async def api_v1_generate_blog(project_id: int, request: Request):
         "project_id": project_id,
         "style": style,
         "bilingual": bilingual,
+        "skill_id": marketing_skill.id,
     }
     request_keys = llm.get_request_keys()
     if request_keys:
         payload["__user_keys"] = request_keys
 
-    # Check for existing active task (same project + style)
-    dedupe_key = f"blog_generation:project:{project_id}:{style}"
+    # Check for existing active task (same project + style + skill + language mode)
+    dedupe_key = f"blog_generation:project:{project_id}:{style}:{marketing_skill.id}:bilingual:{int(bool(bilingual))}"
     existing = await bg_service.find_active_task_by_dedupe_key(dedupe_key)
     if existing is not None:
         return JSONResponse({
             "task_id": existing["task_id"],
             "project_id": project_id,
             "style": style,
+            "skill_id": marketing_skill.id,
+            "skill_name": marketing_skill.name,
             "status": "already_running",
         }, status_code=409)
 
@@ -63,6 +78,8 @@ async def api_v1_generate_blog(project_id: int, request: Request):
         "task_id": task["task_id"],
         "project_id": project_id,
         "style": style,
+        "skill_id": marketing_skill.id,
+        "skill_name": marketing_skill.name,
         "status": "pending",
     }, status_code=202)
 

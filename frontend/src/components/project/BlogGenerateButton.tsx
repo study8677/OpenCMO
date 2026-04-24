@@ -4,7 +4,7 @@ import { useBlogGenerate } from "../../hooks/useBlogGen";
 import { useTaskPoll } from "../../hooks/useTasks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "../../i18n";
-import type { BlogStyle } from "../../types";
+import type { BlogStyle, MarketingSkillId } from "../../types";
 import type { TranslationKey } from "../../i18n";
 
 const STYLES: { value: BlogStyle; labelKey: TranslationKey; descKey: TranslationKey }[] = [
@@ -12,6 +12,15 @@ const STYLES: { value: BlogStyle; labelKey: TranslationKey; descKey: Translation
   { value: "case_study", labelKey: "blogGen.style.case_study", descKey: "blogGen.style.case_studyDesc" },
   { value: "comparison", labelKey: "blogGen.style.comparison", descKey: "blogGen.style.comparisonDesc" },
   { value: "thought_leadership", labelKey: "blogGen.style.thought_leadership", descKey: "blogGen.style.thought_leadershipDesc" },
+];
+
+const MARKETING_SKILLS: { value: MarketingSkillId; labelKey: TranslationKey; descKey: TranslationKey }[] = [
+  { value: "content_strategy", labelKey: "blogGen.skill.content_strategy", descKey: "blogGen.skill.content_strategyDesc" },
+  { value: "copywriting", labelKey: "blogGen.skill.copywriting", descKey: "blogGen.skill.copywritingDesc" },
+  { value: "ai_seo", labelKey: "blogGen.skill.ai_seo", descKey: "blogGen.skill.ai_seoDesc" },
+  { value: "competitor_alternatives", labelKey: "blogGen.skill.competitor_alternatives", descKey: "blogGen.skill.competitor_alternativesDesc" },
+  { value: "programmatic_seo", labelKey: "blogGen.skill.programmatic_seo", descKey: "blogGen.skill.programmatic_seoDesc" },
+  { value: "directory_submissions", labelKey: "blogGen.skill.directory_submissions", descKey: "blogGen.skill.directory_submissionsDesc" },
 ];
 
 export function BlogGenerateButton({
@@ -24,6 +33,7 @@ export function BlogGenerateButton({
   const [taskId, setTaskId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
   const [style, setStyle] = useState<BlogStyle>("launch");
+  const [skillId, setSkillId] = useState<MarketingSkillId>("content_strategy");
   const [bilingual, setBilingual] = useState(false);
 
   const blogGenerate = useBlogGenerate(projectId);
@@ -45,7 +55,7 @@ export function BlogGenerateButton({
   const handleGenerate = async () => {
     setShowConfig(false);
     try {
-      const result = await blogGenerate.mutateAsync({ style, bilingual });
+      const result = await blogGenerate.mutateAsync({ style, skill_id: skillId, bilingual });
       setTaskId(result.task_id);
     } catch {
       // mutation error handled by TanStack
@@ -140,6 +150,33 @@ export function BlogGenerateButton({
                 className="mt-0.5"
               />
               <div>
+                <span className="text-xs font-medium text-slate-900">{t(s.labelKey)}</span>
+                <p className="text-[11px] leading-4 text-slate-500">{t(s.descKey)}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        <p className="mt-4 text-xs font-semibold text-slate-700">{t("blogGen.selectSkill")}</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {MARKETING_SKILLS.map((s) => (
+            <label
+              key={s.value}
+              className={`flex cursor-pointer items-start gap-2 rounded-xl border px-3 py-2 transition-colors ${
+                skillId === s.value
+                  ? "border-emerald-300 bg-emerald-50/50"
+                  : "border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <input
+                type="radio"
+                name="marketingSkill"
+                value={s.value}
+                checked={skillId === s.value}
+                onChange={() => setSkillId(s.value)}
+                className="mt-0.5"
+              />
+              <div className="min-w-0">
                 <span className="text-xs font-medium text-slate-900">{t(s.labelKey)}</span>
                 <p className="text-[11px] leading-4 text-slate-500">{t(s.descKey)}</p>
               </div>

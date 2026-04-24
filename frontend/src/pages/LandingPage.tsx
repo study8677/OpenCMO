@@ -11,6 +11,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router";
 import { SiteFooter } from "../components/layout/SiteFooter";
@@ -20,6 +21,7 @@ import {
   BLOG_ARTICLES,
   BLOG_FEATURED_ARTICLE_SLUG,
   LANDING_CRAWLER_BULLETS,
+  LANDING_LEARNING_LOOP_ITEMS,
   LANDING_MENTION_ITEMS,
   LANDING_PLATFORM_ITEMS,
   LANDING_PROOF_ITEMS,
@@ -36,6 +38,7 @@ import { getSeoLocaleFromLocale } from "../utils/publicRoutes";
 
 const PROOF_ICONS = [Search, Bot, Users];
 const CAPABILITY_ICONS = [Search, Bot, Users, Globe, FileText];
+const LEARNING_LOOP_ICONS = [Search, Bot, CheckCircle2, Sparkles];
 const OPEN_SOURCE_ICONS = [GitBranch, ShieldCheck, Globe, FileText];
 const TRUST_ICONS = [ShieldCheck, Sparkles, Globe, GitBranch];
 const GITHUB_REPO_URL = "https://github.com/study8677/OpenCMO";
@@ -44,6 +47,17 @@ const QUICK_START_URL = "https://github.com/study8677/OpenCMO#quick-start";
 
 export function LandingPage() {
   const { t, locale } = useI18n();
+  useEffect(() => {
+    if (!window.location.hash) return;
+
+    const targetId = decodeURIComponent(window.location.hash.slice(1));
+    const timeoutId = window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ block: "start" });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
   const mentionDateFormatter = new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "long",
@@ -77,6 +91,38 @@ export function LandingPage() {
     "landing.mentionsPoint2",
     "landing.mentionsPoint3",
   ] as TranslationKey[];
+  const learningMemoryRows = [
+    {
+      label: "landing.learningMemoryRow1Label",
+      value: "landing.learningMemoryRow1Value",
+    },
+    {
+      label: "landing.learningMemoryRow2Label",
+      value: "landing.learningMemoryRow2Value",
+    },
+    {
+      label: "landing.learningMemoryRow3Label",
+      value: "landing.learningMemoryRow3Value",
+    },
+    {
+      label: "landing.learningMemoryRow4Label",
+      value: "landing.learningMemoryRow4Value",
+    },
+  ] as const;
+  const learningStats = [
+    {
+      label: "landing.learningStat1Label",
+      value: "landing.learningStat1Value",
+    },
+    {
+      label: "landing.learningStat2Label",
+      value: "landing.learningStat2Value",
+    },
+    {
+      label: "landing.learningStat3Label",
+      value: "landing.learningStat3Value",
+    },
+  ] as const;
   const heroMetrics = [
     {
       label: t("landing.metricPipelineLabel"),
@@ -421,6 +467,105 @@ export function LandingPage() {
                       {t("landing.openSourceCardQuickstartCta")}
                       <ArrowUpRight size={15} />
                     </a>
+                  </div>
+                </div>
+              </div>
+            </SectionReveal>
+          </div>
+        </section>
+
+        <section id="learning" className="mx-auto max-w-7xl px-4 pt-20 lg:px-8 lg:pt-24">
+          <SectionReveal>
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-end">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#9b5d3b]">
+                  {t("landing.learningEyebrow")}
+                </p>
+                <h2 className="font-display mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-[#0b1420] sm:text-[3.4rem] sm:leading-[1.02]">
+                  {t("landing.learningTitle")}
+                </h2>
+              </div>
+              <p className="max-w-2xl text-lg leading-8 text-slate-600">
+                {t("landing.learningSubtitle")}
+              </p>
+            </div>
+          </SectionReveal>
+
+          <div className="mt-16 grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)] lg:items-stretch">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {LANDING_LEARNING_LOOP_ITEMS.map((item, index) => {
+                const Icon = LEARNING_LOOP_ICONS[index] ?? Sparkles;
+                return (
+                  <SectionReveal key={item.title} delay={index * 0.05}>
+                    <article className="h-full rounded-[2rem] border border-black/8 bg-white/72 p-6 shadow-[0_18px_60px_rgba(8,19,29,0.05)]">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0b1420] text-[#f7ecde]">
+                          <Icon size={17} />
+                        </div>
+                        <span className="font-mono text-xs font-semibold text-slate-300">
+                          {`${index + 1}`.padStart(2, "0")}
+                        </span>
+                      </div>
+                      <h3 className="mt-5 text-xl font-semibold tracking-tight text-[#0b1420]">
+                        {t(item.title)}
+                      </h3>
+                      <p className="mt-3 text-sm leading-7 text-slate-600">
+                        {t(item.description)}
+                      </p>
+                    </article>
+                  </SectionReveal>
+                );
+              })}
+            </div>
+
+            <SectionReveal delay={0.12}>
+              <div className="relative h-full overflow-hidden rounded-[2.4rem] bg-[#08131d] p-6 text-white shadow-[0_28px_100px_rgba(8,19,29,0.18)] sm:p-7">
+                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(247,236,222,0.08),transparent_34%),radial-gradient(circle_at_86%_10%,rgba(134,200,188,0.16),transparent_28%)]" />
+
+                <div className="relative">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#f3dcc9]">
+                    {t("landing.learningMemoryEyebrow")}
+                  </p>
+                  <h3 className="mt-3 max-w-md text-3xl font-semibold tracking-tight">
+                    {t("landing.learningMemoryTitle")}
+                  </h3>
+                  <p className="mt-4 max-w-xl text-base leading-8 text-white/66">
+                    {t("landing.learningMemoryBody")}
+                  </p>
+
+                  <div className="mt-7 space-y-3">
+                    {learningMemoryRows.map((row, index) => (
+                      <div
+                        key={row.label}
+                        className="grid gap-3 rounded-[1.4rem] border border-white/10 bg-white/5 px-4 py-4 sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/12 bg-white/6 font-mono text-[11px] text-white/46">
+                            {`${index + 1}`.padStart(2, "0")}
+                          </span>
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                            {t(row.label)}
+                          </span>
+                        </div>
+                        <p className="text-sm leading-6 text-white/78">{t(row.value)}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                    {learningStats.map((stat) => (
+                      <div
+                        key={stat.label}
+                        className="rounded-[1.3rem] border border-white/10 bg-white/[0.07] px-4 py-4"
+                      >
+                        <p className="text-2xl font-semibold tracking-tight text-[#f7ecde]">
+                          {t(stat.value)}
+                        </p>
+                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+                          {t(stat.label)}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

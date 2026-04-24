@@ -63,7 +63,7 @@ export interface MonitorRun {
 
 export interface TaskRecord {
   task_id: string;
-  task_kind?: "scan" | "report" | "graph_expansion";
+  task_kind?: "scan" | "report" | "graph_expansion" | "blog_generation";
   monitor_id?: number;
   project_id: number;
   job_type?: string;
@@ -81,6 +81,12 @@ export interface TaskRecord {
   current_wave?: number;
   nodes_discovered?: number;
   nodes_explored?: number;
+  style?: BlogStyle;
+  skill_id?: MarketingSkillId;
+  skill_name?: string;
+  bilingual?: boolean;
+  draft_ids?: number[];
+  quality_scores?: BlogQualityScores;
 }
 
 export interface TaskArtifactStageCard {
@@ -381,6 +387,13 @@ export interface ProjectSummary {
 }
 
 export type BlogStyle = "launch" | "case_study" | "comparison" | "thought_leadership";
+export type MarketingSkillId =
+  | "content_strategy"
+  | "copywriting"
+  | "ai_seo"
+  | "competitor_alternatives"
+  | "programmatic_seo"
+  | "directory_submissions";
 
 export interface BlogQualityScores {
   seo: number;
@@ -388,6 +401,23 @@ export interface BlogQualityScores {
   keyword_coverage: number;
   structure: number;
   overall: number;
+  framework?: number;
+  [key: string]: number | string | undefined;
+}
+
+export interface BlogDraftMeta {
+  marketing_skill?: {
+    id: MarketingSkillId;
+    name: string;
+    description?: string;
+    source_path?: string;
+    source_url?: string;
+    source_commit?: string;
+    license?: string;
+  };
+  source_commit?: string;
+  translated_from_draft_id?: number;
+  [key: string]: unknown;
 }
 
 export interface BlogDraft {
@@ -403,6 +433,7 @@ export interface BlogDraft {
   quality_scores: BlogQualityScores;
   paired_draft_id: number | null;
   approval_id: number | null;
+  meta?: BlogDraftMeta;
   created_at: string;
   completed_at: string | null;
 }

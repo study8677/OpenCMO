@@ -157,6 +157,51 @@ def test_api_v1_projects_crud(client):
     assert resp.status_code == 404
 
 
+def test_api_v1_blog_skills_lists_marketing_frameworks(client):
+    resp = client.get("/api/v1/blog/skills")
+
+    assert resp.status_code == 200
+    skills = resp.json()
+    assert any(skill["id"] == "ai_seo" for skill in skills)
+    assert all(skill["license"] == "MIT" for skill in skills)
+
+
+def test_api_v1_generate_blog_rejects_unknown_marketing_skill(client):
+    pid = _seed_project("Blog Skill", "https://blog-skill.test")
+
+    resp = client.post(
+        f"/api/v1/projects/{pid}/blog/generate",
+        json={"style": "launch", "skill_id": "unknown"},
+    )
+
+    assert resp.status_code == 400
+    assert "Invalid marketing skill" in resp.json()["error"]
+
+
+def test_api_v1_generate_blog_enqueues_skill_payload(client):
+    from opencmo.web.routers import blog_gen as blog_gen_router
+
+    pid = _seed_project("Blog Queue", "https://blog-queue.test")
+
+    with patch.object(blog_gen_router.bg_service, "find_active_task_by_dedupe_key", AsyncMock(return_value=None)) as find_active, \
+         patch.object(blog_gen_router.bg_service, "enqueue_task", AsyncMock(return_value={"task_id": "blog-task-1"})) as enqueue:
+        resp = client.post(
+            f"/api/v1/projects/{pid}/blog/generate",
+            json={"style": "comparison", "skill_id": "ai_seo", "bilingual": True},
+        )
+
+    assert resp.status_code == 202
+    payload = resp.json()
+    assert payload["skill_id"] == "ai_seo"
+    assert payload["skill_name"] == "AI SEO"
+
+    find_active.assert_awaited_once_with(f"blog_generation:project:{pid}:comparison:ai_seo:bilingual:1")
+    enqueue_kwargs = enqueue.await_args.kwargs
+    assert enqueue_kwargs["kind"] == "blog_generation"
+    assert enqueue_kwargs["payload"]["skill_id"] == "ai_seo"
+    assert enqueue_kwargs["payload"]["bilingual"] is True
+
+
 def test_api_v1_community_discussions_include_match_metadata(client):
     pid = _seed_project("Signals", "https://signals.test")
 
