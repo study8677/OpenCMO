@@ -1540,7 +1540,7 @@ def test_spa_catchall_blog_route_injects_public_metadata(client, tmp_path):
         assert 'href="https://www.aidcmo.com/blog"' in resp.text
         assert 'hreflang="x-default"' in resp.text
         assert 'href="https://www.aidcmo.com/en/blog"' in resp.text
-        assert "A public field guide to what OpenCMO is, who it is for, and how the system should be used" in resp.text
+        assert "A public field guide to what OpenCMO is, how it fits the stack, and how teams should use it" in resp.text
         assert "What is product marketing? Responsibilities, examples, and where it fits" in resp.text
 
 
@@ -1575,7 +1575,7 @@ def test_spa_catchall_zh_blog_route_injects_localized_metadata(client, tmp_path)
         assert "OpenCMO Blog | CMO、产品营销、GTM 与 AI CMO 公开说明" in resp.text
         assert 'href="https://www.aidcmo.com/zh/blog"' in resp.text
         assert 'hreflang="zh-CN"' in resp.text
-        assert "一组公开文章：解释 CMO、营销运营和 OpenCMO 到底在做什么" in resp.text
+        assert "一组公开文章：解释 OpenCMO 是什么、适合谁，以及它和相邻工具的边界" in resp.text
 
 
 def test_spa_catchall_no_dist(client, tmp_path):
