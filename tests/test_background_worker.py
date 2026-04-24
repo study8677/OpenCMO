@@ -198,6 +198,7 @@ def test_get_background_worker_uses_env_backed_limits(monkeypatch):
             "report": 2,
             "graph_expansion": 4,
             "github_enrich": 5,
+            "blog_generation": 1,
         }
     finally:
         worker_module._default_worker = original_worker

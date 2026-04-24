@@ -9,8 +9,9 @@ import {
   Pencil,
   Check,
 } from "lucide-react";
-import { useTaskFindings, useTaskRecommendations } from "../../hooks/useTasks";
+import { useTaskArtifacts, useTaskFindings, useTaskRecommendations } from "../../hooks/useTasks";
 import { useI18n } from "../../i18n";
+import type { TranslationKey } from "../../i18n";
 import { apiJson } from "../../api/client";
 import type { MonitorRun } from "../../types";
 import { utcDate } from "../../utils/time";
@@ -28,6 +29,28 @@ const PRIORITY_STYLE: Record<string, string> = {
   low: "bg-slate-50 text-slate-600 ring-slate-200",
 };
 
+const QUALITY_STYLE: Record<string, string> = {
+  reliable: "border-emerald-200 bg-emerald-50/80 text-emerald-900",
+  partial: "border-amber-200 bg-amber-50/80 text-amber-900",
+  limited: "border-rose-200 bg-rose-50/80 text-rose-900",
+};
+
+const KIND_STYLE: Record<string, string> = {
+  source_limit: "bg-amber-100 text-amber-700 ring-amber-200",
+  fallback: "bg-sky-100 text-sky-700 ring-sky-200",
+  coverage_gap: "bg-rose-100 text-rose-700 ring-rose-200",
+  task_error: "bg-rose-100 text-rose-700 ring-rose-200",
+};
+
+const STAGE_LABEL_KEYS: Record<string, TranslationKey> = {
+  context_build: "analysis.stageContextBuild",
+  signal_collect: "analysis.stageSignalCollect",
+  signal_normalize: "analysis.stageSignalNormalize",
+  domain_review: "analysis.stageDomainReview",
+  strategy_synthesis: "analysis.stageStrategySynthesis",
+  persist_publish: "analysis.stagePersistPublish",
+};
+
 export function RunResultsDialog({
   run,
   url,
@@ -39,6 +62,7 @@ export function RunResultsDialog({
 }) {
   const { t } = useI18n();
   const isDone = run.status === "completed" || run.status === "failed";
+  const { data: artifacts } = useTaskArtifacts(run.task_id, isDone);
   const { data: findings = [], isLoading: loadingFindings } = useTaskFindings(run.task_id, isDone);
   const { data: recommendations = [], isLoading: loadingRecs } = useTaskRecommendations(run.task_id, isDone);
 
@@ -61,6 +85,9 @@ export function RunResultsDialog({
   };
 
   const isLoading = loadingFindings || loadingRecs;
+  const quality = artifacts?.quality;
+  const watchouts = artifacts?.watchouts ?? [];
+  const topAction = quality?.blocking ? watchouts.find((item) => item.blocking)?.resolution : artifacts?.brief?.top_recommendations?.[0]?.summary;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
@@ -109,6 +136,73 @@ export function RunResultsDialog({
             </div>
           ) : (
             <>
+              {quality ? (
+                <section className={`rounded-2xl border p-4 ${QUALITY_STYLE[quality.level] ?? QUALITY_STYLE.reliable}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold">{quality.headline}</p>
+                    <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase ring-1 ring-inset ring-slate-200">
+                      {quality.level === "reliable" ? t("analysis.qualityReliable") : quality.level === "partial" ? t("analysis.qualityPartial") : t("analysis.qualityLimited")}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed">{quality.summary}</p>
+                  {topAction ? (
+                    <p className="mt-3 text-sm leading-relaxed">
+                      <span className="font-semibold">{t("analysis.nextBestAction")}: </span>
+                      {topAction}
+                    </p>
+                  ) : null}
+                </section>
+              ) : null}
+
+              {watchouts.length > 0 ? (
+                <section>
+                  <div className="mb-3 flex items-center gap-2">
+                    <TriangleAlert size={14} className="text-amber-500" />
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      {t("analysis.coverageWatchouts")}
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    {watchouts.map((watchout, index) => (
+                      <div
+                        key={`${watchout.stage}-${watchout.code}-${index}`}
+                        className="rounded-xl border border-slate-200 bg-white p-4"
+                      >
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            {(() => {
+                              const stageLabelKey = STAGE_LABEL_KEYS[watchout.stage];
+                              return stageLabelKey ? t(stageLabelKey) : watchout.stage;
+                            })()}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ring-1 ring-inset ${
+                              KIND_STYLE[watchout.kind] ?? KIND_STYLE.coverage_gap
+                            }`}
+                          >
+                            {watchout.kind === "source_limit"
+                              ? t("analysis.watchoutSourceLimit")
+                              : watchout.kind === "fallback"
+                                ? t("analysis.watchoutFallback")
+                                : watchout.kind === "coverage_gap"
+                                  ? t("analysis.watchoutCoverageGap")
+                                  : t("analysis.watchoutTaskError")}
+                          </span>
+                          {watchout.blocking ? (
+                            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-700 ring-1 ring-inset ring-rose-200">
+                              {t("analysis.blocking")}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="text-sm font-semibold text-slate-900">{watchout.title}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-slate-600">{watchout.summary}</p>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-700">{watchout.resolution}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
               {/* Findings */}
               {findings.length > 0 && (
                 <section>
@@ -118,6 +212,11 @@ export function RunResultsDialog({
                       {t("analysis.keyFindings")} ({findings.length})
                     </h3>
                   </div>
+                  {quality && quality.level !== "reliable" ? (
+                    <p className="mb-3 text-sm leading-relaxed text-slate-600">
+                      {t("analysis.resultConfidenceNote")}
+                    </p>
+                  ) : null}
                   <div className="space-y-3">
                     {findings.map((f, i) => (
                       <div
@@ -153,6 +252,11 @@ export function RunResultsDialog({
                       {t("analysis.recommendedActions")} ({recommendations.length})
                     </h3>
                   </div>
+                  {quality && quality.level !== "reliable" ? (
+                    <p className="mb-3 text-sm leading-relaxed text-slate-600">
+                      {t("analysis.resultConfidenceNote")}
+                    </p>
+                  ) : null}
                   <div className="space-y-3">
                     {recommendations.map((r, i) => (
                       <div

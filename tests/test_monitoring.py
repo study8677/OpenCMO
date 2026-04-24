@@ -99,3 +99,7 @@ async def test_collect_signals_surfaces_github_rate_limit_as_warning():
     summaries = [event["summary"] for event in captured if event["stage"] == "signal_collect"]
     assert any("rate limit exceeded" in summary for summary in summaries)
     assert not any("0 found, 0 contactable" in summary for summary in summaries)
+    warning = next(event for event in captured if "rate limit exceeded" in event["summary"])
+    assert warning["code"] == "github_rate_limit"
+    assert warning["kind"] == "source_limit"
+    assert warning["blocking"] is False

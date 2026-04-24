@@ -104,7 +104,7 @@ async def run_scheduled_scan(
             cwv = await _fetch_core_web_vitals(url)
             robots_sitemap = await _check_robots_and_sitemap(url)
             report = _build_report(parser, result, url, cwv=cwv, robots_sitemap=robots_sitemap)
-            seo_health_score = _compute_seo_health_score(parser, cwv=cwv, robots_sitemap=robots_sitemap)
+            seo_health_score = _compute_seo_health_score(parser, cwv=cwv, robots_sitemap=robots_sitemap, url=url)
             await storage.save_seo_scan(
                 project_id, url, report,
                 score_performance=cwv.get("performance") if cwv else None,
@@ -255,6 +255,20 @@ async def run_scheduled_scan(
             logger.info("Brand presence scan saved for project %d", project_id)
         except Exception:
             logger.exception("Brand presence scan failed for project %d", project_id)
+
+    # Content frequency check (independent — runs during full scans)
+    if job_type == "full":
+        try:
+            from opencmo.tools.content_frequency import _analyze_content_frequency
+
+            freq_data = await _analyze_content_frequency(url)
+            if freq_data.get("has_blog"):
+                logger.info(
+                    "Content frequency for project %d: %s posts/month (%s)",
+                    project_id, freq_data.get("posts_per_month"), freq_data.get("frequency_label"),
+                )
+        except Exception:
+            logger.exception("Content frequency check failed for project %d", project_id)
 
     if job_type in ("community", "full"):
         try:

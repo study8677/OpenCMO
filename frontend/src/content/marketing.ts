@@ -39,12 +39,11 @@ export type BlogArticle = {
 };
 
 export const PUBLIC_HOME_NAV: PublicNavItem[] = [
-  { href: "#open-source", label: "landing.navOpenSource" },
-  { href: "#sample-audit", label: "landing.navPlatform" },
+  { href: "#product", label: "landing.navPlatform" },
   { href: "#workflow", label: "landing.navWorkflow" },
-  { href: "#trust", label: "landing.navTrust" },
+  { href: "#open-source", label: "landing.navOpenSource" },
   { href: "#mentions", label: "landing.navMentions" },
-  { href: "#faq", label: "landing.navFaq" },
+  { href: "/blog", label: "landing.navBlog" },
 ];
 
 export const PUBLIC_BLOG_NAV: PublicNavItem[] = [

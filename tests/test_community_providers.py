@@ -95,14 +95,18 @@ def test_xueqiu_disabled_without_cookie():
     assert not provider.is_enabled
 
 
-def test_twitter_disabled_without_keys():
+def test_twitter_disabled_without_keys(monkeypatch):
     """Twitter should be disabled when neither TWITTER_BEARER_TOKEN nor TAVILY_API_KEY is set."""
+    monkeypatch.delenv("TWITTER_BEARER_TOKEN", raising=False)
+    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
     provider = TwitterProvider()
     assert not provider.is_enabled
 
 
-def test_youtube_disabled_without_keys():
+def test_youtube_disabled_without_keys(monkeypatch):
     """YouTube should be disabled without YOUTUBE_API_KEY or TAVILY_API_KEY."""
+    monkeypatch.delenv("YOUTUBE_API_KEY", raising=False)
+    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
     provider = YouTubeProvider()
     assert not provider.is_enabled
 

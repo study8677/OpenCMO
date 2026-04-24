@@ -89,6 +89,8 @@ export interface TaskArtifactStageCard {
   summary: string;
   agent: string;
   event_count: number;
+  kind?: "normal" | "fallback" | "degraded";
+  hint?: string;
 }
 
 export interface TaskArtifactIssue {
@@ -96,6 +98,26 @@ export interface TaskArtifactIssue {
   status: "warning" | "failed";
   summary: string;
   resolution: string;
+}
+
+export interface TaskArtifactWatchout {
+  stage: string;
+  status: "started" | "running" | "completed" | "failed" | "warning";
+  kind: "source_limit" | "fallback" | "coverage_gap" | "task_error";
+  code: string;
+  title: string;
+  summary: string;
+  resolution: string;
+  blocking: boolean;
+}
+
+export interface TaskArtifactQuality {
+  level: "reliable" | "partial" | "limited";
+  headline: string;
+  summary: string;
+  blocking: boolean;
+  fallbacks_used: string[];
+  source_warnings: string[];
 }
 
 export interface TaskArtifactOpportunity {
@@ -125,7 +147,9 @@ export interface TaskArtifacts {
     recommendations_count: number;
     focus_domains: string[];
   };
+  quality: TaskArtifactQuality;
   stage_cards: TaskArtifactStageCard[];
+  watchouts: TaskArtifactWatchout[];
   issues: TaskArtifactIssue[];
   brief: {
     top_findings: Finding[];
@@ -353,6 +377,34 @@ export interface ProjectSummary {
   keyword_count?: number;
   competitor_count?: number;
   pending_approvals?: number;
+  blog_drafts_count?: number;
+}
+
+export type BlogStyle = "launch" | "case_study" | "comparison" | "thought_leadership";
+
+export interface BlogQualityScores {
+  seo: number;
+  readability: number;
+  keyword_coverage: number;
+  structure: number;
+  overall: number;
+}
+
+export interface BlogDraft {
+  id: number;
+  project_id: number;
+  task_id: string;
+  style: BlogStyle;
+  language: string;
+  status: string;
+  title: string;
+  content?: string;
+  content_preview?: string;
+  quality_scores: BlogQualityScores;
+  paired_draft_id: number | null;
+  approval_id: number | null;
+  created_at: string;
+  completed_at: string | null;
 }
 
 export type ReportKind = "strategic" | "periodic";

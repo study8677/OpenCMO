@@ -139,6 +139,7 @@ def _compute_seo_health_score(
     *,
     cwv: dict | None = None,
     robots_sitemap: dict | None = None,
+    url: str | None = None,
 ) -> float:
     """Compute a holistic SEO health score in [0, 100].
 
@@ -146,7 +147,7 @@ def _compute_seo_health_score(
 
     1. Technical Foundation — 40 pts
        robots.txt present & not blocking (10) + sitemap.xml (10)
-       + Schema.org markup (10) + canonical URL (10)
+       + Schema.org markup (10) + canonical URL (5) + SSL (5)
 
     2. On-Page Quality — 30 pts
        title quality (10) + meta description quality (10)
@@ -160,6 +161,9 @@ def _compute_seo_health_score(
     score = 0.0
 
     # ── Technical Foundation (40 pts) ──────────────────────────────────────
+    # SSL (5 pts)
+    if url and url.startswith("https://"):
+        score += 5
     if robots_sitemap:
         has_robots = robots_sitemap.get("has_robots", False)
         disallow_all = robots_sitemap.get("robots_disallow_all", False)
@@ -174,7 +178,7 @@ def _compute_seo_health_score(
         score += 10
 
     if parser.canonical:
-        score += 10
+        score += 5
 
     # ── On-Page Quality (30 pts) ────────────────────────────────────────────
     title_len = len(parser.title)
@@ -324,6 +328,12 @@ async def _check_robots_and_sitemap(url: str) -> dict:
 
 def _build_report(parser: _SEOParser, result, url: str, *, cwv: dict | None = None, robots_sitemap: dict | None = None) -> str:
     lines: list[str] = [f"# SEO Audit Report: {url}\n"]
+
+    # SSL
+    if url.startswith("https://"):
+        lines.append(_check("SSL (HTTPS)", True, "Site uses HTTPS"))
+    else:
+        lines.append(_check("SSL (HTTPS)", False, "Site does NOT use HTTPS — browsers will show security warnings"))
 
     # Title
     t = parser.title
@@ -525,7 +535,7 @@ async def audit_page_seo(url: str) -> str:
 
         # Compute multi-dimensional health score
         seo_health_score = _compute_seo_health_score(
-            parser, cwv=cwv, robots_sitemap=robots_sitemap
+            parser, cwv=cwv, robots_sitemap=robots_sitemap, url=url,
         )
 
         # Persist to storage (best-effort)

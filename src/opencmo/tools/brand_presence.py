@@ -15,13 +15,17 @@ from agents import function_tool
 
 logger = logging.getLogger(__name__)
 
-# Platform weights by AI citation correlation
+# Platform weights by AI citation correlation + brand credibility signals
 _PLATFORM_WEIGHTS = {
-    "youtube": 25,
-    "reddit": 25,
-    "wikipedia": 20,
-    "linkedin": 15,
-    "other": 15,
+    "youtube": 18,
+    "reddit": 18,
+    "wikipedia": 14,
+    "linkedin": 10,
+    "g2": 8,
+    "capterra": 6,
+    "crunchbase": 6,
+    "producthunt": 6,
+    "serp_diversity": 14,
 }
 
 
@@ -105,6 +109,50 @@ async def _check_via_tavily(brand_name: str, site: str, platform: str) -> dict:
     return result
 
 
+async def _check_serp_diversity(brand_name: str, own_domain: str | None = None) -> dict:
+    """Search brand name on Google and count non-official results on page 1."""
+    result = {
+        "platform": "SERP Diversity",
+        "total_results": 0,
+        "third_party_count": 0,
+        "third_party_sources": [],
+        "score": 0,
+    }
+    try:
+        from opencmo.tools.tavily_helper import tavily_search
+        results = await tavily_search(brand_name, max_results=10)
+        if not results:
+            return result
+
+        result["total_results"] = len(results)
+        own = own_domain.lower().rstrip("/") if own_domain else None
+
+        for r in results:
+            url = r.get("url", "")
+            domain_part = urlparse(url).netloc.lower().replace("www.", "")
+            # Skip results from the brand's own domain
+            if own and own.replace("www.", "") in domain_part:
+                continue
+            result["third_party_count"] += 1
+            result["third_party_sources"].append({
+                "domain": domain_part,
+                "title": r.get("title", "")[:80],
+                "url": url,
+            })
+
+        tp = result["third_party_count"]
+        # Score: 3+ third-party results = 100, 2 = 70, 1 = 40, 0 = 0
+        if tp >= 3:
+            result["score"] = 100
+        elif tp == 2:
+            result["score"] = 70
+        elif tp == 1:
+            result["score"] = 40
+    except Exception as exc:
+        logger.debug("SERP diversity check failed for %s: %s", brand_name, exc)
+    return result
+
+
 async def _brand_presence_impl(brand_name: str, domain: str | None = None) -> dict:
     """Core implementation — returns structured dict."""
     import asyncio
@@ -114,37 +162,39 @@ async def _brand_presence_impl(brand_name: str, domain: str | None = None) -> di
     yt_task = _check_via_tavily(brand_name, "youtube.com", "YouTube")
     reddit_task = _check_via_tavily(brand_name, "reddit.com", "Reddit")
     linkedin_task = _check_via_tavily(brand_name, "linkedin.com/company", "LinkedIn")
+    g2_task = _check_via_tavily(brand_name, "g2.com", "G2")
+    capterra_task = _check_via_tavily(brand_name, "capterra.com", "Capterra")
+    crunchbase_task = _check_via_tavily(brand_name, "crunchbase.com", "Crunchbase")
+    ph_task = _check_via_tavily(brand_name, "producthunt.com", "Product Hunt")
+    serp_task = _check_serp_diversity(brand_name, domain)
 
-    wiki, youtube, reddit, linkedin = await asyncio.gather(
+    wiki, youtube, reddit, linkedin, g2, capterra, crunchbase, ph, serp = await asyncio.gather(
         wiki_task, yt_task, reddit_task, linkedin_task,
+        g2_task, capterra_task, crunchbase_task, ph_task, serp_task,
         return_exceptions=True,
     )
 
     # Handle exceptions
     platforms = {}
-    for name, res in [("wikipedia", wiki), ("youtube", youtube), ("reddit", reddit), ("linkedin", linkedin)]:
+    for name, res in [
+        ("wikipedia", wiki), ("youtube", youtube), ("reddit", reddit),
+        ("linkedin", linkedin), ("g2", g2), ("capterra", capterra),
+        ("crunchbase", crunchbase), ("producthunt", ph), ("serp_diversity", serp),
+    ]:
         if isinstance(res, Exception):
             platforms[name] = {"platform": name, "found": False, "error": str(res), "score": 0}
         else:
             platforms[name] = res
 
     # Calculate footprint score (weighted)
-    wiki_score = platforms["wikipedia"].get("score", 0)
-    yt_score = platforms["youtube"].get("score", 0)
-    reddit_score = platforms["reddit"].get("score", 0)
-    linkedin_score = platforms["linkedin"].get("score", 0)
-
-    footprint_score = round(
-        wiki_score * (_PLATFORM_WEIGHTS["wikipedia"] / 100)
-        + yt_score * (_PLATFORM_WEIGHTS["youtube"] / 100)
-        + reddit_score * (_PLATFORM_WEIGHTS["reddit"] / 100)
-        + linkedin_score * (_PLATFORM_WEIGHTS["linkedin"] / 100)
-    )
+    footprint_score = 0.0
+    for key, weight in _PLATFORM_WEIGHTS.items():
+        footprint_score += platforms.get(key, {}).get("score", 0) * (weight / 100)
 
     return {
         "brand_name": brand_name,
         "domain": domain,
-        "footprint_score": min(footprint_score, 100),
+        "footprint_score": min(round(footprint_score), 100),
         "platforms": platforms,
     }
 
@@ -203,6 +253,52 @@ def _format_report(data: dict) -> str:
     else:
         lines.append("| LinkedIn | ❌ Not found | Create a LinkedIn company page |")
 
+    # G2
+    g2 = p.get("g2", {})
+    if g2.get("found"):
+        lines.append(f"| G2 | ✅ {g2.get('result_count', 0)} results | SaaS buyer trust signal |")
+    else:
+        lines.append("| G2 | ❌ Not found | Claim your G2 product page for buyer credibility |")
+
+    # Capterra
+    cap = p.get("capterra", {})
+    if cap.get("found"):
+        lines.append(f"| Capterra | ✅ {cap.get('result_count', 0)} results | Software buyer discovery |")
+    else:
+        lines.append("| Capterra | ❌ Not found | List on Capterra to reach SMB software buyers |")
+
+    # Crunchbase
+    cb = p.get("crunchbase", {})
+    if cb.get("found"):
+        lines.append(f"| Crunchbase | ✅ Found | Company credibility signal |")
+    else:
+        lines.append("| Crunchbase | ❌ Not found | Create a Crunchbase profile for company credibility |")
+
+    # Product Hunt
+    ph = p.get("producthunt", {})
+    if ph.get("found"):
+        lines.append(f"| Product Hunt | ✅ {ph.get('result_count', 0)} results | Maker community discovery |")
+    else:
+        lines.append("| Product Hunt | ❌ Not found | Launch on Product Hunt for early adopter visibility |")
+
+    # SERP Diversity
+    lines.append("\n### Brand SERP Diversity\n")
+    serp = p.get("serp_diversity", {})
+    tp_count = serp.get("third_party_count", 0)
+    total = serp.get("total_results", 0)
+    if tp_count >= 3:
+        lines.append(f"✅ **{tp_count}/{total}** results on page 1 are from third-party sources — strong brand SERP diversity.")
+    elif tp_count >= 1:
+        lines.append(f"⚠️ Only **{tp_count}/{total}** third-party results — your brand SERP is too dependent on your own domain.")
+    else:
+        lines.append("❌ No third-party results found for your brand name — brand SERP is weak.")
+
+    tp_sources = serp.get("third_party_sources", [])
+    if tp_sources:
+        lines.append("\nThird-party sources found:")
+        for src in tp_sources[:5]:
+            lines.append(f"- [{src['domain']}]({src['url']}): {src['title']}")
+
     # Recommendations
     lines.append("\n### Priority Actions\n")
     missing = []
@@ -214,12 +310,18 @@ def _format_report(data: dict) -> str:
         missing.append("Reddit community presence (correlation: 0.68)")
     if not wiki.get("has_wikidata"):
         missing.append("Wikidata entity (correlation: 0.61 — enables AI entity disambiguation)")
+    if not g2.get("found"):
+        missing.append("G2 product page (critical for SaaS buyer trust)")
+    if not cb.get("found"):
+        missing.append("Crunchbase profile (company credibility and media discovery)")
+    if tp_count < 3:
+        missing.append("more third-party brand mentions (target 3+ independent results on brand SERP)")
 
     if missing:
         for i, action in enumerate(missing, 1):
             lines.append(f"{i}. Create **{action}**")
     else:
-        lines.append("Brand has strong digital footprint across all key AI-indexed platforms.")
+        lines.append("Brand has strong digital footprint across all key platforms.")
 
     lines.append("\n> **Schema.org tip:** Add `sameAs` links in your Organization JSON-LD to Wikipedia, Wikidata, YouTube, LinkedIn, and Reddit profiles.")
 
@@ -228,6 +330,6 @@ def _format_report(data: dict) -> str:
 
 @function_tool
 async def scan_brand_presence(brand_name: str, domain: str = "") -> str:
-    """Scan brand presence across platforms that correlate with AI visibility: YouTube (0.737), Reddit (0.68), Wikipedia (0.65), Wikidata (0.61), LinkedIn (0.52). Returns a digital footprint score and platform-by-platform analysis."""
+    """Scan brand presence across platforms that correlate with AI visibility and buyer trust: YouTube, Reddit, Wikipedia, LinkedIn, G2, Capterra, Crunchbase, Product Hunt. Also checks brand SERP diversity (third-party results when searching the brand name). Returns a digital footprint score and platform-by-platform analysis."""
     data = await _brand_presence_impl(brand_name, domain or None)
     return _format_report(data)

@@ -166,6 +166,7 @@ async def delete_project(project_id: int) -> bool:
         await db.execute("DELETE FROM ai_crawler_scans WHERE project_id = ?", (project_id,))
         await db.execute("DELETE FROM brand_presence_scans WHERE project_id = ?", (project_id,))
         await db.execute("DELETE FROM brand_kits WHERE project_id = ?", (project_id,))
+        await db.execute("DELETE FROM blog_drafts WHERE project_id = ?", (project_id,))
         await db.execute("DELETE FROM manual_tracking WHERE project_id = ?", (project_id,))
         try:
             await db.execute("DELETE FROM report_tasks WHERE project_id = ?", (project_id,))

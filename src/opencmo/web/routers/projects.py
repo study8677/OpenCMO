@@ -194,6 +194,7 @@ async def api_v1_project_summary(project_id: int):
     pending_approvals = len(
         [item for item in await storage.list_approvals(status="pending", limit=200) if item.get("project_id") == project_id]
     )
+    blog_drafts_count = await storage.count_blog_drafts(project_id)
     return JSONResponse({
         "project": project,
         "is_paused": is_paused,
@@ -204,6 +205,7 @@ async def api_v1_project_summary(project_id: int):
         "keyword_count": keyword_count,
         "competitor_count": competitor_count,
         "pending_approvals": pending_approvals,
+        "blog_drafts_count": blog_drafts_count,
     })
 
 

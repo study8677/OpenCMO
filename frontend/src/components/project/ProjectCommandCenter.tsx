@@ -1,4 +1,5 @@
-import { ArrowRight, Bot, FileText, GitBranch, Globe, Search, Users } from "lucide-react";
+import { ArrowRight, Bot, FileText, GitBranch, Globe, PenLine, Search, Users } from "lucide-react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import type { LatestReports, LatestScans, MonitoringSummary } from "../../types";
 import { useI18n } from "../../i18n";
@@ -14,6 +15,7 @@ type AgentCardData = {
   found: string;
   why: string;
   next: string;
+  action?: ReactNode;
 };
 
 function SummaryCard({
@@ -42,6 +44,7 @@ function AgentCard({
   found,
   why,
   next,
+  action,
   whatFoundLabel,
   whyLabel,
   nextLabel,
@@ -82,6 +85,7 @@ function AgentCard({
             {next}
           </p>
         </div>
+        {action && <div className="mt-2">{action}</div>}
       </div>
     </article>
   );
@@ -125,8 +129,10 @@ export function ProjectCommandCenter({
   latestReports,
   competitorCount = 0,
   pendingApprovals = 0,
+  blogDraftsCount = 0,
   actionsOverride,
   routeOverrides,
+  contentAction,
 }: {
   projectId: number;
   latest: LatestScans;
@@ -134,7 +140,9 @@ export function ProjectCommandCenter({
   latestReports?: LatestReports;
   competitorCount?: number;
   pendingApprovals?: number;
+  blogDraftsCount?: number;
   actionsOverride?: NextAction[];
+  contentAction?: ReactNode;
   routeOverrides?: Partial<Record<
     "changedToday" | "whatMattersNow" | "readyToShip" | "siteHealth" | "aiSearch" | "community" | "competitor" | "report",
     string
@@ -188,6 +196,10 @@ export function ProjectCommandCenter({
     latestMonitoring != null
       ? t("agents.reportFound", { findings: findingsCount, actions: recommendationsCount })
       : t("agents.reportPending");
+  const contentFound =
+    blogDraftsCount > 0
+      ? t("agents.contentFound", { count: blogDraftsCount })
+      : t("agents.contentPending");
 
   const primaryAction =
     pendingApprovals > 0
@@ -254,6 +266,15 @@ export function ProjectCommandCenter({
       found: reportFound,
       why: t("agents.reportWhy"),
       next: reportReady ? t("agents.reportNext") : t("agents.defaultNext"),
+    },
+    {
+      key: "content",
+      title: t("agents.content"),
+      icon: PenLine,
+      found: contentFound,
+      why: t("agents.contentWhy"),
+      next: t("agents.contentNext"),
+      action: contentAction,
     },
   ];
 

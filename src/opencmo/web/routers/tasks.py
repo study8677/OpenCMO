@@ -403,6 +403,28 @@ async def _serialize_graph_task(task: dict) -> dict:
     }
 
 
+async def _serialize_blog_gen_task(task: dict) -> dict:
+    events = await bg_service.list_task_events(task["task_id"])
+    payload = task["payload"] or {}
+    result = task["result"] or {}
+    error = task["error"] or {}
+    return {
+        "task_id": task["task_id"],
+        "task_kind": "blog_generation",
+        "project_id": task["project_id"],
+        "status": _compat_status(task["status"]),
+        "created_at": task["created_at"],
+        "completed_at": task["completed_at"],
+        "error": error.get("message"),
+        "progress": _progress_from_events(events),
+        "summary": result.get("summary") or error.get("message") or "",
+        "style": payload.get("style"),
+        "bilingual": payload.get("bilingual", False),
+        "draft_ids": result.get("draft_ids", []),
+        "quality_scores": result.get("quality_scores"),
+    }
+
+
 async def serialize_background_task(task: dict) -> dict:
     kind = task["kind"]
     if kind == "scan":
@@ -411,7 +433,23 @@ async def serialize_background_task(task: dict) -> dict:
         return await _serialize_report_task(task)
     if kind == "graph_expansion":
         return await _serialize_graph_task(task)
-    raise ValueError(f"Unsupported background task kind: {kind}")
+    if kind == "blog_generation":
+        return await _serialize_blog_gen_task(task)
+    # Fallback for unrecognized kinds (e.g. github_enrich)
+    events = await bg_service.list_task_events(task["task_id"])
+    result = task["result"] or {}
+    error = task["error"] or {}
+    return {
+        "task_id": task["task_id"],
+        "task_kind": kind,
+        "project_id": task["project_id"],
+        "status": _compat_status(task["status"]),
+        "created_at": task["created_at"],
+        "completed_at": task["completed_at"],
+        "error": error.get("message"),
+        "progress": _progress_from_events(events),
+        "summary": result.get("summary") or error.get("message") or "",
+    }
 
 
 @router.get("/tasks")

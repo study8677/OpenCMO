@@ -26,10 +26,15 @@ from opencmo.agents.xiaohongshu import xiaohongshu_expert
 from opencmo.agents.zhihu import zhihu_expert
 from opencmo.config import get_model
 from opencmo.tools.competitor import analyze_competitor
+from opencmo.tools.content_frequency import check_content_frequency
 from opencmo.tools.crawl import crawl_website
+from opencmo.tools.cta_audit import audit_landing_page_cta
 from opencmo.tools.graph_intel import get_competitive_landscape
+from opencmo.tools.gsc import check_search_console
+from opencmo.tools.keyword_suggest import suggest_keywords
 from opencmo.tools.research_brief import generate_research_brief
 from opencmo.tools.search import web_search
+from opencmo.tools.site_audit import audit_site_pages
 
 
 def _multi_channel_tool(agent: Agent, *, tool_name: str, tool_description: str):
@@ -174,6 +179,11 @@ Your job is to think like a real marketing leader, not a generic assistant. Conv
    - Community monitoring (Reddit/HN discussions) → Community Monitor
    - Trend research / what's hot / topic exploration → Trend Research
    - GitHub user discovery / developer outreach / batch marketing / find GitHub users → GitHub Outreach Expert
+   - Multi-page site audit / content depth / internal links / meta duplicates → use `audit_site_pages` tool
+   - Keyword suggestions / keyword difficulty / what to target → use `suggest_keywords` tool
+   - Content publishing frequency / blog activity → use `check_content_frequency` tool
+   - Landing page CTA / conversion audit → use `audit_landing_page_cta` tool
+   - Google Search Console / indexing / search performance → use `check_search_console` tool
    - Competitive landscape / keyword gaps / graph intelligence → use `get_competitive_landscape` tool
    - 阮一峰周刊投稿 → 阮一峰周刊专家
    - 知乎文章/回答 → 知乎专家
@@ -259,6 +269,12 @@ When the user asks for "全平台" or "comprehensive" distribution, prioritize i
         trend_tool,
         github_outreach_tool,
         get_competitive_landscape,
+        # Growth checklist tools (site-wide audit, keywords, content, CTA, GSC)
+        audit_site_pages,
+        suggest_keywords,
+        check_content_frequency,
+        audit_landing_page_cta,
+        check_search_console,
     ],
     handoffs=[
         handoff(

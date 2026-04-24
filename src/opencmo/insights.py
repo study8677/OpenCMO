@@ -211,6 +211,74 @@ async def _detect_citability_regression(project_id: int) -> list[Insight]:
     return insights
 
 
+async def _detect_brand_presence_decline(project_id: int) -> list[Insight]:
+    """Detect brand presence score decline (>15 point drop)."""
+    insights: list[Insight] = []
+    history = await storage.get_brand_presence_history(project_id, limit=2)
+    if len(history) >= 2:
+        current = history[0].get("footprint_score", 0)
+        previous = history[1].get("footprint_score", 0)
+        drop = previous - current
+        if drop > 15:
+            insights.append(Insight(
+                project_id=project_id,
+                insight_type="brand_presence_decline",
+                severity="warning",
+                title=f"Brand presence score dropped {drop} points",
+                summary=f"Digital footprint score fell from {previous} to {current}/100. Check platform presence across G2, Capterra, LinkedIn, and other credibility signals.",
+                action_type="chat",
+                action_params=f'{{"message": "My brand presence score dropped from {previous} to {current}. What platforms should I focus on to improve?"}}',
+            ))
+    return insights
+
+
+async def _detect_low_content_frequency(project_id: int) -> list[Insight]:
+    """Detect sites with no blog or very low content publishing frequency.
+
+    Only fires after at least one successful SEO scan (proof that the URL is
+    reachable), to avoid false positives on newly added or test projects.
+    """
+    project = await storage.get_project(project_id)
+    if not project:
+        return []
+
+    # Only check content frequency if the site has been successfully scanned before
+    seo_history = await storage.get_seo_history(project_id, limit=1)
+    if not seo_history:
+        return []
+
+    try:
+        from opencmo.tools.content_frequency import _analyze_content_frequency
+        data = await _analyze_content_frequency(project["url"])
+    except Exception:
+        return []
+
+    if not data.get("has_blog"):
+        return [Insight(
+            project_id=project_id,
+            insight_type="no_content_hub",
+            severity="warning",
+            title="No blog or content section detected",
+            summary="A regularly updated blog is essential for SEO growth. Without one, you miss opportunities to rank for problem, tool, and comparison keywords.",
+            action_type="chat",
+            action_params=f'{{"message": "I don\'t have a blog yet. Help me plan a content strategy for my product."}}',
+        )]
+
+    ppm = data.get("posts_per_month", 0)
+    if ppm is not None and ppm < 1:
+        return [Insight(
+            project_id=project_id,
+            insight_type="low_content_frequency",
+            severity="info",
+            title=f"Content publishing frequency is low ({ppm} posts/month)",
+            summary="Publishing fewer than 2 posts per month limits your keyword coverage growth. Consider increasing publishing cadence.",
+            action_type="chat",
+            action_params=f'{{"message": "I only publish {ppm} posts per month. Help me plan a content calendar."}}',
+        )]
+
+    return []
+
+
 async def _detect_ai_crawler_blocks(project_id: int) -> list[Insight]:
     """Detect if >50% of AI crawlers are blocked."""
     insights: list[Insight] = []
@@ -244,6 +312,8 @@ _DETECTORS = [
     _detect_competitor_gaps,
     _detect_citability_regression,
     _detect_ai_crawler_blocks,
+    _detect_brand_presence_decline,
+    _detect_low_content_frequency,
 ]
 
 

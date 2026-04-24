@@ -75,7 +75,11 @@ export function PublicSiteHeader({
   const wrapperClass =
     theme === "dark"
       ? "border-white/10 bg-[#08141f]/72 text-white backdrop-blur-xl"
-      : "border-slate-200/70 bg-[#f6efe5]/88 text-slate-950 backdrop-blur-xl";
+      : "border-slate-950/6 bg-white/72 text-slate-950 backdrop-blur-xl";
+  const brandIconClass =
+    theme === "dark"
+      ? "bg-[#c96f45] text-white shadow-[0_14px_30px_rgba(201,111,69,0.28)]"
+      : "border border-slate-200 bg-white text-slate-900 shadow-[0_10px_24px_rgba(15,23,42,0.06)]";
   const brandMetaClass =
     theme === "dark" ? "text-white/60" : "text-slate-500";
   const navClass =
@@ -99,7 +103,7 @@ export function PublicSiteHeader({
     <header className={`sticky top-0 z-30 border-b ${wrapperClass}`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4 lg:px-8">
         <Link to={homeHref} className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#c96f45] text-white shadow-[0_14px_30px_rgba(201,111,69,0.28)]">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${brandIconClass}`}>
             <Sparkles size={18} />
           </div>
           <div className="min-w-0">

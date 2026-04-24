@@ -3,10 +3,15 @@ from agents import Agent
 from opencmo.agents.prompt_contracts import build_prompt
 from opencmo.config import get_model
 from opencmo.tools.ai_crawler_check import check_ai_crawler_access, check_llms_txt
+from opencmo.tools.content_frequency import check_content_frequency
+from opencmo.tools.cta_audit import audit_landing_page_cta
+from opencmo.tools.gsc import check_search_console
+from opencmo.tools.keyword_suggest import suggest_keywords
 from opencmo.tools.llmstxt import generate_llmstxt, validate_llmstxt
 from opencmo.tools.search import web_search
 from opencmo.tools.seo_audit import audit_page_seo
 from opencmo.tools.serp_tracker import check_keyword_ranking, get_serp_trends
+from opencmo.tools.site_audit import audit_site_pages
 from opencmo.tools.trends import get_seo_trends
 
 seo_agent = Agent(
@@ -88,7 +93,9 @@ Think like a growth operator, not just a checker. Translate technical issues int
 - Be explicit about what is measured now versus what is a likely improvement path
 """,
     ),
-    tools=[audit_page_seo, web_search, get_seo_trends, check_keyword_ranking, get_serp_trends,
-           check_ai_crawler_access, check_llms_txt, validate_llmstxt, generate_llmstxt],
+    tools=[audit_page_seo, audit_site_pages, web_search, get_seo_trends, check_keyword_ranking,
+           get_serp_trends, check_ai_crawler_access, check_llms_txt, validate_llmstxt,
+           generate_llmstxt, suggest_keywords, check_content_frequency, audit_landing_page_cta,
+           check_search_console],
     model=get_model("seo"),
 )

@@ -11,6 +11,7 @@ import { ActionFeed } from "../components/project/ActionFeed";
 import { InsightBanner } from "../components/dashboard/InsightBanner";
 import { useI18n } from "../i18n";
 import { ProjectCommandCenter } from "../components/project/ProjectCommandCenter";
+import { BlogGenerateButton } from "../components/project/BlogGenerateButton";
 
 export function ProjectPage() {
   const { id } = useParams();
@@ -31,6 +32,7 @@ export function ProjectPage() {
     is_paused,
     competitor_count,
     pending_approvals,
+    blog_drafts_count,
   } = data;
 
   return (
@@ -47,6 +49,8 @@ export function ProjectPage() {
           latestReports={latest_reports}
           competitorCount={competitor_count}
           pendingApprovals={pending_approvals}
+          blogDraftsCount={blog_drafts_count}
+          contentAction={<BlogGenerateButton projectId={projectId} />}
         />
 
         <section className="rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-sm">

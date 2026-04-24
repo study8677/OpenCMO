@@ -488,7 +488,7 @@ export function SampleAuditPage() {
         </section>
 
         <div className="mx-auto max-w-7xl px-4 pt-16 lg:px-8">
-          <SiteFooter />
+          <SiteFooter variant="public" />
         </div>
       </main>
     </div>

@@ -1,429 +1,118 @@
-# CMO Prompt Hardening Redesign
-
-Date: 2026-04-09
-Status: Approved in conversation, pending spec review
-Scope: CMO chat flow, platform experts, autopilot generation, report prompts, brand-kit prompt injection, marketing review pass, prompt regression tests
-
-## Summary
-
-OpenCMO already has useful prompt assets, especially in the main CMO chat flow and several platform experts. The current weakness is not lack of prompt text. The weakness is uneven prompt quality across execution paths, weak prompt reuse, and insufficient guardrails against fabricated claims, off-platform tone, and generic AI marketing language.
-
-This redesign hardens the whole prompt system around one priority: better CMO-quality judgment with stronger factual discipline and more native channel voice, across both interactive and automated flows.
-
-The design chooses quality over cost and latency. It intentionally favors stronger constraints, deeper reasoning, and explicit evidence handling over prompt brevity.
-
-## Problems To Solve
-
-### Current problems
-
-1. Main chat flow is stronger than automated generation.
-   `autopilot` creates weak temporary agents instead of reusing expert-grade prompt contracts, so output quality drops outside the main conversation path.
-
-2. Brand guidance is injected as freeform prompt text.
-   This makes it possible for custom instructions to blur priority between brand preferences, factual constraints, and platform-native constraints.
-
-3. Report prompts are effective but oversized and tightly coupled.
-   Strategic and periodic prompt logic mixes role definition, scoring rules, output structure, anti-hallucination guidance, and audience behavior into one large block, making iteration brittle.
-
-4. Prompt tests protect strings more than behavior.
-   Existing tests verify that some phrases exist, but do not adequately defend against regressions in factual discipline, anti-hype behavior, or platform-native voice.
-
-### Failures the redesign must minimize
-
-- Fabricated facts, invented numbers, unsupported competitive claims, or invented evidence
-- Channel outputs that sound technically correct but not native to the target platform
-- Oily, over-marketed, AI-sounding language
-
-## Goals
-
-1. Unify the whole CMO system around one shared prompt contract.
-2. Make factual discipline the highest-priority rule in every generation path.
-3. Increase platform-native writing quality for channel experts.
-4. Ensure autopilot and chat produce content at the same quality tier.
-5. Keep reports sharp, evidence-based, and easier to maintain.
-6. Add regression tests that protect behavior, not just phrasing.
-
-## Non-Goals
-
-1. This redesign does not change the product's business logic or data model outside prompt-related structures.
-2. This redesign does not attempt to solve model quality limits with provider changes.
-3. This redesign does not introduce new external dependencies.
-4. This redesign does not redesign the frontend UX beyond prompt-related behavior already exposed by current flows.
-
-## Chosen Approach
-
-Three approaches were considered during brainstorming:
-
-1. Rewrite prompt text only
-2. Restructure prompt templates and contracts
-3. Restructure prompt templates and contracts, then add regression verification
-
-The chosen approach is option 3.
-
-Reason:
-- Text-only edits would improve the best path but leave the weakest path weak
-- The system needs reusable prompt layers, not more isolated long strings
-- Regression tests are required so future edits do not quietly reintroduce fabrication, hype, or off-platform tone
-
-## Design Principles
-
-1. Facts before flourish
-   The system should rather say "evidence is missing" than produce a persuasive invention.
-
-2. Judgment before draft
-   The CMO layer should default to: what is happening, why it matters, what to do next.
-
-3. Native over generic
-   Each platform expert must sound like someone who understands the local norms, not like a marketing assistant wearing a costume.
-
-4. Shared rules, local specialization
-   Common rules should live once. Platform-specific behavior should only describe what is unique to that platform.
-
-5. Review as polish, not rescue
-   The final review pass should lightly tighten wording and remove AI tone. It must not compensate for weak core prompts.
-
-## Prompt Contract Architecture
-
-The redesigned prompt system will be organized into composable layers.
-
-### 1. Core Truth Contract
-
-Applied to all major generation paths.
-
-Responsibilities:
-- Require explicit separation between facts, inference, and recommendations where relevant
-- Disallow fabricated metrics, invented testimonials, invented user reactions, or invented competitor strengths and weaknesses
-- Force the model to acknowledge missing evidence instead of filling gaps
-- Require claims to be grounded in provided context, tool results, or known project context
-
-This layer is the highest-priority contract and must not be overridden by brand or channel preferences.
-
-### 2. Anti-Slop and Voice Guardrails
-
-Applied to all major generation paths.
-
-Responsibilities:
-- Ban generic AI transitions and empty summaries
-- Reduce marketing-speak and announcement-speak
-- Prefer concrete language, customer language, and direct judgment
-- Make "why this matters" and "next move" explicit where the task is analytical or strategic
-
-This layer creates the "senior operator" quality bar across the system.
-
-### 3. Channel-Native Contracts
-
-Applied only to platform or content experts.
-
-Responsibilities:
-- Define local audience expectations
-- Define what language patterns feel inauthentic or promotional
-- Define preferred structures and tone
-- Define platform-specific hard bans and default output shape
-
-Examples:
-- Reddit: first person, humble, helpful, low-promo, explicit feedback-seeking
-- Zhihu: useful, experience-driven, high signal, low hard-sell, can include "利益相关" framing when appropriate
-- Xiaohongshu: concrete scenario framing, personal angle, low corporate tone
-- Hacker News: technical credibility, high signal, no product-launch hype
-
-### 4. Task Contracts
-
-Applied based on user intent or execution mode.
-
-Responsibilities:
-- Distinguish strategy, content writing, audits, reports, and autopilot briefs
-- Define expected output structure and decision depth
-- Control when the system should prioritize diagnosis, recommendation, or direct drafting
-
-Examples:
-- CMO strategy task: judgment -> evidence -> recommendation -> next move
-- Platform content task: native draft first, optional explanation second
-- Report task: findings -> implications -> priority -> action plan
-
-### 5. Brand Overlay Contract
-
-Applied after truth and voice guardrails, before final output shaping.
-
-Responsibilities:
-- Inject tone, audience, values, preferred framing, forbidden words, and custom brand notes
-- Constrain brand guidance so it cannot override truth, evidence, or platform safety rules
-
-This must be structured, not freeform concatenation.
-
-## Surface-by-Surface Redesign
-
-### A. CMO Chat Flow
-
-Current role:
-- Router with useful context and broad marketing framing
-
-New role:
-- Evidence-driven marketing lead and orchestrator
-
-Behavior changes:
-- Default to giving a clear judgment before offering options
-- When evidence is incomplete, say exactly what is known, what is inferred, and what remains uncertain
-- Route platform-specific tasks to experts while preserving shared truth and anti-slop constraints
-- Keep multi-channel orchestration but ensure all channel outputs inherit the same hard factual contract
-
-Expected outcome:
-- The CMO feels more decisive and less like a generalized assistant
-
-### B. Platform Experts
-
-Current role:
-- Strong but unevenly structured platform specialists
-
-New role:
-- Specialists built from shared contracts plus explicit local-native behavior
-
-Behavior changes:
-- Move repeated generic marketing rules into shared builders
-- Keep only local-native rules in each expert file
-- Strengthen each expert's "what users dislike here" guidance
-- Tighten output shape so the first output is directly usable
-
-Expected outcome:
-- Better channel voice with less drift and less duplicated prompt text
-
-### C. Autopilot
-
-Current role:
-- Rule-based trigger system with weak temporary content agents
-
-New role:
-- Automated content generator that reuses expert-grade contracts
-
-Behavior changes:
-- Stop creating low-context generic agents for content generation
-- Reuse the existing expert prompt path, or a shared builder that produces the same contract quality as the expert path
-- Ensure brand overlays and truth constraints are applied consistently in autopilot
-
-Expected outcome:
-- Automated content quality becomes materially closer to the interactive path
-
-### D. Report Generation
-
-Current role:
-- Strong but oversized prompt blocks
-
-New role:
-- Modular report prompts with reusable evidence and anti-hallucination layers
-
-Behavior changes:
-- Extract shared scoring, factual discipline, and anti-fabrication rules
-- Separate human-audience narrative structure from agent-audience execution structure
-- Separate strategic vs periodic task logic into task contract fragments
-
-Expected outcome:
-- Easier maintenance, lower regression risk, stronger factual consistency
-
-### E. Brand Kit Injection
-
-Current role:
-- Freeform prompt fragment
-
-New role:
-- Structured prompt overlay with bounded scope
-
-Behavior changes:
-- Normalize brand kit data into explicit categories such as tone, audience, must-avoid, proof preferences, and custom notes
-- Apply brand kit after truth rules so it cannot weaken factual discipline
-- Treat custom instructions as low-priority notes, not as absolute system overrides
-
-Expected outcome:
-- Better brand consistency without corrupting platform or truth rules
-
-### F. Marketing Review Pass
-
-Current role:
-- Powerful final rewrite layer
-
-New role:
-- Light editorial pass
-
-Behavior changes:
-- Keep anti-AI-tone cleanup and profile-aware phrasing guidance
-- Avoid using review as a substitute for weak core prompts
-- Favor light correction over large rewrites
-
-Expected outcome:
-- Final outputs feel cleaner without introducing a second competing content generator
-
-## Proposed Internal Structure
-
-The implementation should converge toward a small prompt-building surface, for example:
-
-- shared truth rules
-- shared anti-slop rules
-- shared marketing decision frame
-- task-level builders
-- channel-level builders
-- brand overlay builder
-
-The exact file layout can be decided during implementation planning, but the important point is that prompt assembly becomes centralized and explicit.
-
-The design intentionally avoids prescribing a large framework or DSL. The repo should keep a lightweight Python-native composition model.
-
-## Data Flow
-
-### Interactive CMO flow
-
-1. User message enters chat router
-2. Project context and locale are injected
-3. CMO prompt is built from:
-   - core truth contract
-   - shared anti-slop rules
-   - CMO task contract
-   - optional brand overlay
-4. CMO decides:
-   - answer directly
-   - hand off to a platform expert
-   - orchestrate multiple tool-based expert outputs
-5. Optional final review lightly edits output
-
-### Autopilot flow
-
-1. Insight rule chooses channel and task
-2. Autopilot builds or reuses expert-grade prompt contract for that channel
-3. Brand overlay is injected within bounded priority
-4. Output is generated with the same factual and anti-slop constraints as the main path
-5. Content enters approval flow
-
-### Report flow
-
-1. Facts and metadata are collected
-2. Shared report evidence contract is applied
-3. Audience and task contract are selected
-4. Human report uses pipeline, agent brief uses single-call generation
-5. Each prompt path remains bound by anti-fabrication and anti-ungrounded-quantification rules
-
-## Error Handling And Safety
-
-### Missing evidence
-
-When the model lacks enough evidence:
-- it should not invent support
-- it should explicitly mark uncertainty
-- it should suggest the next evidence to gather if the task is strategic or diagnostic
-
-### Brand conflicts
-
-If brand guidance conflicts with truth or platform-native constraints:
-- truth wins over brand
-- platform-native safety wins over brand
-- brand tone is preserved only where it does not weaken those higher-priority rules
-
-### Review failures
-
-If the review pass fails:
-- return the original output
-- do not block the user flow
-- do not silently replace with malformed review text unless there is clearly valid content
-
-## Testing Strategy
-
-This redesign requires prompt regression tests that verify behavior-level contracts.
-
-### 1. Shared contract tests
-
-Verify the shared builders include:
-- factual discipline
-- anti-fabrication constraints
-- anti-AI-tone guidance
-- explicit next-move framing where required
-
-### 2. Platform contract tests
-
-Verify each key platform contract includes its native hard rules.
-
-Examples:
-- Reddit forbids marketing-speak and requires first-person maker voice
-- Zhihu requires useful, experience-based, low-hard-sell framing
-- Blog requires evidence-aware longform structure and explicit research expectations
-
-### 3. Autopilot reuse tests
-
-Verify autopilot uses expert-grade or builder-equivalent prompt contracts rather than weak temporary generic instructions.
-
-### 4. Brand overlay tests
-
-Verify brand kit overlays:
-- are present
-- remain structured
-- do not override truth rules
-- do not erase platform-native constraints
-
-### 5. Report prompt tests
-
-Preserve and extend current guardrails:
-- no fake CLI contracts
-- no forced unsupported metrics
-- no invented quantification
-- explicit distinction between evidence-backed facts and recommendations where relevant
-
-### 6. Review pass tests
-
-Verify review is a light editorial pass:
-- preserves language
-- preserves platform constraints
-- does not introduce fabricated claims
-
-## Acceptance Criteria
-
-The redesign is successful when:
-
-1. Chat and autopilot share the same prompt quality tier.
-2. Platform experts are more native and less generic without becoming hype-heavy.
-3. The system is materially less likely to invent numbers, proof, or competitive claims.
-4. Report prompts become easier to maintain and still preserve current anti-fabrication protections.
-5. Regression tests defend the contracts above.
-
-## Risks
-
-### Risk: prompts become too rigid
-
-If constraints are too hard, outputs may become dry or repetitive.
-
-Mitigation:
-- keep anti-slop guidance strong
-- reserve flexibility inside channel-native sections
-- use review pass only for polish, not for major rewrites
-
-### Risk: builder abstraction hides important local nuance
-
-If too much is centralized, platform prompts may lose personality.
-
-Mitigation:
-- centralize only shared rules
-- keep local-native behavior explicit in each channel profile
-
-### Risk: increased latency and token usage
-
-Quality-first prompt composition will increase prompt size.
-
-Mitigation:
-- accept this as a chosen tradeoff
-- keep reusable sections concise and information-dense
-
-## Implementation Boundary
-
-This spec defines the design only. It does not lock exact function names or exact file names for the eventual implementation.
-
-Those choices should be finalized in the implementation plan, but the plan must preserve these architectural decisions:
-
-- one shared truth contract
-- one shared anti-slop contract
-- task-based prompt composition
-- platform-native channel contracts
-- structured brand overlay
-- autopilot reuse of expert-grade prompt quality
-- regression tests for factual discipline and platform tone
-
-## Open Questions
-
-None blocking for planning. The user approved:
-- quality over cost and latency
-- combined strategic plus content-director personality
-- priority on preventing fabrication, off-platform voice, and over-marketed tone
-- willingness to change prompt structure and code paths where needed
+  ======================================================================
+          Claude Code 用户交互模式分析报告
+  ======================================================================
+
+  ### A. 基础统计
+
+    扫描 JSONL 文件数      : 341
+    有效会话数（含用户消息）: 276
+    有 follow-up 的会话数   : 246
+    单消息会话数            : 28
+    总用户消息数            : 3232
+    总 follow-up 数         : 2958
+    平均每会话消息数        : 11.7
+    最大消息数              : 253
+
+  ### B. Follow-up 消息分类
+
+    确认继续 (CONFIRM_AND_PROCEED)
+      数量:  729  占比: 24.6%  ███████░░░░░░░░░░░░░░░░░░░░░░░
+      例1: 缺人
+      例2: 确认
+      例3: 可以
+
+    极简指令 (SHORT_DIRECTIVE)
+      数量:  527  占比: 17.8%  █████░░░░░░░░░░░░░░░░░░░░░░░░░
+      例1: 这不是安卓项目吗 你给我彻底完成 我要看这个软件放到我的安卓手机上
+      例2: 当前点击开始打卡之后闪退 你帮助我修复一下
+      例3: 有个问题啊 演示模式下地图没有展示啊 虽然有经纬度 但是没有地图 没有轨迹啊
+
+    快速行动指令 (QUICK_ACTION)
+      数量:  242  占比:  8.2%  ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+      例1: 你帮我把软件放到一个文件夹里 以及写一个安装说明
+      例2: 好的 现在项目还在运行吗 我现在不需要运行了
+      例3: 你不应该重新生成文件 你应该在模板上直接插入保持格式 给我做吧
+
+    快速追问 (QUICK_QUESTION)
+      数量:  755  占比: 25.5%  ███████░░░░░░░░░░░░░░░░░░░░░░░
+      例1: 我的论文写完了吗 项目怎么启动呢？
+      例2: 好的 论文给我搞定了吗？
+      例3: 能否我的api不需要后端运行可以用呢？
+
+    纠错/方向修正 (CORRECTION)
+      数量:  107  占比:  3.6%  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+      例1: 不不不 我希望调用llm来达到更准确的效果
+      例2: 不不不 还是要按照功能的 超了的话也要考虑功能 可以超这个token...
+      例3: 不是的 不应该是从模型入手 就是分配agent的上下文...
+
+    跟进追问 (FOLLOWUP_QUESTION)
+      数量:   78  占比:  2.6%  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+    方向调整 (DIRECTION_SHIFT)
+      数量:  116  占比:  3.9%  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+    新子任务 (NEW_SUBTASK)
+      数量:   57  占比:  1.9%  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+    战略性追问 (STRATEGIC_QUESTION)
+      数量:  167  占比:  5.6%  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+    重大输入/新需求 (MAJOR_INPUT)
+      数量:  180  占比:  6.1%  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+
+  ### C. 可预测性分组
+
+    可做选择题（高确信预测）: 2360 (79.8%)  ███████████████████████░░░░░░░
+    部分可预测（需上下文）  :  251 ( 8.5%)  ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    难以预测（开放式输入）  :  347 (11.7%)  ███░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+  ### D. 消息长度分布
+
+    极短 (≤20字)   : 1071 (36.2%)  ██████████░░░░░░░░░░░░░░░░░░░░
+    短   (21-50字) : 1015 (34.3%)  ██████████░░░░░░░░░░░░░░░░░░░░
+    中短 (51-100字):  334 (11.3%)  ███░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    中   (101-200字):  146 ( 4.9%)  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    中长 (201-500字):   87 ( 2.9%)  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    长   (500字+)  :  305 (10.3%)  ███░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+  ### E. 用户中断分析
+
+    总中断次数: 143
+    中断后下一条消息样本:
+      1. 我希望是cad的图 方案一：用 ezdxf 重写（推荐）你搞定吧
+      2. 我当前项目的github下 有两个pr 帮助我看一下
+      3. 刚才我说错了 是这台 也是硅谷的ins-j85pladu
+      4. 你可以看看别的tat腾讯云密钥试试
+      5. 不不不 我会给你openrouter的apikey的...
+      6. 是同时并行吗？
+      7. ["How is the weather today?", ...]
+      8. 继续
+
+  ### F. Session 长度分布
+
+     1 条消息:  28 会话  ██████████████████████████
+     2 条消息:  42 会话  ████████████████████████████████████████
+     3 条消息:  22 会话  ████████████████████
+     4 条消息:  21 会话  ████████████████████
+     5 条消息:  27 会话  █████████████████████████
+     6 条消息:  18 会话  █████████████████
+     7 条消息:  14 会话  █████████████
+     8 条消息:   7 会话  ██████
+     9 条消息:   8 会话  ███████
+    10 条消息:   7 会话  ██████
+    11 条消息:   8 会话  ███████
+    12 条消息:   9 会话  ████████
+    13 条消息:   6 会话  █████
+    15 条消息:   5 会话  ████
+    16 条消息:   6 会话  █████
+    31+条消息:  25 会话
+
+  核心发现：
+
+  - 约 80% 的 follow-up
+  消息是高度可预测的（确认、极简指令、快速追问、纠错），适合用选择题/快捷按钮来加速交互
+  - 70% 的消息 ≤ 50 字，用户倾向极简交互
+  - 最常见的模式是"快速追问"（25.5%）和"确认继续"（24.6%）——用户大量时间在确认和短问上
+  - 会话长度分布呈双峰：2 条消息最多（快速任务），同时有 25 个超长会话（31+ 条）
+  - 143 次用户中断，中断后多数是方向修正或补充指令

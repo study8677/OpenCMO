@@ -38,7 +38,8 @@ Frontend (React 19 + Vite)  ←→  FastAPI /api/v1/  ←→  SQLite (WAL)
 - **Community search**: Tavily → crawl4ai Google scrape fallback. Skip category queries when category is placeholder `"auto"`.
 - **BYOK**: Per-request API keys via `X-User-Keys` header → ContextVar. Background tasks capture and restore keys.
 - **SPA routing**: No `AnimatePresence key={pathname}` in AppShell — causes full remount and breaks query cache.
-- **Production topology**: Primary production is `newyork` (`192.3.16.77`). OpenCMO runs behind nginx on `80/443`, proxied to local `127.0.0.1:8081`.
+- **Production topology**: Primary production is `newyork` (`192.3.16.77`). OpenCMO runs behind nginx on `80/443`, proxied to local `127.0.0.1:8081`. Nginx config: `/etc/nginx/sites-enabled/aidcmo.conf`.
+- **Nginx security headers**: `Strict-Transport-Security` + `X-Frame-Options: DENY` configured in `aidcmo.conf`.
 - **Port allocation**: Do not assume production app port is `8080`. `8080` is occupied by `sub2api` on `newyork`; OpenCMO uses `8081`.
 - **BWG role**: `BWG` is no longer the primary OpenCMO host. Treat it as a lightweight box, temporary reverse proxy, or fallback node unless explicitly re-promoted.
 - **Browser-backed scans**: SEO/context fallback paths use `crawl4ai`/Playwright. Fresh servers need browser binaries installed, or scans will fail with `BrowserType.launch` executable errors.

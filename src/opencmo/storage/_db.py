@@ -530,6 +530,30 @@ CREATE TABLE IF NOT EXISTS github_discovery_runs (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     completed_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS blog_drafts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    task_id TEXT NOT NULL,
+    style TEXT NOT NULL DEFAULT 'launch',
+    language TEXT NOT NULL DEFAULT 'en',
+    status TEXT NOT NULL DEFAULT 'generating',
+    title TEXT NOT NULL DEFAULT '',
+    content TEXT NOT NULL DEFAULT '',
+    product_profile_json TEXT NOT NULL DEFAULT '{}',
+    quality_scores_json TEXT NOT NULL DEFAULT '{}',
+    paired_draft_id INTEGER REFERENCES blog_drafts(id),
+    approval_id INTEGER,
+    meta_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    completed_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_blog_drafts_project
+ON blog_drafts(project_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_blog_drafts_task
+ON blog_drafts(task_id);
 """
 
 # ---------------------------------------------------------------------------
@@ -642,6 +666,27 @@ _MIGRATIONS: list[tuple[int, str, list[str]]] = [
     ]),
     (13, "locale on scheduled_jobs", [
         "ALTER TABLE scheduled_jobs ADD COLUMN locale TEXT NOT NULL DEFAULT 'en'",
+    ]),
+    (14, "blog_drafts table", [
+        """CREATE TABLE IF NOT EXISTS blog_drafts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER NOT NULL REFERENCES projects(id),
+            task_id TEXT NOT NULL,
+            style TEXT NOT NULL DEFAULT 'launch',
+            language TEXT NOT NULL DEFAULT 'en',
+            status TEXT NOT NULL DEFAULT 'generating',
+            title TEXT NOT NULL DEFAULT '',
+            content TEXT NOT NULL DEFAULT '',
+            product_profile_json TEXT NOT NULL DEFAULT '{}',
+            quality_scores_json TEXT NOT NULL DEFAULT '{}',
+            paired_draft_id INTEGER REFERENCES blog_drafts(id),
+            approval_id INTEGER,
+            meta_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            completed_at TEXT
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_blog_drafts_project ON blog_drafts(project_id, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_blog_drafts_task ON blog_drafts(task_id)",
     ]),
 ]
 

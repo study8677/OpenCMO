@@ -29,7 +29,9 @@ import type {
   Recommendation,
   TaskArtifactCluster,
   TaskArtifactOpportunity,
+  TaskArtifactQuality,
   TaskArtifactStageCard,
+  TaskArtifactWatchout,
 } from "../../types";
 
 const STAGE_CONFIG: Record<string, { icon: typeof Search; labelKey: TranslationKey }> = {
@@ -61,8 +63,121 @@ const PRIORITY_STYLE: Record<string, string> = {
   low: "bg-slate-50 text-slate-600 ring-slate-200",
 };
 
+const QUALITY_STYLE: Record<string, string> = {
+  reliable: "border-emerald-200 bg-emerald-50/80 text-emerald-900",
+  partial: "border-amber-200 bg-amber-50/80 text-amber-900",
+  limited: "border-rose-200 bg-rose-50/80 text-rose-900",
+};
+
+const QUALITY_BADGE_STYLE: Record<string, string> = {
+  reliable: "bg-emerald-100 text-emerald-700 ring-emerald-200",
+  partial: "bg-amber-100 text-amber-700 ring-amber-200",
+  limited: "bg-rose-100 text-rose-700 ring-rose-200",
+};
+
+const STAGE_KIND_STYLE: Record<string, string> = {
+  normal: "bg-slate-100 text-slate-600 ring-slate-200",
+  fallback: "bg-sky-100 text-sky-700 ring-sky-200",
+  degraded: "bg-amber-100 text-amber-700 ring-amber-200",
+};
+
+const WATCHOUT_KIND_STYLE: Record<string, string> = {
+  source_limit: "bg-amber-100 text-amber-700 ring-amber-200",
+  fallback: "bg-sky-100 text-sky-700 ring-sky-200",
+  coverage_gap: "bg-rose-100 text-rose-700 ring-rose-200",
+  task_error: "bg-rose-100 text-rose-700 ring-rose-200",
+};
+
 function getAnalystEvents(progress: AnalysisProgress[]) {
   return progress.filter((item) => item.stage === "domain_review" && item.agent);
+}
+
+function legacyIssueToWatchout(issue: { stage: string; status: "warning" | "failed"; summary: string; resolution: string }): TaskArtifactWatchout {
+  return {
+    stage: issue.stage,
+    status: issue.status,
+    kind: issue.status === "failed" ? "task_error" : "coverage_gap",
+    code: issue.status === "failed" ? "task_error" : "legacy_issue",
+    title: issue.summary,
+    summary: issue.summary,
+    resolution: issue.resolution,
+    blocking: issue.status === "failed",
+  };
+}
+
+function QualityBanner({
+  quality,
+  t,
+}: {
+  quality: TaskArtifactQuality;
+  t: (key: TranslationKey) => string;
+}) {
+  return (
+    <div className={`rounded-2xl border p-4 ${QUALITY_STYLE[quality.level] ?? QUALITY_STYLE.reliable}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold">{quality.headline}</span>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ring-1 ring-inset ${
+            QUALITY_BADGE_STYLE[quality.level] ?? QUALITY_BADGE_STYLE.reliable
+          }`}
+        >
+          {quality.level === "reliable" ? t("analysis.qualityReliable") : quality.level === "partial" ? t("analysis.qualityPartial") : t("analysis.qualityLimited")}
+        </span>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed">{quality.summary}</p>
+      {quality.fallbacks_used.length > 0 ? (
+        <p className="mt-3 text-xs leading-relaxed">
+          <span className="font-semibold">{t("analysis.fallbacksUsed")}:</span>{" "}
+          {quality.fallbacks_used.join(" · ")}
+        </p>
+      ) : null}
+      {quality.source_warnings.length > 0 ? (
+        <p className="mt-2 text-xs leading-relaxed">
+          <span className="font-semibold">{t("analysis.sourceWarnings")}:</span>{" "}
+          {quality.source_warnings.join(" · ")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function WatchoutCard({
+  watchout,
+  stageLabel,
+  t,
+}: {
+  watchout: TaskArtifactWatchout;
+  stageLabel: string;
+  t: (key: TranslationKey) => string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{stageLabel}</span>
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ring-1 ring-inset ${
+            WATCHOUT_KIND_STYLE[watchout.kind] ?? WATCHOUT_KIND_STYLE.coverage_gap
+          }`}
+        >
+          {watchout.kind === "source_limit"
+            ? t("analysis.watchoutSourceLimit")
+            : watchout.kind === "fallback"
+              ? t("analysis.watchoutFallback")
+              : watchout.kind === "coverage_gap"
+                ? t("analysis.watchoutCoverageGap")
+                : t("analysis.watchoutTaskError")}
+        </span>
+        {watchout.blocking ? (
+          <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-700 ring-1 ring-inset ring-rose-200">
+            {t("analysis.blocking")}
+          </span>
+        ) : null}
+      </div>
+      <p className="text-sm font-semibold text-slate-900">{watchout.title}</p>
+      <p className="mt-1 text-sm leading-relaxed text-slate-600">{watchout.summary}</p>
+      <p className="mt-2 text-sm leading-relaxed text-slate-700">{watchout.resolution}</p>
+    </div>
+  );
 }
 
 function EvidenceRefs({
@@ -299,9 +414,11 @@ function SummaryMetric({
 function StageCard({
   card,
   label,
+  t,
 }: {
   card: TaskArtifactStageCard;
   label: string;
+  t: (key: TranslationKey) => string;
 }) {
   const cfg = STAGE_CONFIG[card.stage] ?? STAGE_CONFIG.context_build!;
   const Icon = cfg.icon;
@@ -313,12 +430,24 @@ function StageCard({
         <div className="flex items-center gap-2">
           <Icon size={14} />
           <span className="text-xs font-semibold">{label}</span>
+          {card.kind && card.kind !== "normal" ? (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ring-1 ring-inset ${
+                STAGE_KIND_STYLE[card.kind] ?? STAGE_KIND_STYLE.normal
+              }`}
+            >
+              {card.kind === "fallback" ? t("analysis.stageFallback") : t("analysis.stageDegraded")}
+            </span>
+          ) : null}
         </div>
         <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
           {card.status}
         </span>
       </div>
       <p className="text-sm leading-relaxed">{card.summary}</p>
+      {card.hint ? (
+        <p className="mt-3 text-xs leading-relaxed opacity-90">{card.hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -339,6 +468,8 @@ function buildLiveStageCards(
       summary: item.summary ?? item.detail ?? item.content ?? current?.summary ?? "",
       agent: item.agent ?? current?.agent ?? "",
       event_count: (current?.event_count ?? 0) + 1,
+      kind: current?.kind,
+      hint: current?.hint,
     });
   }
 
@@ -392,7 +523,11 @@ export function AnalysisDialog({
   const analystEvents = useMemo(() => getAnalystEvents(progress), [progress]);
   const stageCards = artifacts?.stage_cards ?? [];
   const liveStageCards = useMemo(() => buildLiveStageCards(progress, stageCards), [progress, stageCards]);
-  const issues = artifacts?.issues ?? [];
+  const watchouts = useMemo(
+    () => (artifacts?.watchouts?.length ? artifacts.watchouts : (artifacts?.issues ?? []).map(legacyIssueToWatchout)),
+    [artifacts?.issues, artifacts?.watchouts],
+  );
+  const quality = artifacts?.quality;
   const topOpportunities = artifacts?.opportunities?.top ?? [];
   const topClusters = artifacts?.cluster_summary?.top_clusters ?? [];
   const displayedStageCards = isDone && stageCards.length > 0 ? stageCards : liveStageCards;
@@ -401,9 +536,6 @@ export function AnalysisDialog({
   const currentStageCard = liveStageCards.find((card) => card.status === "running") ?? liveStageCards[completedStageCount];
   const latestProgressEntry = [...progress].reverse().find((item) => item.summary || item.detail || item.content);
   const latestProgressSummary = latestProgressEntry?.summary ?? latestProgressEntry?.detail ?? latestProgressEntry?.content ?? task?.summary ?? "";
-  const noKeyWarning = progress.some((item) =>
-    cleanProgressText(item.summary ?? item.detail ?? item.content).toLowerCase().includes("no llm api key configured"),
-  );
   const contextSnapshot = [...progress]
     .reverse()
     .find((item) => item.stage === "context_build" && cleanProgressText(item.summary ?? item.detail ?? item.content));
@@ -465,11 +597,12 @@ export function AnalysisDialog({
 
   const { data: findings = [] } = useTaskFindings(taskId, isDone);
   const { data: recommendations = [] } = useTaskRecommendations(taskId, isDone);
+  const blockingWatchout = watchouts.find((item) => item.blocking);
 
   useEffect(() => {
     const el = document.getElementById("analysis-scroll");
     if (el) el.scrollTop = el.scrollHeight;
-  }, [progress.length, findings.length, recommendations.length, issues.length, topOpportunities.length, topClusters.length]);
+  }, [progress.length, findings.length, recommendations.length, watchouts.length, topOpportunities.length, topClusters.length]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
@@ -519,6 +652,9 @@ export function AnalysisDialog({
                     <p className="mt-2 text-sm leading-6 text-slate-600">
                       {latestProgressSummary || t("analysis.focusPending")}
                     </p>
+                    {currentStageCard?.hint ? (
+                      <p className="mt-3 text-xs leading-5 text-slate-500">{currentStageCard.hint}</p>
+                    ) : null}
                   </div>
                 </div>
 
@@ -539,28 +675,9 @@ export function AnalysisDialog({
                 </div>
               </div>
 
-              {noKeyWarning ? (
-                <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-                    {t("analysis.limitedMode")}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-amber-900">
-                    {t("analysis.limitedModeDesc")}
-                  </p>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-2xl bg-white/80 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                        {t("analysis.limitedModeWorks")}
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-700">{t("onboarding.limitedModeWorks")}</p>
-                    </div>
-                    <div className="rounded-2xl bg-white/80 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                        {t("analysis.limitedModeNeedsKey")}
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-700">{t("onboarding.limitedModeNeedsKey")}</p>
-                    </div>
-                  </div>
+              {quality && quality.level !== "reliable" ? (
+                <div className="mt-5">
+                  <QualityBanner quality={quality} t={t} />
                 </div>
               ) : null}
             </section>
@@ -634,10 +751,24 @@ export function AnalysisDialog({
                   value={artifacts.overview.recommendations_count}
                 />
                 <SummaryMetric
-                  label={t("analysis.focusAreas")}
-                  value={artifacts.overview.focus_domains.length || "—"}
+                  label={t("analysis.dataQuality")}
+                  value={
+                    quality?.level === "reliable"
+                      ? t("analysis.qualityReliable")
+                      : quality?.level === "partial"
+                        ? t("analysis.qualityPartial")
+                        : quality?.level === "limited"
+                          ? t("analysis.qualityLimited")
+                          : "—"
+                  }
                 />
               </div>
+
+              {quality ? (
+                <div className="mt-5">
+                  <QualityBanner quality={quality} t={t} />
+                </div>
+              ) : null}
 
               <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
                 <div className="rounded-2xl bg-white/80 p-4 ring-1 ring-inset ring-slate-200/70">
@@ -660,7 +791,19 @@ export function AnalysisDialog({
                   )}
                 </div>
 
-                {artifacts.brief.top_recommendations[0] ? (
+                {blockingWatchout ? (
+                  <div className="rounded-2xl bg-rose-950 p-4 text-white shadow-sm">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-200">
+                      {t("analysis.nextBestAction")}
+                    </p>
+                    <p className="mt-3 text-sm font-semibold leading-relaxed">
+                      {blockingWatchout.title}
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-rose-100/90">
+                      {blockingWatchout.resolution}
+                    </p>
+                  </div>
+                ) : artifacts.brief.top_recommendations[0] ? (
                   <div className="rounded-2xl bg-indigo-950 p-4 text-white shadow-sm">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-200">
                       {t("analysis.nextBestAction")}
@@ -731,31 +874,22 @@ export function AnalysisDialog({
             </section>
           )}
 
-          {issues.length > 0 && (
+          {watchouts.length > 0 && (
             <section>
               <div className="mb-3 flex items-center gap-2">
                 <TriangleAlert size={14} className="text-amber-500" />
-                <h3 className="text-sm font-semibold text-slate-900">{t("analysis.watchouts")}</h3>
+                <h3 className="text-sm font-semibold text-slate-900">{t("analysis.coverageWatchouts")}</h3>
               </div>
               <div className="space-y-3">
-                {issues.map((issue, index) => {
-                  const labelKey = STAGE_CONFIG[issue.stage]?.labelKey;
+                {watchouts.map((watchout, index) => {
+                  const labelKey = STAGE_CONFIG[watchout.stage]?.labelKey;
                   return (
-                    <div
-                      key={`${issue.stage}-${index}`}
-                      className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4"
-                    >
-                      <div className="mb-1 flex items-center gap-2">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
-                          {labelKey ? t(labelKey) : issue.stage}
-                        </span>
-                        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 ring-1 ring-inset ring-amber-200">
-                          {issue.status}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium text-slate-900">{issue.summary}</p>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-700">{issue.resolution}</p>
-                    </div>
+                    <WatchoutCard
+                      key={`${watchout.stage}-${watchout.code}-${index}`}
+                      watchout={watchout}
+                      stageLabel={labelKey ? t(labelKey) : watchout.stage}
+                      t={t}
+                    />
                   );
                 })}
               </div>
@@ -779,6 +913,7 @@ export function AnalysisDialog({
                       key={card.stage}
                       card={card}
                       label={labelKey ? t(labelKey) : card.stage}
+                      t={t}
                     />
                   );
                 })}
@@ -820,6 +955,11 @@ export function AnalysisDialog({
                 <TriangleAlert size={14} className="text-rose-500" />
                 <h3 className="text-sm font-semibold text-slate-900">{t("analysis.keyFindings")}</h3>
               </div>
+              {quality && quality.level !== "reliable" ? (
+                <p className="mb-3 text-sm leading-relaxed text-slate-600">
+                  {t("analysis.resultConfidenceNote")}
+                </p>
+              ) : null}
               <div className="space-y-3">
                 {findings.map((finding, index) => (
                   <FindingCard
@@ -840,6 +980,11 @@ export function AnalysisDialog({
                   {t("analysis.recommendedActions")}
                 </h3>
               </div>
+              {quality && quality.level !== "reliable" ? (
+                <p className="mb-3 text-sm leading-relaxed text-slate-600">
+                  {t("analysis.resultConfidenceNote")}
+                </p>
+              ) : null}
               <div className="space-y-3">
                 {recommendations.map((recommendation, index) => (
                   <RecommendationCard

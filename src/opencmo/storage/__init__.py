@@ -23,6 +23,16 @@ from opencmo.storage._db import (
     get_db,
 )
 
+# --- Blog Drafts ---
+from opencmo.storage.blog_drafts import (
+    count_blog_drafts,
+    create_blog_draft,
+    get_blog_draft,
+    get_blog_drafts_by_task,
+    list_blog_drafts,
+    update_blog_draft,
+)
+
 # --- Approvals ---
 from opencmo.storage.approvals import (
     create_approval,
@@ -315,4 +325,7 @@ __all__ = [
     "update_lead_score", "batch_update_enrichment", "get_unenriched_leads",
     "delete_github_leads", "create_discovery_run", "update_discovery_run",
     "list_discovery_runs", "get_github_lead_stats",
+    # blog_drafts
+    "create_blog_draft", "update_blog_draft", "get_blog_draft",
+    "list_blog_drafts", "get_blog_drafts_by_task", "count_blog_drafts",
 ]
