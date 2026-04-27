@@ -78,6 +78,9 @@ export function PublicSiteHeader({
     if (href.startsWith("#") || !isPublicRoute) {
       return href;
     }
+    if (!isPublicRoutePath(href)) {
+      return href;
+    }
     return getLocalizedPublicPath(href, seoLocale);
   };
 

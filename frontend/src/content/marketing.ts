@@ -41,7 +41,7 @@ export type BlogArticle = {
 export const PUBLIC_HOME_NAV: PublicNavItem[] = [
   { href: "/b2b-leads", label: "landing.navLeads" },
   { href: "/seo-geo", label: "landing.navSeoGeo" },
-  { href: "/open-source", label: "landing.navOpenSource" },
+  { href: "/workspace", label: "landing.navOpenSource" },
   { href: "/data-policy", label: "landing.navDataPolicy" },
   { href: "/contact", label: "landing.navContact" },
   { href: "/blog", label: "landing.navBlog" },

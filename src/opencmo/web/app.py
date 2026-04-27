@@ -112,7 +112,7 @@ _HOME_STATIC_SITE_COPY_BY_LOCALE = {
     <h2>OpenCMO 技术支持</h2>
     <p>
       OpenCMO 保留为背后的开源增长系统，用于分析 SEO、GEO、SERP、社区讨论和
-      AI 可见度，并作为方法论的公开证明。
+      AI 可见度，并作为方法论的技术支持。
     </p>
     <ul>
       <li>GitHub 仓库: https://github.com/study8677/OpenCMO</li>
@@ -662,13 +662,13 @@ _SERVICE_PAGE_METADATA_BY_PATH = {
             "OpenCMO remains a public Apache 2.0 open-source project.",
             "It analyzes SEO, GEO, SERP, community discussion, and AI visibility signals.",
             "aidCMO uses this method in overseas acquisition diagnosis, content strategy, and growth execution.",
-            "The homepage now sells commercial services first while keeping OpenCMO as public proof.",
+            "The homepage now sells commercial services first while keeping OpenCMO as technical support.",
         ],
         "bullets_zh": [
             "OpenCMO 保留为 Apache 2.0 开源项目。",
             "它用于分析 SEO、GEO、SERP、社区讨论和 AI 可见度信号。",
             "aidCMO 将这套方法用于海外获客诊断、内容策略和增长执行。",
-            "首页优先销售商业服务，同时保留 OpenCMO 作为公开证明。",
+            "首页优先销售商业服务，同时保留 OpenCMO 作为技术支持。",
         ],
     },
     "sample-data": {
