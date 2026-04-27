@@ -39,11 +39,11 @@ export type BlogArticle = {
 };
 
 export const PUBLIC_HOME_NAV: PublicNavItem[] = [
-  { href: "#product", label: "landing.navPlatform" },
-  { href: "#learning", label: "landing.navLearning" },
-  { href: "#workflow", label: "landing.navWorkflow" },
-  { href: "#open-source", label: "landing.navOpenSource" },
-  { href: "#mentions", label: "landing.navMentions" },
+  { href: "/b2b-leads", label: "landing.navLeads" },
+  { href: "/seo-geo", label: "landing.navSeoGeo" },
+  { href: "/open-source", label: "landing.navOpenSource" },
+  { href: "/data-policy", label: "landing.navDataPolicy" },
+  { href: "/contact", label: "landing.navContact" },
   { href: "/blog", label: "landing.navBlog" },
 ];
 
@@ -642,6 +642,30 @@ export function getLocalizedBlogArticlePath(slug: string, locale?: SeoLocale | n
 
 export function getSampleAuditPath(locale?: SeoLocale | null) {
   return locale ? getLocalizedPublicPath("/sample-audit", locale) : "/sample-audit";
+}
+
+export function getB2BLeadsPath(locale?: SeoLocale | null) {
+  return locale ? getLocalizedPublicPath("/b2b-leads", locale) : "/b2b-leads";
+}
+
+export function getSeoGeoPath(locale?: SeoLocale | null) {
+  return locale ? getLocalizedPublicPath("/seo-geo", locale) : "/seo-geo";
+}
+
+export function getOpenSourcePath(locale?: SeoLocale | null) {
+  return locale ? getLocalizedPublicPath("/open-source", locale) : "/open-source";
+}
+
+export function getSampleDataPath(locale?: SeoLocale | null) {
+  return locale ? getLocalizedPublicPath("/sample-data", locale) : "/sample-data";
+}
+
+export function getContactPath(locale?: SeoLocale | null) {
+  return locale ? getLocalizedPublicPath("/contact", locale) : "/contact";
+}
+
+export function getDataPolicyPath(locale?: SeoLocale | null) {
+  return locale ? getLocalizedPublicPath("/data-policy", locale) : "/data-policy";
 }
 
 export function findBlogArticleBySlug(slug: string) {

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import { AppShell } from "./components/layout/AppShell";
 import { PublicLocaleSync } from "./components/marketing/PublicLocaleSync";
 import { LandingPage } from "./pages/LandingPage";
+import { PublicServicePage, type PublicServicePageKind } from "./pages/PublicServicePage";
 import { BlogPage } from "./pages/BlogPage";
 import { BlogArticlePage } from "./pages/BlogArticlePage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -57,11 +58,35 @@ function LocalizedPublicPage({
 }
 
 function AppRoutes() {
+  const localizedService = (locale: "en" | "zh", kind: PublicServicePageKind) => (
+    <LocalizedPublicPage locale={locale}>
+      <PublicServicePage kind={kind} />
+    </LocalizedPublicPage>
+  );
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/en" element={<LocalizedPublicPage locale="en"><LandingPage /></LocalizedPublicPage>} />
       <Route path="/zh" element={<LocalizedPublicPage locale="zh"><LandingPage /></LocalizedPublicPage>} />
+      <Route path="/b2b-leads" element={<PublicServicePage kind="b2b-leads" />} />
+      <Route path="/en/b2b-leads" element={localizedService("en", "b2b-leads")} />
+      <Route path="/zh/b2b-leads" element={localizedService("zh", "b2b-leads")} />
+      <Route path="/seo-geo" element={<PublicServicePage kind="seo-geo" />} />
+      <Route path="/en/seo-geo" element={localizedService("en", "seo-geo")} />
+      <Route path="/zh/seo-geo" element={localizedService("zh", "seo-geo")} />
+      <Route path="/open-source" element={<PublicServicePage kind="open-source" />} />
+      <Route path="/en/open-source" element={localizedService("en", "open-source")} />
+      <Route path="/zh/open-source" element={localizedService("zh", "open-source")} />
+      <Route path="/sample-data" element={<PublicServicePage kind="sample-data" />} />
+      <Route path="/en/sample-data" element={localizedService("en", "sample-data")} />
+      <Route path="/zh/sample-data" element={localizedService("zh", "sample-data")} />
+      <Route path="/contact" element={<PublicServicePage kind="contact" />} />
+      <Route path="/en/contact" element={localizedService("en", "contact")} />
+      <Route path="/zh/contact" element={localizedService("zh", "contact")} />
+      <Route path="/data-policy" element={<PublicServicePage kind="data-policy" />} />
+      <Route path="/en/data-policy" element={localizedService("en", "data-policy")} />
+      <Route path="/zh/data-policy" element={localizedService("zh", "data-policy")} />
       <Route path="/sample-audit" element={<SampleAuditPage />} />
       <Route path="/en/sample-audit" element={<LocalizedPublicPage locale="en"><SampleAuditPage /></LocalizedPublicPage>} />
       <Route path="/zh/sample-audit" element={<LocalizedPublicPage locale="zh"><SampleAuditPage /></LocalizedPublicPage>} />

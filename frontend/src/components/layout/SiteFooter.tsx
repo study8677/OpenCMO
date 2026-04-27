@@ -1,11 +1,12 @@
 import { ExternalLink, Github, Link2, Sparkles } from "lucide-react";
 import { Link } from "react-router";
-import { getBlogIndexPath, getLandingPath } from "../../content/marketing";
+import { getBlogIndexPath, getLandingPath, getSampleDataPath } from "../../content/marketing";
 import { useSiteStats } from "../../hooks/useSiteStats";
 import { useI18n } from "../../i18n";
 import { getSeoLocaleFromLocale } from "../../utils/publicRoutes";
 
 const GITHUB_REPO = "https://github.com/study8677/OpenCMO";
+const CONTACT_EMAIL = "hello@aidcmo.com";
 const FRIEND_LINKS = [
   {
     href: "https://okara.ai/",
@@ -24,6 +25,7 @@ export function SiteFooter({ variant = "workspace" }: SiteFooterProps) {
   const numberFormatter = new Intl.NumberFormat(locale);
   const landingHref = getLandingPath(seoLocale);
   const blogHref = getBlogIndexPath(seoLocale);
+  const sampleDataHref = getSampleDataPath(seoLocale);
 
   if (variant === "public") {
     return (
@@ -36,7 +38,7 @@ export function SiteFooter({ variant = "workspace" }: SiteFooterProps) {
                   <Sparkles size={18} />
                 </div>
                 <div>
-                  <p className="font-display text-2xl font-semibold tracking-tight">OpenCMO</p>
+                  <p className="font-display text-2xl font-semibold tracking-tight">aidCMO</p>
                   <p className="text-xs text-white/48">{t("landing.headerTagline")}</p>
                 </div>
               </Link>
@@ -46,6 +48,12 @@ export function SiteFooter({ variant = "workspace" }: SiteFooterProps) {
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#f7ecde] px-4 py-3 text-sm font-semibold text-[#082032] transition-colors hover:bg-white"
+                >
+                  {t("siteFooter.contactEmail")}
+                </a>
                 <Link
                   to={blogHref}
                   className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-4 py-3 text-sm font-semibold text-white/86 transition-colors hover:border-white/22 hover:bg-white/10 hover:text-white"
@@ -53,8 +61,8 @@ export function SiteFooter({ variant = "workspace" }: SiteFooterProps) {
                   {t("landing.navBlog")}
                 </Link>
                 <Link
-                  to="/workspace"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#f7ecde] px-4 py-3 text-sm font-semibold text-[#082032] transition-colors hover:bg-white"
+                  to={sampleDataHref}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-4 py-3 text-sm font-semibold text-white/86 transition-colors hover:border-white/22 hover:bg-white/10 hover:text-white"
                 >
                   {t("landing.primaryCta")}
                 </Link>
@@ -62,6 +70,19 @@ export function SiteFooter({ variant = "workspace" }: SiteFooterProps) {
             </div>
 
             <div className="grid gap-4">
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="flex items-center justify-between rounded-[1.8rem] border border-white/10 bg-white/5 px-5 py-4 transition-colors hover:bg-white/8"
+              >
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                    {t("siteFooter.contactEmail")}
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-white">{CONTACT_EMAIL}</p>
+                </div>
+                <ExternalLink size={18} className="text-white/68" />
+              </a>
+
               <a
                 href={GITHUB_REPO}
                 target="_blank"

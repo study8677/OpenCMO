@@ -12,6 +12,7 @@ import {
 } from "../../utils/publicRoutes";
 
 const GITHUB_REPO = "https://github.com/study8677/OpenCMO";
+const CONTACT_EMAIL = "hello@aidcmo.com";
 
 type PublicSiteHeaderProps = {
   items: PublicNavItem[];
@@ -117,9 +118,9 @@ export function PublicSiteHeader({
             <Sparkles size={18} />
           </div>
           <div className="min-w-0">
-            <p className="font-display text-base font-semibold tracking-tight">OpenCMO</p>
-            <p className={`truncate text-xs ${brandMetaClass}`}>
-              {t("landing.headerTagline")}
+            <p className="font-display text-base font-semibold tracking-tight">aidCMO</p>
+            <p className={`truncate text-xs font-semibold ${brandMetaClass}`}>
+              {CONTACT_EMAIL}
             </p>
           </div>
         </Link>
@@ -143,6 +144,12 @@ export function PublicSiteHeader({
             {isPublicRoute ? LOCALE_LABELS[seoLocale] : LOCALE_LABELS[locale]}
           </button>
           <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            className={`hidden items-center rounded-full px-4 py-2.5 text-sm font-semibold transition-colors md:inline-flex ${workspaceClass}`}
+          >
+            {CONTACT_EMAIL}
+          </a>
+          <a
             href={GITHUB_REPO}
             target="_blank"
             rel="noopener noreferrer"
@@ -152,7 +159,7 @@ export function PublicSiteHeader({
             <ExternalLink size={14} />
           </a>
           <Link
-            to="/workspace"
+            to={publicHref("/sample-data")}
             className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${workspaceClass}`}
           >
             {t("landing.primaryCta")}

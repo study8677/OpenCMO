@@ -49,7 +49,17 @@ export function stripPublicLocalePrefix(pathname: string) {
 
 export function isPublicRoutePath(pathname: string) {
   const { barePath } = stripPublicLocalePrefix(pathname);
-  if (barePath === "/" || barePath === "/blog" || barePath === "/sample-audit") {
+  if (
+    barePath === "/"
+    || barePath === "/blog"
+    || barePath === "/sample-audit"
+    || barePath === "/b2b-leads"
+    || barePath === "/seo-geo"
+    || barePath === "/open-source"
+    || barePath === "/sample-data"
+    || barePath === "/contact"
+    || barePath === "/data-policy"
+  ) {
     return true;
   }
   return /^\/blog\/[^/]+$/.test(barePath);
@@ -71,4 +81,3 @@ export function getPublicAlternatePaths(path: string) {
     { hrefLang: "zh-CN", path: getLocalizedPublicPath(normalized, "zh") },
   ];
 }
-
