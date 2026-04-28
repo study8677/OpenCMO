@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useLayoutEffect, type ReactNode } from "react";
 import { useI18n } from "../../i18n";
 import type { SeoLocale } from "../../utils/publicRoutes";
 
@@ -9,12 +9,13 @@ export function PublicLocaleSync({
   locale: SeoLocale;
   children: ReactNode;
 }) {
-  const { setLocale } = useI18n();
+  const { locale: activeLocale, setLocale } = useI18n();
 
-  useEffect(() => {
-    setLocale(locale);
-  }, [locale, setLocale]);
+  useLayoutEffect(() => {
+    if (activeLocale !== locale) {
+      setLocale(locale);
+    }
+  }, [activeLocale, locale, setLocale]);
 
-  return <>{children}</>;
+  return activeLocale === locale ? <>{children}</> : null;
 }
-

@@ -12,7 +12,18 @@ import {
 
 const dictionaries: Record<Locale, Partial<Record<TranslationKey, string>>> = { en, zh, ja, ko, es };
 
+function getRouteLocale(): Locale | null {
+  const firstSegment = window.location.pathname.split("/").filter(Boolean)[0];
+  if (firstSegment === "en" || firstSegment === "zh") {
+    return firstSegment;
+  }
+  return null;
+}
+
 function getInitialLocale(): Locale {
+  const routeLocale = getRouteLocale();
+  if (routeLocale) return routeLocale;
+
   const stored = localStorage.getItem("opencmo_lang");
   if (stored) return normalizeLocale(stored);
   return normalizeLocale(navigator.language);

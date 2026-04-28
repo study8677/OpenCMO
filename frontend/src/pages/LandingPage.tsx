@@ -79,6 +79,13 @@ export function LandingPage() {
     basePath: "/",
   });
 
+  const getPathCardHref = (href: string) => {
+    if (href === "/services") {
+      return getServicesPath(seoLocale);
+    }
+    return href;
+  };
+
   return (
     <div className="min-h-screen bg-[#08141f] text-white">
       <PublicSiteHeader items={PUBLIC_HOME_NAV} theme="dark" />
@@ -234,7 +241,7 @@ export function LandingPage() {
                       </a>
                     ) : (
                       <Link
-                        to={item.href}
+                        to={getPathCardHref(item.href)}
                         className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-white transition-colors hover:text-[#f7ecde]"
                       >
                         {t(item.cta)}

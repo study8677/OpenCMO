@@ -9,6 +9,7 @@ import {
   getLocalizedPublicPath,
   getSeoLocaleFromLocale,
   isPublicRoutePath,
+  stripPublicLocalePrefix,
 } from "../../utils/publicRoutes";
 
 const GITHUB_REPO = "https://github.com/study8677/OpenCMO";
@@ -56,11 +57,12 @@ export function PublicSiteHeader({
   const location = useLocation();
   const navigate = useNavigate();
   const isPublicRoute = isPublicRoutePath(location.pathname);
-  const seoLocale = getSeoLocaleFromLocale(locale);
+  const routeLocale = stripPublicLocalePrefix(location.pathname).routeLocale;
+  const publicLocale = routeLocale ?? getSeoLocaleFromLocale(locale);
 
   const nextLocale = () => {
     if (isPublicRoute) {
-      const nextSeoLocale = seoLocale === "en" ? "zh" : "en";
+      const nextSeoLocale = publicLocale === "en" ? "zh" : "en";
       const localizedPath = getLocalizedCurrentPublicPath(location.pathname, nextSeoLocale);
       setLocale(nextSeoLocale);
       if (localizedPath) {
@@ -81,10 +83,10 @@ export function PublicSiteHeader({
     if (!isPublicRoutePath(href)) {
       return href;
     }
-    return getLocalizedPublicPath(href, seoLocale);
+    return getLocalizedPublicPath(href, publicLocale);
   };
 
-  const homeHref = isPublicRoute ? getLocalizedPublicPath("/", seoLocale) : "/";
+  const homeHref = isPublicRoute ? getLocalizedPublicPath("/", publicLocale) : "/";
 
   const wrapperClass =
     theme === "dark"
@@ -144,7 +146,7 @@ export function PublicSiteHeader({
             onClick={nextLocale}
             className={`rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${localeClass}`}
           >
-            {isPublicRoute ? LOCALE_LABELS[seoLocale] : LOCALE_LABELS[locale]}
+            {isPublicRoute ? LOCALE_LABELS[publicLocale] : LOCALE_LABELS[locale]}
           </button>
           <a
             href={`mailto:${CONTACT_EMAIL}`}
