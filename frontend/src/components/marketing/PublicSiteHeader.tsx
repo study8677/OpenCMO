@@ -1,4 +1,4 @@
-import { ExternalLink, Sparkles } from "lucide-react";
+import { ExternalLink, LayoutDashboard, Sparkles } from "lucide-react";
 import type { MouseEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useI18n } from "../../i18n";
@@ -162,10 +162,11 @@ export function PublicSiteHeader({
             <ExternalLink size={14} />
           </a>
           <Link
-            to={publicHref("/services")}
-            className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${workspaceClass}`}
+            to="/workspace"
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${workspaceClass}`}
           >
-            {t("landing.primaryCta")}
+            <LayoutDashboard size={16} />
+            {t("landing.workspaceCta")}
           </Link>
         </div>
       </div>

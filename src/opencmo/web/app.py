@@ -41,30 +41,30 @@ _HOME_STATIC_SITE_COPY_BY_LOCALE = {
 <main id="static-site-copy">
   <header>
     <p>aidCMO</p>
-    <h1>Open-source growth tools. Audits delivered by humans.</h1>
+    <h1>OpenCMO: private customization, GitHub source, or deployed trial.</h1>
     <p>
-      OpenCMO scans your SEO, AI visibility across 5 AI search engines
-      (Perplexity, ChatGPT, Gemini, Claude, You.com), and 6 community platforms.
-      We set it up, run it, and turn the output into a growth plan.
+      OpenCMO scans SEO, AI visibility, SERP movement, and community signals.
+      Use it through private customization, self-host it from GitHub, or open
+      the deployed workspace first.
     </p>
   </header>
   <section>
-    <h2>What we deliver</h2>
+    <h2>Three paths</h2>
     <ul>
-      <li>Multi-agent SEO / GEO / community audits powered by OpenCMO.</li>
-      <li>AI visibility scores across 5 AI search engines with a fix list.</li>
-      <li>A 30-day backlog of content, links, and technical changes you can ship.</li>
-      <li>One human walks you through the report. No SaaS dashboard handoff.</li>
+      <li>Private customization for teams that need deployment and workflow adaptation.</li>
+      <li>GitHub source for teams that want to inspect, fork, or self-host OpenCMO.</li>
+      <li>Deployed trial workspace for teams that want to experience the product first.</li>
     </ul>
   </section>
   <section>
     <h2>OpenCMO — open-source on GitHub</h2>
     <p>
-      OpenCMO is the open-source engine behind every audit. The same code we use
-      to deliver the service is public, Apache 2.0 licensed, and self-hostable.
+      OpenCMO is open on GitHub and self-hostable. The deployed workspace shows
+      the operator surface before you commit to private customization.
     </p>
     <ul>
       <li>GitHub repository: https://github.com/study8677/OpenCMO</li>
+      <li>OpenCMO workspace: https://www.aidcmo.com/workspace</li>
       <li>License: Apache 2.0 — https://github.com/study8677/OpenCMO/blob/main/LICENSE</li>
       <li>Machine-readable summary: https://www.aidcmo.com/llms.txt</li>
     </ul>
@@ -72,14 +72,14 @@ _HOME_STATIC_SITE_COPY_BY_LOCALE = {
   <section>
     <h2>How to engage</h2>
     <p>
-      Two paths: run OpenCMO yourself, or have us deliver the audit and growth
-      plan. A managed hosted version of OpenCMO is on the way — join the waitlist.
+      Choose the path that matches your stage: private customization, GitHub
+      self-hosting, or the deployed trial.
     </p>
     <ul>
-      <li>Growth audit: https://www.aidcmo.com/en/services</li>
+      <li>Private customization: https://www.aidcmo.com/en/services</li>
       <li>Audit example: https://www.aidcmo.com/en/sample-audit</li>
       <li>Open-source project: https://www.aidcmo.com/en/open-source</li>
-      <li>Hosted version waitlist: https://www.aidcmo.com/en/hosted</li>
+      <li>Deployed trial: https://www.aidcmo.com/workspace</li>
       <li>Contact: hello@aidcmo.com</li>
     </ul>
   </section>
@@ -89,29 +89,29 @@ _HOME_STATIC_SITE_COPY_BY_LOCALE = {
 <main id="static-site-copy">
   <header>
     <p>aidCMO</p>
-    <h1>开源的增长工具,审计由我们交付。</h1>
+    <h1>OpenCMO：私有化定制、GitHub 源码、已部署版试用。</h1>
     <p>
-      OpenCMO 扫描你的 SEO、5 个 AI 搜索引擎(Perplexity、ChatGPT、Gemini、Claude、
-      You.com)的可见度,以及 6 个社区平台。我们替你跑工具,把结果变成增长计划。
+      OpenCMO 扫描 SEO、AI 可见度、SERP 变化和社区信号。
+      你可以做私有化定制，从 GitHub 自部署，也可以先打开已部署版体验。
     </p>
   </header>
   <section>
-    <h2>我们交付的东西</h2>
+    <h2>三条路径</h2>
     <ul>
-      <li>由 OpenCMO 驱动的多 agent SEO / GEO / 社区审计报告。</li>
-      <li>5 个 AI 搜索引擎的可见度评分 + 改进项清单。</li>
-      <li>30 天可执行的内容、外链、技术改动 backlog。</li>
-      <li>由人解读报告并讨论。不只是把仪表盘丢给你。</li>
+      <li>私有化定制：适合需要部署和工作流适配的团队。</li>
+      <li>GitHub 源码：适合想检查、fork 或自部署 OpenCMO 的团队。</li>
+      <li>已部署版试用：适合先体验产品界面的团队。</li>
     </ul>
   </section>
   <section>
     <h2>OpenCMO — 在 GitHub 上开源</h2>
     <p>
-      OpenCMO 是每份审计背后的开源引擎。我们用来交付服务的同一套代码,
-      Apache 2.0 协议公开发布,可自部署。
+      OpenCMO 在 GitHub 上开源，也可以自部署。已部署版工作台让你先看到真实操作界面，
+      再决定是否做私有化定制。
     </p>
     <ul>
       <li>GitHub 仓库: https://github.com/study8677/OpenCMO</li>
+      <li>OpenCMO 工作台: https://www.aidcmo.com/workspace</li>
       <li>许可证: Apache 2.0 — https://github.com/study8677/OpenCMO/blob/main/LICENSE</li>
       <li>机器可读摘要: https://www.aidcmo.com/llms.txt</li>
     </ul>
@@ -119,14 +119,13 @@ _HOME_STATIC_SITE_COPY_BY_LOCALE = {
   <section>
     <h2>如何合作</h2>
     <p>
-      两条路径:自己跑 OpenCMO,或让我们交付审计和增长计划。
-      OpenCMO 托管版正在做 —— 可加入 waitlist。
+      按阶段选择：私有化定制、GitHub 自部署，或已部署版试用。
     </p>
     <ul>
-      <li>增长审计: https://www.aidcmo.com/zh/services</li>
+      <li>私有化定制: https://www.aidcmo.com/zh/services</li>
       <li>审计样例: https://www.aidcmo.com/zh/sample-audit</li>
       <li>开源项目: https://www.aidcmo.com/zh/open-source</li>
-      <li>托管版 waitlist: https://www.aidcmo.com/zh/hosted</li>
+      <li>已部署版试用: https://www.aidcmo.com/workspace</li>
       <li>联系: hello@aidcmo.com</li>
     </ul>
   </section>
@@ -601,47 +600,44 @@ _SERVICE_PAGE_METADATA_BY_PATH = {
     # Phase 1 repositioning: b2b-leads / seo-geo / sample-data / data-policy
     # entries removed. Old paths are 301'd to /services or / via _REDIRECTS_301.
     "services": {
-        "title": "Growth audits delivered by humans | aidCMO",
-        "title_zh": "由我们交付的增长审计 | aidCMO",
+        "title": "OpenCMO private customization | aidCMO",
+        "title_zh": "OpenCMO 私有化定制 | aidCMO",
         "description": (
-            "Run by us, powered by OpenCMO. Get a multi-agent SEO/GEO/community "
-            "audit with a 30-day action backlog."
+            "Private OpenCMO customization for teams that want self-hosting, "
+            "BYOK, workflow adaptation, and operator support."
         ),
-        "description_zh": "我们用 OpenCMO 替你跑,交付一份多 agent 的 SEO / GEO / 社区审计 + 30 天可执行的 backlog。",
-        "heading": "Growth audit",
-        "heading_zh": "增长审计",
+        "description_zh": "为需要自部署、BYOK、工作流适配和操作者支持的团队提供 OpenCMO 私有化定制。",
+        "heading": "OpenCMO private customization",
+        "heading_zh": "OpenCMO 私有化定制",
         "bullets": [
-            "Multi-agent SEO / GEO / community audit powered by OpenCMO.",
-            "AI visibility scores across 5 AI search engines with a fix list.",
-            "30-day backlog of content, links, and technical changes you can ship.",
-            "One human reads the report and walks you through it.",
+            "Private deployment and self-host support.",
+            "BYOK and data-control friendly setup.",
+            "Workflow adaptation for SEO, GEO, SERP, community, and reports.",
+            "Operator support for teams that want OpenCMO fitted to their process.",
         ],
         "bullets_zh": [
-            "由 OpenCMO 驱动的多 agent SEO / GEO / 社区审计。",
-            "5 个 AI 搜索引擎的可见度评分 + 改进项清单。",
-            "30 天可执行的内容、外链、技术改动 backlog。",
-            "由人解读报告并讨论。",
+            "私有部署与自部署支持。",
+            "支持 BYOK 和数据控制。",
+            "适配 SEO、GEO、SERP、社区和报告工作流。",
+            "为希望把 OpenCMO 嵌入自身流程的团队提供操作者支持。",
         ],
     },
     "hosted": {
-        "title": "Hosted OpenCMO — waitlist | aidCMO",
-        "title_zh": "OpenCMO 托管版 — waitlist | aidCMO",
-        "description": (
-            "We're working on a hosted version of OpenCMO. No date yet — "
-            "we'll only email when it's ready."
-        ),
-        "description_zh": "OpenCMO 托管版正在做,还没有发布日期 —— ready 之后只发一封通知邮件。",
-        "heading": "Hosted OpenCMO waitlist",
-        "heading_zh": "OpenCMO 托管版 waitlist",
+        "title": "Try the deployed OpenCMO workspace | aidCMO",
+        "title_zh": "试用已部署版 OpenCMO | aidCMO",
+        "description": "Open the deployed OpenCMO workspace, then decide whether to self-host or request private customization.",
+        "description_zh": "先打开已部署版 OpenCMO 工作台,再决定从 GitHub 自部署还是做私有化定制。",
+        "heading": "Try the deployed OpenCMO workspace",
+        "heading_zh": "试用已部署版 OpenCMO",
         "bullets": [
-            "No drip sequences. One email when it ships.",
-            "No date promised — we'll only email when ready.",
-            "Run by the same team that builds OpenCMO.",
+            "Open the live workspace at /workspace.",
+            "Review the product surface before private customization.",
+            "Self-host from GitHub if your team wants full control.",
         ],
         "bullets_zh": [
-            "不会有营销邮件。发布时只发一封。",
-            "暂不承诺时间 —— ready 之后才会通知。",
-            "由 OpenCMO 团队亲自运营。",
+            "直接打开 /workspace 里的真实工作台。",
+            "先看产品界面,再决定是否私有化定制。",
+            "如果团队需要完全控制,可以从 GitHub 自部署。",
         ],
     },
     "open-source": {
@@ -657,37 +653,37 @@ _SERVICE_PAGE_METADATA_BY_PATH = {
         "bullets": [
             "OpenCMO remains a public Apache 2.0 open-source project.",
             "It analyzes SEO, GEO, SERP, community discussion, and AI visibility signals.",
-            "aidCMO uses this method in overseas acquisition diagnosis, content strategy, and growth execution.",
-            "The homepage now sells commercial services first while keeping OpenCMO as technical support.",
+            "aidCMO uses this method in visibility diagnosis, content strategy, and growth execution.",
+            "The public site links directly to the live OpenCMO workspace for operators who want to inspect the product surface.",
         ],
         "bullets_zh": [
             "OpenCMO 保留为 Apache 2.0 开源项目。",
             "它用于分析 SEO、GEO、SERP、社区讨论和 AI 可见度信号。",
-            "aidCMO 将这套方法用于海外获客诊断、内容策略和增长执行。",
-            "首页优先销售商业服务，同时保留 OpenCMO 作为技术支持。",
+            "aidCMO 将这套方法用于可见度诊断、内容策略和增长执行。",
+            "公开站会直接链接到真实 OpenCMO 工作台，方便操作者查看产品界面。",
         ],
     },
     "contact": {
-        "title": "Contact aidCMO | Open-source AI growth tools and audits",
-        "title_zh": "联系 aidCMO | 开源 AI 增长工具与审计",
+        "title": "Contact aidCMO | OpenCMO private customization",
+        "title_zh": "联系 aidCMO | OpenCMO 私有化定制",
         "description": (
-            "Contact aidCMO for a growth audit, OpenCMO self-host help, "
-            "or to discuss the hosted version."
+            "Contact aidCMO for OpenCMO private customization, self-host help, "
+            "or deployed workspace questions."
         ),
-        "description_zh": "联系 aidCMO 咨询增长审计、OpenCMO 自部署支持,或了解托管版。",
+        "description_zh": "联系 aidCMO 咨询 OpenCMO 私有化定制、自部署支持,或已部署版试用问题。",
         "heading": "Contact aidCMO",
         "heading_zh": "联系 aidCMO",
         "bullets": [
             "Email: hello@aidcmo.com",
-            "For an audit, share your website, target market, and current growth concern.",
+            "For private customization, share your deployment target and workflow needs.",
             "For self-host help, mention which deployment target (Docker, bare metal, etc.).",
-            "For the hosted version, join the waitlist at /hosted.",
+            "For a deployed trial, open /workspace.",
         ],
         "bullets_zh": [
             "邮箱: hello@aidcmo.com",
-            "增长审计:请提供网站、目标市场和当前关心的增长问题。",
+            "私有化定制:请提供部署目标和需要适配的工作流。",
             "自部署支持:请告知部署目标(Docker、裸机等)。",
-            "托管版:请在 /hosted 加入 waitlist。",
+            "已部署版试用:请打开 /workspace。",
         ],
     },
 }
@@ -771,16 +767,17 @@ def _build_home_json_ld(locale: str | None = None) -> str:
             "url": _public_url("/", locale),
             "image": "https://www.aidcmo.com/logo.png",
             "description": (
-                "aidCMO delivers growth audits powered by OpenCMO — "
-                "an open-source SEO / GEO / community visibility engine."
+                "aidCMO supports private OpenCMO customization, GitHub self-hosting, "
+                "and a deployed trial workspace."
                 if localized == "en"
-                else "aidCMO 用 OpenCMO 替你交付增长审计 —— 一套开源的 SEO / GEO / 社区可见度引擎。"
+                else "aidCMO 支持 OpenCMO 私有化定制、GitHub 自部署和已部署版试用。"
             ),
             "serviceType": [
-                "Growth audit",
+                "OpenCMO private customization",
+                "OpenCMO self-host support",
+                "Deployed workspace trial",
                 "SEO audit",
                 "GEO and AI search visibility audit",
-                "Community visibility audit",
             ],
             "areaServed": "International",
             "sameAs": [
@@ -788,9 +785,9 @@ def _build_home_json_ld(locale: str | None = None) -> str:
             ],
             "hasOfferCatalog": {
                 "@type": "OfferCatalog",
-                "name": "aidCMO growth services",
+                "name": "OpenCMO adoption paths",
                 "itemListElement": [
-                    {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Growth audit"}},
+                    {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "OpenCMO private customization"}},
                     {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "OpenCMO self-host support"}},
                 ],
             },
@@ -1056,16 +1053,15 @@ def _apply_public_route_metadata(html: str, full_path: str) -> str:
 
     if normalized == "":
         title = (
-            "aidCMO — Open-source AI CMO with growth audits delivered by humans"
+            "aidCMO — OpenCMO private customization, GitHub, and deployed trial"
             if locale_key == "en"
-            else "aidCMO — 开源 AI CMO,代为交付的增长审计"
+            else "aidCMO — OpenCMO 私有化定制、GitHub 与已部署版试用"
         )
         description = (
-            "OpenCMO is the open-source SEO/GEO/community audit engine. "
-            "aidCMO uses it to deliver growth audits for founders who need answers, "
-            "not another dashboard."
+            "OpenCMO is an open-source AI CMO workspace. Choose private customization, "
+            "review the GitHub repo, or try the deployed workspace."
             if locale_key == "en"
-            else "OpenCMO 是开源的 SEO / GEO / 社区审计引擎。aidCMO 用它替创始人交付增长审计 —— 给需要结论而不是又一块仪表盘的人。"
+            else "OpenCMO 是开源 AI CMO 工作台。你可以选择私有化定制、查看 GitHub 源码，或直接试用已部署版。"
         )
         canonical_url = _public_url("/", route_locale)
         replacements = [

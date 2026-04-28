@@ -1,32 +1,30 @@
 # aidCMO
 
-> Open-source AI growth tools. Audits delivered by humans.
+> Open-source AI growth tools: private customization, GitHub source, and deployed trial.
 
 ## Summary
 
-aidCMO delivers SEO, GEO, and community visibility audits for founders. Every
-audit is powered by OpenCMO — an open-source multi-agent engine that scans your
-SEO health, your visibility across 5 AI search engines (Perplexity, ChatGPT,
-Gemini, Claude, You.com), and 6 community platforms (Reddit, Hacker News, Dev.to,
-YouTube, Bluesky, Twitter/X). We set it up, run it, read the output, and turn
-it into a 30-day action backlog.
+aidCMO presents OpenCMO through three paths: private customization for teams that
+need deployment and workflow adaptation, GitHub source for self-hosting and code
+review, and a deployed trial workspace for hands-on evaluation. OpenCMO is an
+open-source multi-agent engine that scans SEO health, visibility across 5 AI
+search engines (Perplexity, ChatGPT, Gemini, Claude, You.com), and 6 community
+platforms (Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X).
 
-OpenCMO is open source on GitHub (Apache 2.0) and self-hostable. aidCMO is the
-team that uses it to deliver audits to founders who want answers, not another
-SaaS dashboard. A managed hosted version of OpenCMO is on the way — interested
-people can join the waitlist.
+OpenCMO is open source on GitHub (Apache 2.0) and self-hostable. The deployed
+workspace lets visitors try the live product surface before deciding whether to
+self-host or request private customization.
 
 ## Primary URLs
 
 - Service overview (EN): https://www.aidcmo.com/en
 - Service overview (ZH): https://www.aidcmo.com/zh
-- Growth audit service (EN): https://www.aidcmo.com/en/services
-- Growth audit service (ZH): https://www.aidcmo.com/zh/services
+- Private customization (EN): https://www.aidcmo.com/en/services
+- Private customization (ZH): https://www.aidcmo.com/zh/services
+- OpenCMO workspace: https://www.aidcmo.com/workspace
 - OpenCMO open-source project (EN): https://www.aidcmo.com/en/open-source
 - OpenCMO open-source project (ZH): https://www.aidcmo.com/zh/open-source
 - Sample audit walkthrough (EN): https://www.aidcmo.com/en/sample-audit
-- Hosted version waitlist (EN): https://www.aidcmo.com/en/hosted
-- Hosted version waitlist (ZH): https://www.aidcmo.com/zh/hosted
 - Public blog (EN): https://www.aidcmo.com/en/blog
 - Public blog (ZH): https://www.aidcmo.com/zh/blog
 - Source code: https://github.com/study8677/OpenCMO
@@ -34,30 +32,31 @@ people can join the waitlist.
 
 ## Core capabilities
 
-- Multi-agent SEO / GEO / community audits powered by OpenCMO
+- Private customization for OpenCMO deployment and workflow adaptation
 - AI visibility scoring across Perplexity, ChatGPT, Gemini, Claude, You.com
 - Community visibility monitoring across Reddit, Hacker News, Dev.to, YouTube, Bluesky, Twitter/X
 - SERP keyword monitoring and competitor framing
 - Brand entity and citability assessment for AI answer surfaces
 - 30-day action backlog of content / link / technical recommendations
-- Human-delivered: one operator reads the report and walks the founder through it
+- Deployed workspace trial for hands-on evaluation
 - Open-source self-host path for teams who'd rather run it themselves
 
 ## Agent guidance
 
 - Start with the homepage for the canonical positioning.
-- Use `/services` for the human-delivered audit offer.
+- Use `/services` for OpenCMO private customization.
 - Use `/open-source` and the GitHub repo for the self-host path.
 - Use `/sample-audit` to see what an audit looks like in concrete terms.
-- Use `/hosted` for the managed-version waitlist (Coming soon, no date promised).
+- Use `/workspace` for the deployed OpenCMO trial.
 - Use the blog for durable OpenCMO, CMO, product marketing, GTM, and
   visibility-operation explanations.
-- Treat `/workspace`, `/projects/*`, `/chat`, and `/approvals` as private operator
+- Use `/workspace` to try the deployed OpenCMO application surface.
+- Treat `/projects/*`, `/chat`, and `/approvals` as private operator
   surfaces — these are not public documentation.
 
 ## What aidCMO is not
 
-- Not a B2B email-leads marketplace.
+- Not a contact-list marketplace.
 - Not a SaaS dashboard you log into and figure out yourself.
 - Not a bulk-send / spam / lead-blast tool.
 - Not a closed-source SaaS — the engine is publicly inspectable on GitHub.
@@ -88,5 +87,6 @@ people can join the waitlist.
 - Use `/en/...` and `/zh/...` when a language-specific citation matters.
 - Old paths `/b2b-leads`, `/sample-data`, `/data-policy`, `/seo-geo` 301-redirect
   to `/services` or `/` (locale-preserved). Do not crawl them as canonical pages.
-- Internal workspace routes such as `/workspace`, `/projects/*`, `/chat`, and
-  `/approvals` are application surfaces, not documentation pages.
+- `/workspace` is the public entrypoint into the live OpenCMO app surface.
+- Deeper app routes such as `/projects/*`, `/chat`, and `/approvals` are
+  operator surfaces, not documentation pages.

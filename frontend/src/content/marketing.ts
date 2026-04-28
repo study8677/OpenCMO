@@ -40,7 +40,7 @@ export type BlogArticle = {
 
 export const PUBLIC_HOME_NAV: PublicNavItem[] = [
   { href: "/services", label: "landing.navServices" },
-  { href: "/open-source", label: "landing.navOpenSource" },
+  { href: "/workspace", label: "landing.navOpenSource" },
   { href: "/sample-audit", label: "landing.navAuditExample" },
   { href: "/blog", label: "landing.navBlog" },
   { href: "/contact", label: "landing.navContact" },
@@ -668,7 +668,7 @@ export function getHostedPath(locale?: SeoLocale | null) {
 // inbound links from the public web. The deprecated paths returned here
 // also bounce to /services or / via those 301s.
 
-/** @deprecated B2B leads page deleted — points to /services */
+/** @deprecated legacy lead page deleted — points to /services */
 export function getB2BLeadsPath(locale?: SeoLocale | null) {
   return getServicesPath(locale);
 }

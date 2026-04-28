@@ -1,19 +1,17 @@
 import {
   ArrowRight,
-  ArrowUpRight,
   ExternalLink,
   Github,
+  MonitorPlay,
 } from "lucide-react";
 import { Link } from "react-router";
 import { SiteFooter } from "../components/layout/SiteFooter";
 import { PublicSiteHeader } from "../components/marketing/PublicSiteHeader";
 import { SectionReveal } from "../components/marketing/SectionReveal";
 import { BuiltInOpen } from "../components/marketing/BuiltInOpen";
-import { HostedWaitlist } from "../components/marketing/HostedWaitlist";
 import {
   PUBLIC_HOME_NAV,
   getContactPath,
-  getOpenSourcePath,
   getServicesPath,
 } from "../content/marketing";
 import { usePublicPageMetadata } from "../hooks/usePublicPageMetadata";
@@ -45,6 +43,30 @@ const HERO_BADGES = [
   "landing.heroBadgeLicense",
   "landing.heroBadgeSelfHost",
   "landing.heroBadgeByok",
+] as const;
+
+const PATH_CARDS = [
+  {
+    title: "landing.pathPrivateTitle",
+    body: "landing.pathPrivateDesc",
+    cta: "landing.heroPrimaryCta",
+    href: "/services",
+    external: false,
+  },
+  {
+    title: "landing.pathGithubTitle",
+    body: "landing.pathGithubDesc",
+    cta: "landing.heroSecondaryCta",
+    href: GITHUB_REPO_URL,
+    external: true,
+  },
+  {
+    title: "landing.pathDeployedTitle",
+    body: "landing.pathDeployedDesc",
+    cta: "landing.workspaceCta",
+    href: "/workspace",
+    external: false,
+  },
 ] as const;
 
 export function LandingPage() {
@@ -93,6 +115,14 @@ export function LandingPage() {
                 {t("landing.heroSecondaryCta")}
                 <ExternalLink size={14} />
               </a>
+              <Link
+                to="/workspace"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/6 px-7 py-4 text-sm font-semibold text-white/90 transition-colors hover:border-white/25 hover:text-white"
+              >
+                <MonitorPlay size={16} />
+                {t("landing.workspaceCta")}
+                <ArrowRight size={14} />
+              </Link>
             </div>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
@@ -169,12 +199,52 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Hosted waitlist ----------------------------------------- */}
+        {/* Three paths ---------------------------------------------- */}
         <section className="bg-[#08141f]">
           <div className="mx-auto max-w-7xl px-4 py-20 lg:px-8 lg:py-24">
             <SectionReveal>
-              <HostedWaitlist variant="inline" />
+              <div className="max-w-3xl">
+                <p className="text-sm font-semibold uppercase tracking-wider text-white/55">
+                  {t("landing.pathEyebrow")}
+                </p>
+                <h2 className="font-display mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                  {t("landing.pathTitle")}
+                </h2>
+                <p className="mt-4 text-base leading-7 text-white/70">
+                  {t("landing.pathSubtitle")}
+                </p>
+              </div>
             </SectionReveal>
+
+            <div className="mt-10 grid gap-4 lg:grid-cols-3">
+              {PATH_CARDS.map((item, idx) => (
+                <SectionReveal key={item.title} delay={idx * 0.05}>
+                  <div className="flex h-full flex-col rounded-2xl border border-white/8 bg-white/4 p-6">
+                    <h3 className="text-xl font-semibold text-white">{t(item.title)}</h3>
+                    <p className="mt-3 flex-1 text-sm leading-6 text-white/66">{t(item.body)}</p>
+                    {item.external ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-white transition-colors hover:text-[#f7ecde]"
+                      >
+                        {t(item.cta)}
+                        <ExternalLink size={14} />
+                      </a>
+                    ) : (
+                      <Link
+                        to={item.href}
+                        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-white transition-colors hover:text-[#f7ecde]"
+                      >
+                        {t(item.cta)}
+                        <ArrowRight size={14} />
+                      </Link>
+                    )}
+                  </div>
+                </SectionReveal>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -202,12 +272,21 @@ export function LandingPage() {
                 >
                   {t("landing.contactCta")}
                 </Link>
-                <Link
-                  to={getOpenSourcePath(seoLocale)}
+                <a
+                  href={GITHUB_REPO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm font-semibold text-white/65 transition-colors hover:text-white"
                 >
                   {t("landing.heroSecondaryCta")}
-                  <ArrowUpRight size={14} />
+                  <ExternalLink size={14} />
+                </a>
+                <Link
+                  to="/workspace"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-white/65 transition-colors hover:text-white"
+                >
+                  {t("landing.workspaceCta")}
+                  <ArrowRight size={14} />
                 </Link>
               </div>
               <p className="mt-10 text-sm text-white/55">

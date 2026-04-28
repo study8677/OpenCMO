@@ -127,7 +127,7 @@ const PAGE_CONTENT: Record<PublicServicePageKind, ServicePageContent> = {
     sectionSubtitle: "service.contact.sectionSubtitle",
     sections: [
       // B2B inquiry types (leads / geo / policy) deleted in repositioning.
-      // The remaining "seo" inquiry stands in for "growth audit" inquiries.
+      // The remaining "seo" inquiry stands in for customization/support inquiries.
       { icon: Search, title: "service.contact.seoTitle", description: "service.contact.seoDesc" },
     ],
     detailTitle: "service.contact.detailTitle",

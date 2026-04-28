@@ -3,6 +3,7 @@
 After §B.9 lands, no new commit should reintroduce B2B copy or
 references to deleted routes in:
   - src/opencmo/web/app.py (server-side SEO meta + JSON-LD)
+  - frontend/index.html (Vite base HTML used by dev + builds)
   - frontend/public/sitemap.xml
   - frontend/public/llms.txt
 
@@ -17,6 +18,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 APP_PY = REPO_ROOT / "src" / "opencmo" / "web" / "app.py"
+FRONTEND_INDEX = REPO_ROOT / "frontend" / "index.html"
 SITEMAP = REPO_ROOT / "frontend" / "public" / "sitemap.xml"
 LLMS_TXT = REPO_ROOT / "frontend" / "public" / "llms.txt"
 
@@ -55,6 +57,15 @@ def test_app_py_no_b2b_marketing_copy():
         f"app.py still contains B2B marketing copy: {offenders}. "
         f"§B.9.1 should have rewritten the SEO meta blocks."
     )
+
+
+def test_frontend_index_no_b2b_marketing_copy():
+    text = _read(FRONTEND_INDEX)
+    offenders = []
+    for phrase in _B2B_PHRASES:
+        if phrase.lower() in text.lower():
+            offenders.append(phrase)
+    assert not offenders, f"frontend/index.html still contains B2B marketing copy: {offenders}"
 
 
 def test_sitemap_no_dead_routes():
